@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { textures, TILE_MM, type TextureSet } from './textures';
 
 export type MatName =
-  | 'powderBlack' | 'powderBlackInner' | 'powderWhite' | 'powderWhiteInner' | 'powderGunmetal' | 'powderGunmetalInner' | 'powderPanel' | 'panelPowder' | 'finAnodized' | 'capTop' | 'capBody' | 'pcbCore' | 'plasticMolded' | 'finGraphite' | 'aluLid' | 'aluStamp'
+  | 'powderBlack' | 'powderBlackInner' | 'powderWhite' | 'powderWhiteInner' | 'powderGunmetal' | 'powderGunmetalInner' | 'powderPanel' | 'panelPowder' | 'finAnodized' | 'capTop' | 'capBody' | 'pcbCore' | 'stickerMatte' | 'chipTop' | 'plasticMolded' | 'finGraphite' | 'aluLid' | 'aluStamp'
   | 'steelBare' | 'steelZinc'
   | 'aluBlack' | 'aluSilver' | 'aluWhite' | 'aluRaw' | 'aluBrushed' | 'aluBrushedDark' | 'aluBrushedPlate' | 'aluAnodized' | 'aluCast' | 'aluSatin' | 'aluSatinDark' | 'aluGunmetal'
   | 'nickel' | 'nickelLapped' | 'pipeNickel' | 'copper' | 'gold' | 'solder'
@@ -120,7 +120,12 @@ function makeMat(name: MatName): THREE.Material {
     case 'pcbWhite': return physical({ color: 0xe6e7ea, metalness: 0.05, roughness: 0.38, clearcoat: 0.6, clearcoatRoughness: 0.2, roughnessMap: t.grainFine });
     case 'pcbGreen': return physical({ color: 0x0f3a24, metalness: 0.05, roughness: 0.48, clearcoat: 0.3, clearcoatRoughness: 0.35 });
     case 'pcbEdge': return physical({ color: 0x8b7f5c, metalness: 0, roughness: 0.75 });
-    case 'pcbCore': return physical({ color: 0x4a4538, metalness: 0, roughness: 0.86, specularIntensity: 0.4 });
+    // Label stock rolled over chips: matte, so its rolled edge does not read as a polished rim.
+    // A controller's molded top: matte with the faint mottling of the mold and a laser marked finish.
+    case 'chipTop': return physical({ color: 0x1e1f23, metalness: 0, roughness: 0.62, roughnessMap: t.mottle, bumpMap: t.bead, bumpScale: 0.04 });
+    case 'stickerMatte': return physical({ color: 0x17181c, metalness: 0, roughness: 0.78, roughnessMap: t.grainFine, specularIntensity: 0.45 });
+    // Fiberglass core: lighter than the mask, so a board's edge separates from what it stands on, and not glossy.
+    case 'pcbCore': return physical({ color: 0x625b48, metalness: 0, roughness: 0.62, roughnessMap: t.grainFine, specularIntensity: 0.5 });
     case 'chip': return physical({ color: 0x1e1f23, metalness: 0, roughness: 0.55, roughnessMap: t.grainFine });
     case 'chipWhite': return physical({ color: 0xcfd0d4, metalness: 0, roughness: 0.5 });
     // Ceramic chip capacitors a millimeter long: a duller tan, as a brighter one read as a lone sparkle a pixel wide.

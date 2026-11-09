@@ -17,6 +17,11 @@ function gridLabel(labels: Labels, w: number, h: number, m: THREE.Matrix4, lines
     const s = W / w;
     g.fillStyle = dark ? 'rgba(24,25,29,1)' : 'rgba(226,227,230,1)';
     g.fillRect(0, 0, W, H);
+    // Dark label stock shows the fine grain of its print; flat black read as plastic.
+    if (dark) {
+      const rr = seededFor(`label-${title}-${model}`);
+      for (let i = 0; i < W * H / 60; i++) { const v = 30 + Math.floor(rr() * 14); g.fillStyle = `rgba(${v},${v + 1},${v + 4},1)`; g.fillRect(rr() * W, rr() * H, 1 + rr() * 2, 1 + rr() * 2); }
+    }
     g.fillStyle = tab;
     g.beginPath(); g.moveTo(W - 9 * s, 0); g.lineTo(W, 0); g.lineTo(W, 9 * s); g.closePath(); g.fill();
     const ink = dark ? 'rgba(214,216,222,1)' : 'rgba(26,27,31,1)';
@@ -62,20 +67,22 @@ function nvme(pb: PartBuilder, labels: Labels) {
   s.absarc(L, 0, 1.75, -Math.PI / 2, -Math.PI * 1.5, true);
   s.lineTo(L, W / 2 - 0.6); s.quadraticCurveTo(L, W / 2, L - 0.6, W / 2); s.lineTo(0, W / 2);
   s.lineTo(0, -W / 2 + 4.3); s.lineTo(3.8, -W / 2 + 4.3); s.lineTo(3.8, -W / 2 + 3.1); s.lineTo(0, -W / 2 + 3.1); s.closePath();
-  pb.add(extrude(s, T, 0.12, 'xy', 18), 'pcbEdge');
+  pb.add(extrude(s, T, 0.25, 'xy', 18, 2), 'pcbCore');
   // A dense board: an M.2 stick is routed edge to edge around its controller.
-  const boardMat = smallBoardMaterial('nvme', L, W, { mask: 'rgba(18,20,24,1)', trace: 'rgba(50,58,72,1)', pad: 'rgba(150,140,112,1)', body: 'rgba(46,42,36,1)' }, [0, -W / 2], 3);
+  const boardMat = smallBoardMaterial('nvme', L, W, { mask: 'rgba(18,20,24,1)', trace: 'rgba(64,74,92,1)', pad: 'rgba(150,140,112,1)', body: 'rgba(46,42,36,1)' }, [0, -W / 2], 3, true, [[27, 8.6, 53, 13.4]]);
   pb.mesh(new THREE.ShapeGeometry(s, 18), boardMat, at(0, 0, T + 0.025), { uv: 'keep' });
   pb.mesh(new THREE.ShapeGeometry(s, 18), boardMat, xf({ p: [0, 0, -0.025], r: [Math.PI, 0, 0] }), { uv: 'keep' });
   // The M key gap has to land over the notch in the board on both faces: the top face plane runs the other way.
-  const fingersTop = fingerMaterial('m2-top', W, 4, 0.5, [[W - 4.3, W - 3.1]], 'rgba(14,16,20,1)');
-  const fingersBottom = fingerMaterial('m2-bottom', W, 4, 0.5, [[3.1, 4.3]], 'rgba(14,16,20,1)');
+  // Hard gold plating is close to a mirror: a smoother finish than the board's matte parts, so the fingers read as plated.
+  // A deeper gold: seen close in the Inspector, the plating mirrors a bright softbox and the paler tone burned to beige.
+  const fingersTop = fingerMaterial('m2-top', W, 4, 0.5, [[W - 4.3, W - 3.1]], 'rgba(14,16,20,1)', 0.2, 'rgba(176,124,40,1)');
+  const fingersBottom = fingerMaterial('m2-bottom', W, 4, 0.5, [[3.1, 4.3]], 'rgba(14,16,20,1)', 0.2, 'rgba(176,124,40,1)');
   for (const side of [1, -1]) {
     const fingers = side > 0 ? fingersTop : fingersBottom;
     const g = new THREE.PlaneGeometry(W, 3.8); g.translate(0, 1.9, 0);
     pb.mesh(g, fingers, new THREE.Matrix4().makeTranslation(0, 0, side > 0 ? T + 0.05 : -0.05).multiply(new THREE.Matrix4().makeRotationZ(-Math.PI / 2)).multiply(side > 0 ? new THREE.Matrix4() : new THREE.Matrix4().makeRotationY(Math.PI)), { uv: 'keep' });
   }
-  pb.add(rbox(12.5, 12.5, 1.2, 0.3, 1), 'chip', xf({ p: [12.5, 0, T + 0.6] }));
+  pb.add(rbox(12.5, 12.5, 1.2, 0.3, 1), 'chipTop', xf({ p: [12.5, 0, T + 0.6] }));
   pb.add(rbox(14, 17, 1.25, 0.3, 1), 'chip', xf({ p: [32, 0, T + 0.62] }));
   pb.add(rbox(14, 17, 1.25, 0.3, 1), 'chip', xf({ p: [50, 0, T + 0.62] }));
   pb.add(rbox(6, 5, 0.9, 0.2, 1), 'chip', xf({ p: [66, -5, T + 0.45] }));
@@ -88,7 +95,7 @@ function nvme(pb: PartBuilder, labels: Labels) {
     pb.add(rbox(1.0, 0.5, 0.45, 0.1, 1), r() > 0.5 ? 'ceramic' : 'chip', xf({ p: [x, y, T + 0.22], r: [0, 0, r() > 0.5 ? Math.PI / 2 : 0] }));
   }
   // The label is a thin sticker laid over the two flash packages: it stands at their height and rolls down to the board at its edges.
-  pb.add(extrude(rrectShape(39.4, 20, 1.6), 1.36, 0.66, 'xy', 8, 3), 'sticker', at(41, 0, T));
+  pb.add(extrude(rrectShape(39.4, 20, 1.6), 1.36, 0.66, 'xy', 8, 3), 'stickerMatte', at(41, 0, T));
   const spec = getStorage('nvme');
   labels.text('PELLAM', TINY_TYPE, 1.2, xf({ p: [12.5, 2.6, T + 1.22] }), { color: '#9a9ea7' });
   labels.text('PL-C2 2611', TINY_TYPE, 0.9, xf({ p: [12.5, 0.4, T + 1.22] }), { color: '#80848d' });
@@ -96,7 +103,7 @@ function nvme(pb: PartBuilder, labels: Labels) {
   gridLabel(labels, 38, 18.6, xf({ p: [41, 0, T + 1.39] }), ['NVMe PCIe 4.0', '2280 M KEY', '3.3 V 2.5 A', 'PN PL-AR2T', 'SN 26118407', 'MADE FOR BENCH'], brandName(spec?.brand ?? 'pellam').toUpperCase(), spec?.name ?? 'Arrow 2 TB', TAB_COLOR.nvme, true);
   labels.text('M.2 2280', TINY_TYPE, 0.8, xf({ p: [76.5, 7.8, T + 0.02] }), { color: '#8f949c' });
   for (let i = 0; i < 5; i++) pb.add(rbox(1.0, 1.5, 0.6, 0.1, 1), 'chip', xf({ p: [5.5 + i * 1.6, 9.2, -0.3] }));
-  labels.text('PELLAM · ARROW · REV B', TINY_TYPE, 0.9, xf({ p: [40, 0, -0.02], r: [Math.PI, 0, 0] }), { color: '#8f949c' });
+  labels.text('PELLAM · ARROW · REV B', TINY_TYPE, 1.5, xf({ p: [40, 0, -0.02], r: [Math.PI, 0, 0] }), { color: '#c4c8cf' });
 }
 
 function ssd(pb: PartBuilder, labels: Labels): Record<string, Anchor> {

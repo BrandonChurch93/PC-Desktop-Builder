@@ -199,7 +199,18 @@ export class Inspector {
       }
       if (box.isEmpty()) box.setFromObject(part.root);
       box.getCenter(this.center); box.getSize(this.size);
-      orient.position.set(-this.center.x, -box.min.y + 0.004, -this.center.z);
+      // The part stands on its lowest real surface: collision boxes have margins, and standing on them left every part
+      // floating 4 mm over the disc, or let a cooler's tubes dip into it.
+      let floor = Infinity;
+      const gb = new THREE.Box3();
+      part.root.traverse((o) => {
+        if (!(o instanceof THREE.Mesh) || o.userData.spill || o.userData.label || o.userData.glass) return;
+        if (o instanceof THREE.InstancedMesh) { o.computeBoundingBox(); gb.copy(o.boundingBox!).applyMatrix4(o.matrixWorld); }
+        else { o.geometry.computeBoundingBox(); gb.copy(o.geometry.boundingBox!).applyMatrix4(o.matrixWorld); }
+        floor = Math.min(floor, gb.min.y);
+      });
+      if (!Number.isFinite(floor)) floor = box.min.y;
+      orient.position.set(-this.center.x, -floor + 0.0002, -this.center.z);
       this.center.set(0, this.size.y / 2 + 0.004, 0);
       this.radius = Math.max(0.02, this.size.length() / 2);
       const r = Math.max(this.size.x, this.size.z) * 0.62 + 0.012;
@@ -207,7 +218,10 @@ export class Inspector {
       // Boxes that stand flat on the disc throw a wider contact shade; a tight one stayed hidden under their footprint.
       const sk = category === 'case' || category === 'psu' ? 1.42 : 1.15;
       // A part that stands on a thin edge, such as a memory stick, still gets a shade band a few centimeters wide.
-      this.shade.scale.set(this.size.x * sk, Math.max(this.size.z * sk, category === 'ram' ? 0.034 : 0), 1);
+      // A stick that lies flat, such as an M.2 drive, needs a wider shade to show past its edges.
+      const flat = category === 'storage' && id === 'nvme' ? 1.5 : 1;
+      this.shade.scale.set(this.size.x * sk * flat, Math.max(this.size.z * sk * flat, category === 'ram' ? 0.034 : 0), 1);
+      (this.shade.material as THREE.MeshBasicMaterial).opacity = flat > 1 ? 0.92 : 0.75;
       const gs = Math.max(this.size.x, this.size.z) * 2.6;
       this.glow.scale.set(gs, gs, 1);
       this.holder.updateMatrixWorld(true);

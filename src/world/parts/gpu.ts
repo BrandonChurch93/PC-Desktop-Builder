@@ -249,14 +249,14 @@ function veltrin(pb: PartBuilder, labels: Labels, c: Card): { zones: Zone[]; rot
     zone.emit(new THREE.Vector3((barX0 + barX1) / 2, wallY0 + sideH * 0.78, barZ), new THREE.Vector3(0, 1, 0.3), barX1 - barX0, 10, 0.5, new THREE.Vector3(1, 0, 0));
     zones2.push(zone);
   }
-  const wordX = c.back + 160;
+  const wordX = c.back + 78;
   if (lit >= 2) {
-    const word = new Zone(`${c.key}:word`, 'gpu', false, Array.from({ length: 8 }, (_, i) => new THREE.Vector3(wordX - 26 + i * 7.4, wallY0 + sideH * 0.32, barZ)), 0.9);
-    labels.text(brandName(c.spec.brand), BRAND_TYPE[c.spec.brand] ?? SPEC_TYPE, 6.2, xf({ p: [wordX, wallY0 + sideH * 0.33, c.H + 0.05], r: [0, 0, 0] }), { lit: { tex: word.secondary(), intensity: 1.1 } });
-    word.emit(new THREE.Vector3(wordX, wallY0 + sideH * 0.33, c.H + 1), new THREE.Vector3(0, 0, 1), 60, 10, 0.6, new THREE.Vector3(1, 0, 0));
+    const word = new Zone(`${c.key}:word`, 'gpu', false, Array.from({ length: 8 }, (_, i) => new THREE.Vector3(wordX - 26 + i * 7.4, wallY0 + sideH * 0.6, barZ)), 0.9);
+    labels.text(brandName(c.spec.brand), BRAND_TYPE[c.spec.brand] ?? SPEC_TYPE, 6.2, xf({ p: [wordX, wallY0 + sideH * 0.6, c.H + 0.05], r: [0, 0, 0] }), { lit: { tex: word.secondary(), intensity: 1.1 } });
+    word.emit(new THREE.Vector3(wordX, wallY0 + sideH * 0.6, c.H + 1), new THREE.Vector3(0, 0, 1), 60, 10, 0.6, new THREE.Vector3(1, 0, 0));
     zones2.push(word);
   } else {
-    labels.text(brandName(c.spec.brand), BRAND_TYPE[c.spec.brand] ?? SPEC_TYPE, 5.2, xf({ p: [wordX, wallY0 + sideH * 0.33, c.H + 0.05] }), { color: c.frost ? '#5f636c' : '#b9bdc5' });
+    labels.text(brandName(c.spec.brand), BRAND_TYPE[c.spec.brand] ?? SPEC_TYPE, 5.2, xf({ p: [wordX, wallY0 + sideH * 0.6, c.H + 0.05] }), { color: c.frost ? '#5f636c' : '#b9bdc5' });
   }
   if (lit >= 3) {
     const rc = new THREE.Vector3(core[0] + 70, bpY + bpT + 0.6, (c.clear + c.H) / 2);
@@ -268,7 +268,7 @@ function veltrin(pb: PartBuilder, labels: Labels, c: Card): { zones: Zone[]; rot
     zones2.push(ring);
   }
   zones.push(...zones2);
-  labels.text(`${c.spec.name.toUpperCase()}`, MODEL_TYPE, 2.4, xf({ p: [c.back + 40, wallY0 + sideH * 0.32, c.H + 0.05] }), { color: c.frost ? '#7a7e87' : '#7d818a', align: 'left' });
+  labels.text(`${c.spec.name.toUpperCase()}`, MODEL_TYPE, 2.4, xf({ p: [c.end - ch - 12, wallY0 + sideH * 0.6, c.H + 0.05] }), { color: c.frost ? '#7a7e87' : '#7d818a', align: 'right' });
   const anchors = powerSockets(pb, labels, c, sockX);
   return { zones, rotors, anchors };
 }

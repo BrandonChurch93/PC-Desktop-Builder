@@ -43,7 +43,7 @@ export function studioEnvironment(renderer: THREE.WebGLRenderer, variant: 'room'
   if (variant === 'room') {
     band(0.16, 0x9a96c8);
     panel(2.8, 1.8, 0xfff0e2, 8, [2.2, 3.2, 3.2], [0, 0.3, 0]);
-    panel(3.6, 0.8, 0xdfe6ff, 4.5, [-0.6, 4.2, 0.4], [0, 0, 0]);
+    panel(3.6, 0.8, 0xdfe6ff, 1.8, [-0.6, 4.2, 0.4], [0, 0, 0]);
     panel(0.7, 3.2, 0xc8d0ff, 3.5, [-3.4, 1.4, 1.8], [0, 0.4, 0]);
     panel(4.4, 0.4, 0xfff4ea, 5, [0.6, 1.8, 3.8], [0, 0.4, 0]);
     panel(1.4, 1.4, 0x7d6bff, 1.4, [0.4, 1.2, -3.6], [0, 0.4, 0]);

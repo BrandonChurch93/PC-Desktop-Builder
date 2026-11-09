@@ -198,23 +198,34 @@ export class World {
   }
 
   private macroViews() {
-    const add = (name: string, key: string, dir: [number, number, number], k: number, offset: [number, number, number] = [0, 0, 0]) => {
-      const b = this.rig.itemBounds(key);
-      if (!b) return;
-      const c = new THREE.Vector3(); b.getCenter(c); c.add(new THREE.Vector3(...offset));
-      const s = new THREE.Vector3(); b.getSize(s);
-      const d = Math.max(0.2, s.length() * k);
-      this.views[name] = { pos: c.clone().addScaledVector(new THREE.Vector3(...dir).normalize(), d), target: c };
+    const center = (key: string) => { const b = this.rig.itemBounds(key); return b ? b.getCenter(new THREE.Vector3()) : null; };
+    const box = (key: string) => this.rig.itemBounds(key);
+    const anchor = (key: string, name: string) => {
+      const it = this.rig.items.get(key); const a = it?.part.anchors[name];
+      if (!it || !a) return null;
+      it.holder.updateWorldMatrix(true, false);
+      return new THREE.Vector3(...a.pos).applyMatrix4(it.part.root.matrixWorld);
     };
-    add('gpu', 'gpu', [0.32, 0.36, 1], 1.15);
-    add('cooler', 'cooler', [0.1, 0.25, 1], 4.2);
-    add('ram', 'ram:0:A2', [0.55, 0.45, 1], 1.5, [0, 0, 0]);
-    add('board', 'board', [0.15, -0.05, 1], 0.95, [0.02, -0.05, 0]);
-    add('psu', 'psu', [0.55, 0.3, 1], 1.6);
-    add('fan', 'fan:front-2', [1.2, 0.2, 0.8], 2.2);
-    add('storage', 'storage:nvme:0', [0.3, 0.6, 1], 2.4);
-    add('cable', 'board', [0.6, 0.25, 1], 0.6, [0.05, 0.02, 0.02]);
-    add('case-detail', 'case', [1.1, 0.5, 0.6], 0.35, [0.18, 0.2, 0.05]);
+    const set = (name: string, target: THREE.Vector3 | null, offset: [number, number, number]) => {
+      if (!target) return;
+      this.views[name] = { pos: target.clone().add(new THREE.Vector3(...offset)), target };
+    };
+    const g = box('gpu');
+    set('gpu', g ? new THREE.Vector3(g.min.x + (g.max.x - g.min.x) * 0.58, g.max.y - 0.012, g.max.z - 0.02) : null, [0.17, 0.1, 0.45]);
+    set('cooler', center('cooler'), [0.1, 0.05, 0.36]);
+    const r = box('ram:0:A2');
+    set('ram', r ? new THREE.Vector3((r.min.x + r.max.x) / 2 - 0.004, (r.min.y + r.max.y) / 2, r.max.z - 0.005) : null, [0.22, 0.09, 0.33]);
+    const bd = box('board');
+    set('board', bd ? new THREE.Vector3(bd.min.x + 0.15, bd.min.y + 0.06, bd.max.z - 0.02) : null, [0.11, 0.03, 0.44]);
+    set('fan', center('fan:front-2'), [0.27, 0.12, 0.3]);
+    const c = anchor('board', 'atx24');
+    set('cable', c ? c.clone().add(new THREE.Vector3(0.0, 0.0, 0.03)) : null, [0.22, 0.02, 0.33]);
+    const p = box('psu');
+    set('psu', p ? new THREE.Vector3(p.min.x + 0.01, (p.min.y + p.max.y) / 2, (p.min.z + p.max.z) / 2 + 0.03) : null, [-0.3, 0.07, 0.22]);
+    const hd = box('storage:hdd:0') ?? box('storage:ssd:0') ?? box('storage:nvme:0');
+    set('storage', hd ? new THREE.Vector3((hd.min.x + hd.max.x) / 2, (hd.min.y + hd.max.y) / 2 + 0.012, hd.max.z + 0.02) : null, [0.14, 0.11, 0.34]);
+    const k = box('case');
+    set('case-detail', k ? new THREE.Vector3(k.max.x - 0.03, k.max.y - 0.06, k.max.z - 0.03) : null, [0.3, 0.14, 0.24]);
   }
 
   jump(name: string) {

@@ -34,7 +34,7 @@ const PART_SHOT = {
   case: { front: -38, back: 142, detail: { angle: -24, zoom: 0.72, focus: [0.95, 0.9, 0.85] } },
   board: { front: -24, back: 156, flipBack: false, detail: { angle: -16, zoom: 0.78, focus: [0.42, 0.72, 0.5] } },
   cpu: { front: -30, back: 150, flipBack: true, detail: { angle: -22, zoom: 0.82, focus: [0.3, 0.6, 0.35] } },
-  cooler: { front: -30, back: 150, detail: { angle: -20, zoom: 0.72, focus: [0.3, 0.55, 0.85] } },
+  cooler: { front: 152, back: -28, detail: { angle: 160, zoom: 0.74, focus: [0.25, 0.4, 0.1] } },
   ram: { front: -30, back: 150, detail: { angle: -24, zoom: 0.78, focus: [0.62, 0.85, 0.5] } },
   gpu: { front: -28, back: 152, detail: { angle: -34, zoom: 0.7, focus: [0.62, 0.92, 0.2] } },
   storage: { front: -30, back: 150, flipBack: true, detail: { angle: -24, zoom: 0.8, focus: [0.4, 0.8, 0.5] } },

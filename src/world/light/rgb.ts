@@ -138,11 +138,11 @@ export class RgbEngine {
       const n = Math.max(1, l.zones.length);
       const peak = Math.max(r, g, b, 1e-5) / n;
       l.light.color.setRGB(r / n / peak, g / n / peak, b / n / peak);
-      l.light.intensity = 9 * l.gain * this.lampGain * peak;
+      l.light.intensity = 3.2 * l.gain * this.lampGain * peak;
     }
     const peak = Math.max(this.average.r, this.average.g, this.average.b, 1e-5);
     this.wall.color.setRGB(this.average.r / peak, this.average.g / peak, this.average.b / peak);
-    this.wall.intensity = this.wallWash ? 7 * this.lampGain * peak : 0;
+    this.wall.intensity = this.wallWash ? 9 * this.lampGain * peak : 0;
   }
 
   get lampObjects(): THREE.RectAreaLight[] { return [...this.lamps.map((l) => l.light), this.wall]; }

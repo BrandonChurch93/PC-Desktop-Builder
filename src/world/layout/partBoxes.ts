@@ -41,7 +41,7 @@ export function pumpBoxes(): Box[] {
   return [
     box([-38, -38, 0], [38, 38, 6], 'plate'),
     box([-35, -35, 6], [35, 35, 52], 'pump'),
-    box([35, -18, 26], [49, 18, 46], 'fitting'),
+    box([-18, 34, 28], [18, 50, 48], 'fitting'),
   ];
 }
 

@@ -27,7 +27,7 @@ function physical(o: THREE.MeshPhysicalMaterialParameters): THREE.MeshPhysicalMa
 }
 
 const powder = (color: number, rough: number, coat: number) => physical({
-  color, metalness: 0, roughness: rough, roughnessMap: tex().grain, bumpMap: tex().peel, bumpScale: 0.35,
+  color, metalness: 0, roughness: rough, roughnessMap: tex().grain, bumpMap: tex().peel, bumpScale: 0.14,
   clearcoat: coat, clearcoatRoughness: 0.42, specularIntensity: 0.6,
 });
 
@@ -55,7 +55,7 @@ function makeMat(name: MatName): THREE.Material {
     case 'aluWhite': return physical({ color: 0xe8e9ec, metalness: 0.15, roughness: 0.38, roughnessMap: t.bead, clearcoat: 0.3, clearcoatRoughness: 0.3 });
     case 'aluRaw': return metal(0xbabdc2, 0.5, t.bead, { bumpMap: t.bead, bumpScale: 0.1 });
     case 'aluBrushed': return metal(0xbfc2c8, 0.28, t.brushed, { anisotropy: 0.85, bumpMap: t.brushed, bumpScale: 0.08 });
-    case 'aluBrushedDark': return metal(0x3b3e46, 0.3, t.brushed, { anisotropy: 0.8, bumpMap: t.brushed, bumpScale: 0.08 });
+    case 'aluBrushedDark': return metal(0x30333a, 0.3, t.brushed, { anisotropy: 0.8, bumpMap: t.brushed, bumpScale: 0.08 });
     case 'aluSatinDark': return metal(0x464950, 0.36, t.brushed, { anisotropy: 0.5 });
     case 'aluGunmetal': return metal(0x4b4e55, 0.38, t.brushed, { anisotropy: 0.6 });
     case 'nickel': return metal(0xcdced2, 0.17, t.grainFine);
@@ -84,7 +84,7 @@ function makeMat(name: MatName): THREE.Material {
     case 'glassSpec': return physical({ color: 0x000000, metalness: 0, roughness: 0.03, ior: 1.52, specularIntensity: 1, envMapIntensity: 3.2, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
     case 'glassEdge': return physical({ color: 0x3f6b62, metalness: 0, roughness: 0.08, transparent: true, opacity: 0.85, clearcoat: 1, clearcoatRoughness: 0.02 });
     case 'frit': return physical({ color: 0x07080a, metalness: 0, roughness: 0.32, clearcoat: 0.6, clearcoatRoughness: 0.1 });
-    case 'bladeSmoke': return physical({ color: 0x15161b, metalness: 0, roughness: 0.28, transparent: true, opacity: 0.9, clearcoat: 0.4, clearcoatRoughness: 0.2, side: THREE.DoubleSide, emissive: 0x000000 });
+    case 'bladeSmoke': return physical({ color: 0x101115, metalness: 0, roughness: 0.46, specularIntensity: 0.35, transparent: true, opacity: 0.9, clearcoat: 0.08, clearcoatRoughness: 0.2, side: THREE.DoubleSide, emissive: 0x000000 });
     case 'bladeFrost': return physical({ color: 0xe9ebf0, metalness: 0, roughness: 0.55, transparent: true, opacity: 0.92, side: THREE.DoubleSide, emissive: 0x000000 });
     case 'bladeBlack': return physical({ color: 0x1f2024, metalness: 0, roughness: 0.42, side: THREE.DoubleSide, roughnessMap: t.grainFine });
     case 'bladeWhite': return physical({ color: 0xe2e3e7, metalness: 0, roughness: 0.5, side: THREE.DoubleSide });

@@ -33,7 +33,7 @@ export class Room {
   readonly mirror: Reflector | null;
   readonly lights: RoomLights;
   private desk: THREE.Mesh;
-  private base = { key: 7.5, fill: 2.4, side: 1.6, shadow: 6, rim: 9, back: 16, hemi: 0.45 };
+  private base = { key: 7.5, fill: 2.4, side: 1.6, shadow: 6, rim: 16, back: 34, hemi: 0.45 };
   hideInMirror: () => THREE.Object3D[] = () => [];
 
   constructor(scene: THREE.Scene, mirrorSize: number) {

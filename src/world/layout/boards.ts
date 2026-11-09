@@ -111,7 +111,7 @@ export function boardBoxes(id: string): Box[] {
   const L = boardLayout(spec);
   const out: Box[] = [];
   out.push(box([0, -L.h, 0], [L.w, 0, T], 'pcb'));
-  out.push(box([80, -50, -3.2], [144, -114, 0], 'backplate'));
+  out.push(box([L.socket.x - 32, L.socket.y + 32, -3.2], [L.socket.x + 32, L.socket.y - 32, 0], 'backplate'));
   out.push(box([-3, -4, T], [31, -152, 42], 'io'));
   const vr = L.vrmRear; out.push(box([vr.x0, vr.y0, T], [vr.x1, vr.y1, T + vr.h], 'vrm'));
   const vt = L.vrmTop; out.push(box([vt.x0, vt.y0, T], [vt.x1, vt.y1, T + vt.h], 'vrm'));

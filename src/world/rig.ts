@@ -1,6 +1,9 @@
 import * as THREE from 'three';
 import type { Build } from '../engine/types';
+import { getGpu } from '../data/catalog';
+import { buildCables, cableSignature } from './cables';
 import { CASE_LAYOUTS } from './layout/cases';
+import { slotsOf } from './layout/partBoxes';
 import { rotate, type V3 } from './layout/math';
 import { place, type Placed } from './layout/place';
 import type { Zone } from './light/zones';
@@ -44,6 +47,8 @@ export class Rig {
   }
 
   caseId: string | null = null;
+  cables: THREE.Group | null = null;
+  private cableSig = '';
 
   sync(build: Build): void {
     this.caseId = build.case?.id ?? null;
@@ -71,8 +76,19 @@ export class Rig {
     for (const item of [...this.items.values()]) if (!seen.has(item.key)) this.drop(item);
     this.group.updateMatrixWorld(true);
     for (const item of this.items.values()) for (const z of item.part.zones) if (!z.owner) z.owner = item.part.root;
-    const glass = this.items.get('case')?.part.movers.glass;
+    const kase = this.items.get('case');
+    const glass = kase?.part.movers.glass;
     if (glass) glass.visible = build.glass;
+    const g = build.gpu ? getGpu(build.gpu) : undefined;
+    const used = g ? slotsOf(g.thickness) : 0;
+    for (let k = 1; k <= 7; k++) { const c = kase?.part.movers[`slot-cover-${k}`]; if (c) c.visible = k > used; }
+    const sig = `${cableSignature(build)}|${[...this.items.keys()].join(',')}`;
+    if (sig !== this.cableSig) {
+      if (this.cables) { this.cables.removeFromParent(); disposeTree(this.cables); }
+      this.cables = buildCables(build, this.items, this.detail);
+      this.group.add(this.cables);
+      this.cableSig = sig;
+    }
     this.onChange();
   }
 
@@ -118,5 +134,12 @@ export class Rig {
     return b;
   }
 
-  dispose() { for (const item of [...this.items.values()]) this.drop(item); }
+  dispose() {
+    for (const item of [...this.items.values()]) this.drop(item);
+    if (this.cables) disposeTree(this.cables);
+  }
+}
+
+function disposeTree(o: THREE.Object3D) {
+  o.traverse((x) => { if (x instanceof THREE.Mesh) x.geometry.dispose(); });
 }

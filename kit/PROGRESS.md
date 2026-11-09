@@ -1,4 +1,4 @@
-PHASE 1 IN PROGRESS · step 1
+PHASE 2 IN PROGRESS · step 1
 
 <!-- Builder: this file is your memory. Read it first in every session and after every compaction. Keep it current. Replace the first line as you go: "PHASE N IN PROGRESS · step k", "BLOCKED: ...", and at the very end "BUILD COMPLETE" with nothing else on that line. -->
 
@@ -6,18 +6,18 @@ PHASE 1 IN PROGRESS · step 1
 
 ## Where things stand
 
-- Current phase: 1 · Engine
-- Current step: 1 · src/data/catalog.ts
-- Next action: write catalog types, then the engine modules under src/engine/, then unit tests against kit/data/fixtures.json
-- Uncommitted work: none beyond the phase 0 commit
+- Current phase: 2 · World foundation and the hero slice
+- Current step: 1 · World class
+- Next action: read the Phase 2 Read first files (04-WORLD, 07-QUALITY-BAR, reference source), then build the World class and post chain
+- Uncommitted work: none
 
 ## Phases
 
 | Phase | Name | Status | Gate evidence | Commit |
 | --- | --- | --- | --- | --- |
 | 0 | Setup | done | see Gate 0 evidence below | phase 0: setup |
-| 1 | Engine | in progress | | |
-| 2 | World foundation and the hero slice | not started | | |
+| 1 | Engine | done | 134 unit tests pass, typecheck clean, check:copy 0 problems | phase 1: engine |
+| 2 | World foundation and the hero slice | in progress | | |
 | 3 | The roster | not started | | |
 | 4 | Cases and layouts | not started | | |
 | 5 | Interface and the build flow | not started | | |
@@ -37,6 +37,12 @@ PHASE 1 IN PROGRESS · step 1
 - All 13 reference shots and the harness shot opened; note under Reference notes
 - git ls-files kit/reference/night-rig/shots: 13
 - npm run check:shots with the empty table: `shots defined: 0 of 358 · passed: 0 · weak: 0 · contact sheets passed: 0 · problems: 367`, exit 1, as expected
+
+### Gate 1 evidence
+
+- npx vitest run: 6 files, 134 tests passed (fixtures: 6 presets x 6 checks + 1, 59 checks, 10 decodes; properties over 3600 seeded random builds from 120 walks of 30 steps, at least 500 distinct asserted; lighting math 11; messages 8; import scan 2; starter 2)
+- npm run typecheck: clean
+- npm run check:copy: `check:copy · files scanned: 12 · maker names: 93 · AI names: 27 · problems: 0`. A probe file with an em dash, #FFF, #000000, NVIDIA, Corsair, ChatGPT, the word AI and the product name gave 8 problems and exit 1, then was deleted.
 
 ## Environment
 
@@ -62,6 +68,13 @@ One line each: what you checked, where, what you found.
 One line each: the question, what you chose, which step of the decision rule settled it.
 
 - Branch name: renamed the default branch to main after git init. Consistency with common practice (step 5).
+- Engine colors: ledColor returns linear RGB, stops converted from sRGB hex with the exact sRGB curve, gradient blended in linear space as the reference does through THREE.Color. Spectrum and thermal use full saturation HSL values taken as linear, as THREE.setHSL does in r187. Channels are clamped to 0..1 at the end, which only trims the starlight and comet peaks (1.08 and 1.04). Truer to the reference (step 5).
+- LED hash: an integer hash of a stable zone key and the LED index instead of the reference sin hash, so it never depends on zone creation order. Same build, same pixels (step 3).
+- Decode: only the six light targets are copied from a link before sanitation, and fan entries are defined as own properties, so a __proto__ key can never touch a prototype. Output equals the reference on every fixture (step 3).
+- Removed ids that are not strings in a bad link are reported as String(id). The reference keeps the raw value. Only bad links reach this (step 3).
+- Card status for fans when every mount is under the radiator: blocked with FAN_MOUNT_TAKEN, The radiator uses this mount. The kit only says fans fit when a free mount exists (step 3).
+- RAM_SLOTS with exactly one free slot would read 1 is free. It cannot happen with this catalog (kits are 2 or 4 sticks) (step 4).
+- check-copy maker names are matched as whole words with the maker capitalization, so ordinary lowercase words never trip it. The self check removes any entry that matches a catalog name. None did (step 3).
 
 ## Dependencies added
 
@@ -89,6 +102,8 @@ Per shot verdicts live in `kit/VERDICTS.jsonl`, not here. At each gate write one
 
 Draw calls, triangles and frame times per tier, bundle sizes, thumbnail sizes, test counts.
 
+- Phase 1: 134 unit tests.
+
 ## Spend
 
 None. This build uses no paid service and no API.
@@ -105,6 +120,7 @@ One line per feature id in kit/01-PRODUCT.md: `F01 · where it is tested or show
 
 Newest first. One entry per working session or per compaction: what was done, what is next.
 
+- 2026-11-08 session 1, Phase 1: catalog types, engine (rules, sanitize, sheet, codec, lighting, messages, queries), tests, check-copy. Gate 1 passed.
 - 2026-11-08 session 1: read the whole kit, Phase 0 done (env, git, starter, install, four checks, harness on the reference, reference notes, empty shot check). Next: Phase 1 engine.
 
 ## Handoff

@@ -140,12 +140,12 @@ function braid(size: number, lo = 0.25, hi = 1): HTMLCanvasElement {
 }
 
 export type TextureSet = {
-  grain: THREE.Texture; grainFine: THREE.Texture; peel: THREE.Texture; brushed: THREE.Texture; bead: THREE.Texture;
+  grain: THREE.Texture; grainFine: THREE.Texture; peel: THREE.Texture; brushed: THREE.Texture; bead: THREE.Texture; orange: THREE.Texture; stipple: THREE.Texture;
   perf: THREE.Texture; braid: THREE.Texture; braidTone: THREE.Texture; braidToneHi: THREE.Texture; brushedCoarse: THREE.Texture; lap: THREE.Texture; mottle: THREE.Texture; soft: THREE.Texture;
 };
 
 /** Every texture is mapped in millimeters: a repeat of 1/tile makes one tile cover that many mm. */
-export const TILE_MM = { grain: 24, grainFine: 9, peel: 18, brushed: 48, bead: 10, perf: 3.2, braid: 2.2, lap: 14, mottle: 160, soft: 60 } as const;
+export const TILE_MM = { grain: 24, grainFine: 9, peel: 18, brushed: 48, bead: 10, orange: 16, stipple: 5, perf: 3.2, braid: 2.2, lap: 14, mottle: 160, soft: 60 } as const;
 
 let cached: TextureSet | null = null;
 let cachedScale = 0;
@@ -160,6 +160,9 @@ export function textures(scale = 1): TextureSet {
     peel: tile(wrap(fromValues(s(512), fbm(s(512), 22, 4, seeded(21), 0.55), 40, 215)), TILE_MM.peel),
     brushed: tile(wrap(brushed(s(1024), 7)), TILE_MM.brushed),
     bead: tile(wrap(grain(s(512), 31, 60, 196)), TILE_MM.bead),
+    // Smooth height fields for world scaled bumps: an orange peel for powder coat and a finer one for molded plastic.
+    orange: tile(wrap(fromValues(s(512), fbm(s(512), 9, 4, seeded(63), 0.5), 0, 255)), TILE_MM.orange),
+    stipple: tile(wrap(fromValues(s(512), fbm(s(512), 9, 4, seeded(67), 0.55), 0, 255)), TILE_MM.stipple),
     perf: tile(wrap(perforation(64, 0.76)), TILE_MM.perf),
     braid: tile(wrap(braid(s(256))), TILE_MM.braid),
     braidTone: tile(wrap(braid(s(256), 0.5, 1), { srgb: true }), TILE_MM.braid),

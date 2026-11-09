@@ -46,6 +46,8 @@ export type CaseLayout = {
   grommets: Grommet[];
   /** a post under the far end of a long card: the surface it stands on */
   supportFloorY: number;
+  /** a window in the supply shroud's top over the drive cage: its center and size on x and z, and the underside of the shroud top */
+  shroudWindow?: { x: number; z: number; w: number; d: number; y: number };
   views: Record<string, { pos: V3; target: V3 }>;
 };
 

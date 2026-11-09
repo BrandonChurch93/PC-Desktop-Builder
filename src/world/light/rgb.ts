@@ -9,8 +9,13 @@ const MM = 0.001;
 type Lamp = { light: THREE.RectAreaLight; zones: Zone[]; gain: number };
 type Pool = { mesh: THREE.Mesh; weights: { zone: Zone; w: number }[]; share: number };
 
-/** The case faces light leaves through: the front, the rear and the glass side. The tray side is solid in every case. */
+/**
+ * The case faces light leaves through: the front, the rear and the glass side. The tray side is solid in every case.
+ * Only LEDs close to the front or rear wall shine out through it: a front fan's inner face also faces the rear, but its light
+ * crosses the case and lands on the parts inside. Everything that faces the glass sees out through it.
+ */
 const POOL_DIRS = [new THREE.Vector3(1, 0, 0), new THREE.Vector3(-1, 0, 0), new THREE.Vector3(0, 0, 1)];
+const POOL_REACH = [0.06, 0.06, Infinity];
 const POOL_DEPTH = 0.42;
 const POOL_HEIGHT = 0.22;
 const POOL_GAIN = 0.16;
@@ -107,8 +112,9 @@ export class RgbEngine {
     if (bounds.isEmpty() || !this.zones.length) return;
     this.poolAlpha ??= poolTexture();
     const up = new THREE.Vector3(0, 1, 0);
-    for (const dir of POOL_DIRS) {
+    for (const [d, dir] of POOL_DIRS.entries()) {
       const weights = new Map<Zone, number>();
+      const wall = dir.x > 0 ? bounds.max.x : dir.x < 0 ? -bounds.min.x : bounds.max.z;
       for (const z of this.zones) {
         if (!z.owner) continue;
         const q = new THREE.Quaternion(); z.owner.getWorldQuaternion(q);
@@ -117,7 +123,10 @@ export class RgbEngine {
           const n = e.normal.clone().applyQuaternion(q).normalize();
           const facing = n.dot(dir);
           if (facing < 0.5) continue;
-          const y = e.center.clone().applyMatrix4(z.owner.matrixWorld).y - bounds.min.y;
+          const c = e.center.clone().applyMatrix4(z.owner.matrixWorld);
+          const gap = wall - c.dot(dir);
+          if (gap > POOL_REACH[d]!) continue;
+          const y = c.y - bounds.min.y;
           const w = facing * e.weight * e.w * e.h * s.x * s.x / (1 + (y / POOL_HEIGHT) ** 2);
           weights.set(z, (weights.get(z) ?? 0) + w);
         }

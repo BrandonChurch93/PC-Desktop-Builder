@@ -254,13 +254,18 @@ function veltrin(pb: PartBuilder, labels: Labels, c: Card): { zones: Zone[]; rot
   void skirt;
 
   fins(pb, c, fin.fin, c.back + 10, c.end - 10, c.fanY + plateT + 1.5, -6.5, c.clear + 3, c.H - 5);
-  heatpipes(pb, c, c.spec.fans >= 3 ? 5 : 4, -10, c.clear + 14, c.H - 18);
+  // Through the middle of the stack: just under the fin tops they read as bars lying on the fins from above.
+  heatpipes(pb, c, c.spec.fans >= 3 ? 5 : 4, -16, c.clear + 14, c.H - 18);
   c.fanX.forEach((fx, i) => rotors.push(cardFan(pb, labels, c, fx, mid, c.fanR, 11, trim, brandName(c.spec.brand).toUpperCase(), `${c.key}-${i}`)));
   {
     const shg = screwGeometry(1.7, 0.9, 'button');
     const shm = pb.own(new THREE.MeshPhysicalMaterial({ color: c.frost ? 0xd2d4d8 : 0x1c1d21, metalness: 1, roughness: 0.4, vertexColors: true }));
     for (const x of [c.back + 12, c.end - 40]) for (const z of [c.clear + 7, c.H - 9]) pb.add(shg.clone(), shm, xf({ p: [x, c.fanY - 0.05, z], r: [PI / 2, 0, 0] }), { uv: 'keep' });
     for (const x of [c.back + 26, c.end - ch - 18]) pb.add(shg.clone(), shm, xf({ p: [x, wallY0 + sideH * 0.3, c.H + 0.05] }), { uv: 'keep' });
+    // The shroud is screwed down on both sides of the power socket's cutout, and the connector is named beside it.
+    const sk = socketList(c); const skEnd = sockX + (sk.length - 1) * 25 + sk[0]!.w / 2;
+    for (const x of [sockX - sk[0]!.w / 2 - 7, skEnd + 19]) pb.add(shg.clone(), shm, xf({ p: [x, wallY0 + sideH - 5.2, c.H + 0.05] }), { uv: 'keep' });
+    labels.text(c.spec.plugs.startsWith('12V') ? '12V-2x6' : '8 PIN', TINY_TYPE, 1.5, xf({ p: [skEnd + 9.5, wallY0 + sideH - 5.2, c.H + 0.05] }), { color: c.frost ? '#6a6e78' : '#8c9098' });
     shg.dispose();
   }
 
@@ -287,8 +292,9 @@ function veltrin(pb: PartBuilder, labels: Labels, c: Card): { zones: Zone[]; rot
   const xb = roundedPoly(plus.map(([x, y]) => [k * (x - y), k * (x + y)] as [number, number]), 2.2);
   pb.add(extrude(xb, 1.2, 0.3, 'xy', 4, 1), c.frost ? 'powderWhite' : 'aluAnodized', xzAt(bpY + bpT + 1.2).multiply(new THREE.Matrix4().makeTranslation(core[0], core[1], 0)));
   const bpPrint = c.frost ? '#5e626b' : '#c0c4cc';
-  labels.text(brandName(c.spec.brand), BRAND_TYPE[c.spec.brand] ?? SPEC_TYPE, 6.5, xf({ p: [c.back + 150, bpY + bpT + 0.06, c.clear + 22], r: [-PI / 2, 0, 0] }), { color: bpPrint, align: 'left' });
-  labels.text(c.spec.name, MODEL_TYPE, 3.2, xf({ p: [c.back + 150, bpY + bpT + 0.06, c.clear + 12], r: [-PI / 2, 0, 0] }), { color: c.frost ? '#7d818a' : '#878b94', align: 'left' });
+  // The backplate print reads the right way up through the side glass with the card installed, as real backplates do.
+  labels.text(brandName(c.spec.brand), BRAND_TYPE[c.spec.brand] ?? SPEC_TYPE, 6.5, xf({ p: [c.back + 150, bpY + bpT + 0.06, c.clear + 12], r: [-PI / 2, 0, 0] }), { color: bpPrint, align: 'left' });
+  labels.text(c.spec.name, MODEL_TYPE, 3.2, xf({ p: [c.back + 150, bpY + bpT + 0.06, c.clear + 22], r: [-PI / 2, 0, 0] }), { color: c.frost ? '#7d818a' : '#878b94', align: 'left' });
 
   const barZ = c.H + 0.1;
   const barX0 = c.back + 16; const barX1 = c.end - ch * 0.9 - 6;
@@ -299,7 +305,7 @@ function veltrin(pb: PartBuilder, labels: Labels, c: Card): { zones: Zone[]; rot
     const zone = new Zone(`${c.key}:bar`, 'gpu', false, Array.from({ length: count }, (_, i) => new THREE.Vector3(barX0 + ((barX1 - barX0) * i) / (count - 1), wallY0 + sideH * 0.78, barZ)), 0.45);
     const bar = rbox(barX1 - barX0, 3.4, 2.4, 1.0, 3);
     uvAlong(bar, 'x');
-    pb.mesh(bar, zone.diffuser(0.85, 0x1f2026, 0.35), xf({ p: [(barX0 + barX1) / 2, wallY0 + sideH * 0.78, barZ] }), { uv: 'keep' });
+    pb.mesh(bar, zone.diffuser(0.74, 0x1f2026, 0.35), xf({ p: [(barX0 + barX1) / 2, wallY0 + sideH * 0.78, barZ] }), { uv: 'keep' });
     pb.add(rbox(barX1 - barX0 + 4, 5.6, 1.2, 0.5, 2), trim, xf({ p: [(barX0 + barX1) / 2, wallY0 + sideH * 0.78, barZ - 1] }));
     const spill = zone.spill(c.frost ? 0.3 : 0.6);
     const by = wallY0 + sideH * 0.78; const bx = (barX0 + barX1) / 2;
@@ -318,7 +324,7 @@ function veltrin(pb: PartBuilder, labels: Labels, c: Card): { zones: Zone[]; rot
   const wordX = c.back + 78; const wordV = 0.56;
   if (lit >= 2) {
     const word = new Zone(`${c.key}:word`, 'gpu', false, Array.from({ length: 11 }, (_, i) => new THREE.Vector3(wordX - 35 + i * 7, wallY0 + sideH * wordV, barZ)), 0.9);
-    labels.text(brandName(c.spec.brand), BRAND_TYPE[c.spec.brand] ?? SPEC_TYPE, 6.2, xf({ p: [wordX, wallY0 + sideH * wordV, c.H + 0.05], r: [0, 0, 0] }), { lit: { tex: word.secondary(), intensity: 0.8 } });
+    labels.text(brandName(c.spec.brand), BRAND_TYPE[c.spec.brand] ?? SPEC_TYPE, 6.2, xf({ p: [wordX, wallY0 + sideH * wordV, c.H + 0.05], r: [0, 0, 0] }), { lit: { tex: word.secondary(), intensity: 0.6 } });
     word.emit(new THREE.Vector3(wordX, wallY0 + sideH * wordV, c.H + 1), new THREE.Vector3(0, 0, 1), 60, 10, 0.6, new THREE.Vector3(1, 0, 0));
     zones2.push(word);
   } else {

@@ -1,4 +1,4 @@
-PHASE 2 IN PROGRESS · step 8
+PHASE 3 IN PROGRESS · step 1
 
 <!-- Builder: this file is your memory. Read it first in every session and after every compaction. Keep it current. Replace the first line as you go: "PHASE N IN PROGRESS · step k", "BLOCKED: ...", and at the very end "BUILD COMPLETE" with nothing else on that line. -->
 
@@ -6,10 +6,10 @@ PHASE 2 IN PROGRESS · step 8
 
 ## Where things stand
 
-- Current phase: 2 · World foundation and the hero slice
-- Current step: 8 · the loop on the 52 Phase 2 shots (builder verdicts, then critics)
-- Next action: retake the 52 Phase 2 shots after the critic 035 to 039 fixes, builder verdicts (shots/verdicts/builder-p2-9.txt), then critics from 040
-- Uncommitted work since d3a031a: everything in the session log entries from loop round 1 on (glass, lighting, materials, parts), plus round 040 prep: glass cards, desk pools, rear kicker, shroud top window, fin AO, board cover strip
+- Current phase: 3 · The roster
+- Current step: 1
+- Next action: re-read kit/07-QUALITY-BAR.md and the Phase 3 Read first files from disk, then start step 1 of Phase 3 in kit/08-BUILD-ORDER.md
+- Last commit: phase 2 gate (Gate 2 passed, evidence above)
 
 ## Phases
 
@@ -17,7 +17,7 @@ PHASE 2 IN PROGRESS · step 8
 | --- | --- | --- | --- | --- |
 | 0 | Setup | done | see Gate 0 evidence below | phase 0: setup |
 | 1 | Engine | done | 134 unit tests pass, typecheck clean, check:copy 0 problems | phase 1: engine |
-| 2 | World foundation and the hero slice | in progress | | |
+| 2 | World foundation and the hero slice | done | see Gate 2 evidence below | phase 2: world foundation and the hero slice |
 | 3 | The roster | not started | | |
 | 4 | Cases and layouts | not started | | |
 | 5 | Interface and the build flow | not started | | |
@@ -44,6 +44,27 @@ PHASE 2 IN PROGRESS · step 8
 - npm run typecheck: clean
 - npm run check:copy: `check:copy · files scanned: 12 · maker names: 93 · AI names: 27 · problems: 0`. A probe file with an em dash, #FFF, #000000, NVIDIA, Corsair, ChatGPT, the word AI and the product name gave 8 problems and exit 1, then was deleted.
 
+### Gate 2 evidence
+
+- `npm run check:shots -- rig/night-rig bench/night-rig macro/night-rig light/effect`: `shots defined: 205 of 358 · passed: 22 · weak: 0 · contact sheets passed: 0 · problems: 0`
+- `npm run check:shots -- part/case-vitrine-front part/case-vitrine-back part/case-vitrine-detail part/board-z7- part/cpu-ember8- part/cooler-tarn360-lux- part/ram-facet32- part/gpu-apex3x- part/storage-arrow- part/storage-vault- part/psu-t850- part/fan-gale-lux-`: `shots defined: 205 of 358 · passed: 30 · weak: 0 · contact sheets passed: 0 · problems: 0`
+- Layout items 3 to 7 of kit/04-WORLD.md for the Vitrine: tests B3 (free card length), B4 (height over the processor), B5 (supply bay), B6 (memory clearance) and B9 (glass 34 mm past the tallest card) in tests/unit/layout.test.ts pass; `npx vitest run`: 7 files, 147 tests passed. Typecheck clean, check:copy 0 problems (57 files).
+- `rig/night-rig-hero` taken twice in a row: `same: shots/rig/night-rig-hero.jpg · 1e28edc7594a` both times.
+- `__pcb.stats(5)` on the lit Night Rig hero at 1440 × 900, hardware renderer (ANGLE Metal, Apple M4 Pro), tier auto (high), pixel ratio 1: frames 261, median 19.0 ms, p95 20.4 ms, scene pass 686 draw calls and 1,776,518 triangles (main view, mirror and shadow maps as they update while running), whole frame 1087 calls and 2,818,715 triangles. Split on a frozen frame: main view alone 485 calls and 1.16 M triangles, the mirror about 200 calls, the two shadow maps about 580 calls when they refresh. Over the High targets (400 calls, 2 M triangles); logged for Phase 9.
+- Reference weak points, how each is beaten:
+  - 1 Glass: two meshes (tint and an additive specular layer) with real thickness and lit edge strips, a painted black border, four domed corner standoffs, and studio card reflections ray traced at real distances in the glass shader, so each view sees a reflection with an edge.
+  - 2 Case: rounded corner pillars and rolled lips, top front connectors with a power button, rubber feet, round perforated front and top, front fan rails, rear connector cutout, vented slot covers with a retention bar, a shroud with a vent field, cable cutouts, brand plate and a smoked drive window, and the supply seated in its bay.
+  - 3 Fans: blades are solid swept surfaces with thickness (smoked translucent on the Gale Lux), and above a threshold speed each rotor crossfades to a motion blurred disc, so fast fans do not strobe.
+  - 4 Card: backplate with an X brace, perimeter screws, slanted vents and a flow-through cutout; chamfered bracket with vents and a screw tab; three fans with stickered hubs, beveled bezels and ribs; shroud screws beside the power socket; the wordmark is its own zone, apart from the bar.
+  - 5 Board: socket contact field and retention frame, right angle 24 pin header with pin cells, power and SATA housings with cavities, pin headers with gold pins, rear connector block with ports, capacitors and chokes, and silkscreen labels throughout, front and back.
+  - 6 Cables: 24 pin, processor, 12V-2x6, SATA power and data, fan and pump leads; every wire its own sleeved tube with a two over two braid; combs with a lobe per wire; latched plug housings with cell collars seated in their headers; runs dive through rubber grommets.
+  - 7 Radiator and fittings: the core is real tube and fin geometry, the fittings are ribbed with chrome compression rings, and the tubes are braided.
+  - 8 Missing parts: the Ember 8 processor in its socket, the Arrow NVMe under its plate, the Vault 3.5 inch drive in the shroud cage behind a window with its leads, the T850 supply in its bay, all modeled.
+  - 9 LED lamps: grouped automatically from each zone's emitters (8 on High), each standing on its strongest emitter's plane; per LED spill layers light the surfaces beside each zone; desk pools under each open face take only the LEDs that shine through it, so the shroud end is not one flat patch.
+  - 10 Room: the desk mirror is clamped and hides the glass specular layer in its render; desk and wall have texture and a neutral wall takes the rig's wash; soft key shadow and placed rim and backdrop lights, so no hard case shadow falls on the wall.
+  - 12 Layout: a pure place(build) from case and board layouts sets every part, and the layout tests check it (B2 to B9).
+  - 13 Text: model names, capacities, ratings and small print on every part: board silkscreen, supply rating label and socket names, drive label grid, memory marks and kit label, card print, radiator and pump print, processor print, case plate and spec line.
+
 ## Environment
 
 - Date started: 2026-11-08
@@ -65,6 +86,7 @@ One line each: what you checked, where, what you found.
 - three r187 GTAOPass builds its denoise noise from SimplexNoise with Math.random (GTAOPass.js line 693). Replaced with a seeded noise texture so frames are the same on every load.
 - T850 size, checked again for critics 048 and 049 (psu-t850-front f94cca9633ed and back 0f4ad1be3a16, both failed X21 as a near cube about 100 to 115 mm tall): the Inspector measures the generated part at 160 by 86 by 150 mm (inspector size 0.16, 0.086, 0.15 m), the camera stands 18 degrees above the part's center, and the top fan opening is 128 mm wide, so the side is 0.67 of the opening, not three quarters. The critics misread the height. Unchanged images go to one more critic with critic-list --all.
 - Same build, same pixels: shadow maps update only on change, so blade shadows kept the angle the fans had whenever the map last rendered and the same frozen frame differed from run to run (found with scripts/imgdiff.mjs, 1698 pixels over 16 levels on the memory macro). On a frozen frame the maps now update every step; three captures then match to the pixel.
+- Right angle 24 pin headers are a real board option: the EVGA X79 manual says its 24 pin connector "may be standard or right angled depending on your motherboard model", and right angle 24 pin Mini-Fit Jr headers are sold as ATX board power connectors (SparkFun PRT-09498). Searched 2026-11-09. No source fixed the latch side; the latch faces away from the board, where a hand reaches it.
 - three r187 Object3D.lookAt on lights points them at the target; RectAreaLight lights one side only, so a lamp plane that cuts through a part lights only the part in front of it (found while debugging the inspector).
 
 - Pinned versions installed exactly as kit/06-ARCHITECTURE.md lists, read from node_modules/*/package.json.
@@ -78,6 +100,10 @@ One line each: the question, what you chose, which step of the decision rule set
 - Room glass reflections: analytic studio cards at real distances instead of an environment map, fading out close to the camera; the Inspector keeps its environment map. An environment at infinity cannot give a partial reflection with an edge in a view that sees the panel over a narrow cone (step 1, research logged under Shot results).
 - Vitrine shroud top window over the 3.5 inch cage (smoked glass in a rubber gasket), and the graphics cable grommet 16 mm further rear. A drive under a solid shroud can only be seen at about 12 degrees, where no label can be read; the case is a display case (step 2).
 - LED light on the desk: soft additive pools outside the faces light leaves through (front mesh, rear grille, glass), colored by the LEDs that face out through each. Area lamps facing out lit the desk only at grazing angles (step 2).
+- Bump mapping: three r187 measures bump height per screen pixel, so texture fades as you lean in. Materials that must hold texture up close opt into WORLD_BUMP (surface gradient bump, bumpScale in meters); the rest keep their tuning until a shot needs them, so passed shots do not all change at once (steps 2 and 5).
+- A drive under a shroud window gets a shade on its lid from the window's form factor, since area lights cast no shadows (step 1: light reaches it only through the aperture).
+- Vitrine front fan mount: two rails on the fans' screw lines instead of a plate with round cutouts, as many mesh front cases do, so the fan frames read through the mesh (steps 1 and 2).
+- Board 24 pin power: a right angle header flush with the board's front edge on every board, the plug lying flat with its latch toward the glass. A vertical header hides its plug under the cable's bend in every view through the glass. Each case's 24 pin grommet must stand at least 40 mm past the board edge (10 mm plug, 12 mm straight, 18 mm bend); check this for every case in Phase 4 (steps 1 and 2).
 - Card fins and other sub-pixel instanced geometry can skip the occlusion pass (userData.noAO). The occlusion pass renders without multisampling and drew sub-pixel fins as dotted noise (step 2).
 - Gradient blend (Phase 2 loop): stops now blend in HSV on their sRGB values with hue on the shorter arc, as RGB controller software does. The linear RGB blend of the reference took Aurora's cyan into pink through a 50 percent saturated lavender, which read as white memory bars (X14) at any intensity. Lowest saturation over every preset is now 0.95 (was 0.5); a unit test holds it above 0.9. Quality bar taste rule "RGB is saturated and deep" (step 2).
 - Glass reflections: the glass specular layer gets its own environment map (four crisp strip lights on near black, PMREM at 1024) instead of the room environment. Reflecting the whole room laid a grey veil over the interior. Found that r187 ignores material envMapIntensity when a material has no envMap of its own (WebGLRenderer line 2747), so the old 3.2 never applied (step 2).
@@ -115,7 +141,7 @@ What the floor looks like, its weak points, and how each was beaten.
 
 Per shot verdicts live in `kit/VERDICTS.jsonl`, not here. At each gate write one line per `check:shots` command you ran: the command, and the line it printed.
 
-- Critics run so far (the highest number in `kit/critics/`): 039
+- Critics run so far (the highest number in `kit/critics/`): 078
 - Weak shots, if any (name, and why): none
 - Research and rebuild notes for shots that failed four rounds (shot, what you learned, what you rebuilt):
   - rig/night-rig-hero, side, front, top (glass, failed in rounds 001, 011, 030, 035 among others). Learned: product photographers make glass read with strip boxes and gradient cards placed for each shot, and a dark stripe means no light is reflected there (PetaPixel and DIY Photography gradient and strip box articles, searched 2026-11-09). Measured with a new tool (scripts/glass-map.mjs, which ray traces the glass for each named camera): with reflections at infinity (an environment map) every rig view sees almost one direction across the whole panel, so a softbox gives either nothing or a uniform veil, which the critics read as an open side or as milky glass; and the real room lights reflect in none of the rig views. Rebuilt: the room glass now reflects soft edged studio cards at real distances (src/world/glass-cards.json, ray traced in the glass shader), so each view sees a strip pair with parallax and edges, placed so no card is seen by two views in a bad spot; card reflections fade out within 0.6 to 1.1 m of the camera, as a close up camera blocks them; the Inspector glass keeps its environment map.
@@ -125,6 +151,7 @@ Per shot verdicts live in `kit/VERDICTS.jsonl`, not here. At each gate write one
 Draw calls, triangles and frame times per tier, bundle sizes, thumbnail sizes, test counts.
 
 - Phase 1: 134 unit tests.
+- Phase 2: 147 unit tests. Night Rig lit hero on High at 1440 × 900: median 19.0 ms, p95 20.4 ms; scene pass 686 calls, 1.78 M triangles; main view alone 485 calls, 1.16 M triangles; whole frame 1087 calls, 2.82 M triangles. Index bundle 1.50 MB (488 kB gzip).
 
 ## Spend
 
@@ -141,6 +168,18 @@ One line per feature id in kit/01-PRODUCT.md: `F01 · where it is tested or show
 ## Session log
 
 Newest first. One entry per working session or per compaction: what was done, what is next.
+
+- 2026-11-09 session 1, Gate 2 passed: critics 085 to 087 passed all 25 images; both Gate 2 check:shots commands print problems: 0; the hero comes back same twice; stats logged after fixing the counters (renderer info reset on every pass of the chain, so stats read the last full screen pass; a counting pass after the scene pass now records the scene, and info resets once per frame). Committed as phase 2. Next: Phase 3, the roster.
+
+- 2026-11-09 session 1, Phase 2 critics 082 to 084: 26 of 29 passed (every rig view, bench, seven macros, every part shot sent, five effects). Fact check, critic 084 failed effect-wave (9f5bbd1d9130, the same image as the hero, which passed) for a pump ring teal between a blue rear fan and blue memory, read as the wave breaking: measured with __pcb.zones(), pn is 0.25 at the rear fan, 0.47 at the pump and 0.62 at the memory, so at this frame the rear fan sits 58 percent of the way from violet to cyan, the pump just past cyan and the memory 47 percent of the way from cyan to magenta; both blends pass through blue, so the wave runs in order through the cyan stop and the critic misread it. That image changes this round anyway (pump ring brighter), so it goes to a new critic as a new image. Fixes: comet, the pump's blue violet head (70 percent at LED 10) was too dim to read on a 2.7 mm ring, so the pump rings run at 1.3 and 1.05 (from 1.0 and 0.8); memory macro, the Facet spreader read as a black slab, because its facets were flat raised plates that shaded exactly like the plate and the bar's spill layer sat inside them; each facet is now two planes meeting at a crowned ridge (about 8 degrees each way, 0.45 mm chamfers, within the stick's bounds tolerance) in a satin anodized finish, the bar's light reaches them through an additive skin that is brighter on the plane and chamfers tilted up toward the bar, the flat spill moves down onto the plate, and the marks move to the flat plate between and below the facets. Next: retake, builder verdicts, critics from 085.
+
+- 2026-11-09 session 1, Phase 2 critics 079 to 081: 24 of 28 passed (every rig view, bench, six macros, the board and card part shots but one, all eight effects). Fails and fixes: fan macro, the frames sank into black behind the mesh because a solid front bracket plate with round cutouts hid them; the bracket is now two rails on the fans' screw lines tied by a bar at each end, as on many mesh front cases, so frames, corners and the gaps between fans show. Supply macro, half cells at the grille's right edge were the lit inner side wall seen through the outer column, and the field stepped around two screw bosses; the field now stops 17 mm from the side and clear of the bosses. Supply and storage macros, powder coat read as a smooth gradient up close, and the card detail's satin shell too: found that three r187 normalizes the screen derivatives in its bump mapping, so a bump is measured per pixel and fades as the camera comes closer; a WORLD_BUMP define now restores the surface gradient form for opted in materials (bumpScale in meters per unit of the map), used for the powder coats (a new 16 mm orange peel map at 36 and 30 microns per unit) and the card's satin shell (a 5 mm stipple map at 28 microns). Storage macro, the label was lit evenly to the window rim: area lights cast no shadows, so a drive under the shroud window now gets a shade on its lid from the form factor of the window seen from each point (src/world/well.ts, 0.18 floor for the side window and bounce, raised to 1.5 for the tone curve). Card detail had no fastener or text: shroud screws on both sides of the power socket and the connector name beside it. Next: retake, builder verdicts, critics from 082.
+
+- 2026-11-09 session 1, Phase 2 critics 076 to 078 (after a compaction): 45 of 52 passed (all rig views but top, bench, every macro but cable, every part shot sent, effects breathing, comet, starlight). Fixes: the desk pool behind the rear took every LED facing rearward, including the front fans' inner faces, so it glowed in the front fans' color under a magenta rear fan (static, spectrum, wave, shift, thermal); front and rear pools now take only LEDs within 60 mm of that wall. The 24 pin plug sat under the cable's bend on a vertical header and could not be seen from the glass (cable macro): the Z7 family now has a right angle 24 pin header flush with the board edge (real on many boards, see Facts), the plug lies flat with a cell collar where the wires enter and a latch arm hooked behind a ramp on the header, the run leaves straight for the plug plus 12 mm, gets a comb just behind the plug and bends into the grommet. Combs have a lobe around each wire instead of a straight outline, and combs are placed by arc length. The card's heat pipes ran 3.5 mm under the fin tops and read as white bars from the top view; they now run 9.5 mm down in the stack, and their nickel is capped at 0.3 so a mirrored softbox stays grey. Next: retake all 52, builder verdicts, critics from 079.
+
+- 2026-11-09 session 1, Phase 2 critics 073 to 075: all five rig views, bench and most macros passed. Fixes: the pump bracket was a plus along the axes while its thumbscrews sat at the axis ends right at the body's rim, so the bracket hid behind the pump; it is now an X out to four corner holes at 42 mm with the thumbscrews clear of the body; lit marks are frosted pale grey diffusers, so a dimmed wordmark keeps its letters (it vanished in breathing, comet and starlight); powder coats vary their roughness slowly (mottle) instead of with the 24 mm grain, which read as stains under the rear kicker; the chipset's spill on the SATA port faces is one sided (from behind the board it glowed past the board's edge); the drive has threaded bottom mounting holes on the 3.5 inch pattern and a stepped satin spindle base, and its spindle collar has a crisp rim step. Next: retake, builder verdicts, critics from 076.
+
+- 2026-11-09 session 1, Phase 2 critics 069 to 072 (commit d8368d3): fact check, critic 069 failed the gpu, ram and cable macros (d04e62e221ef, 13281895f7b3, 94ae41e4e7c8) for an upside down, mirrored VELTRIN on the backplate; rendered both orientations side by side (shots/peek/bpm-sheet.jpg): the print as built reads upright and left to right from the glass, and rotating it made it upside down, so the critic misread it; kept as built, and those images go to one more critic with critic-list --all if they come back unchanged. Fixes: case fans' inner faces weigh 1.4 for their lamp (the front lamp lit only a patch of the shroud); card wordmark 0.6 and bar 0.74 (shift's violet burned to lilac); the chipset's spill on the board and the SATA faces fades out over its ends; memory contact shade 50 mm wide at 0.92; spreader highlights capped under the bloom threshold (a corner glint flared) and the model line darker and heavier; drive breather print and hole moved clear of the spindle collar, and the collar has a spun concentric finish (a smooth one read as a plastic cap, a straight brushed one as a clear lens). Next: retake, builder verdicts, critics from 073.
 
 - 2026-11-09 session 1, Phase 2 critics 065 to 068: everything passed except the M.2 shots (065 passed all twelve rig, bench and macro; commit cf5ebcb). M.2 fixes: routed trace bundles in lanes ending in vias, with a keep-out zone for the underside print (now 1.5 mm and readable); matte label stock with a fine print grain; molded controller top; plated fingers in a deeper gold at roughness 0.2 (the paler gold burned to beige on a softbox); board edge in the fiberglass core material. Found by measuring: the Inspector stood every part on its collision boxes plus 4 mm, so every part floated 3.4 to 4 mm over the disc and the cooler's tubes dipped 1.15 mm into it; parts now stand on their lowest real surface plus 0.2 mm. Board core a lighter fiberglass tone so a black board's edge separates from its shade; M.2 shade wider and darker. This changes every part shot. Next: retake, builder verdicts, critics from 069.
 

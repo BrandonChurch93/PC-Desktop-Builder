@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { Pass } from 'three/addons/postprocessing/Pass.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
@@ -48,9 +49,18 @@ const AO_MIX = {
   ].join('\n'),
 };
 
+/** Reads the renderer's counters right after the scene pass: the scene's own cost, its shadow and mirror renders included. */
+class CountPass extends Pass {
+  calls = 0;
+  triangles = 0;
+  constructor() { super(); this.needsSwap = false; }
+  render(renderer: THREE.WebGLRenderer) { this.calls = renderer.info.render.calls; this.triangles = renderer.info.render.triangles; }
+}
+
 export class Post {
   readonly composer: EffectComposer;
   readonly render: RenderPass;
+  readonly count = new CountPass();
   gtao: GTAOPass | null = null;
   aoMix: ShaderPass | null = null;
   readonly bloom: UnrealBloomPass;
@@ -67,6 +77,7 @@ export class Post {
     this.composer = new EffectComposer(renderer, rt);
     this.render = new RenderPass(scene, camera);
     this.composer.addPass(this.render);
+    this.composer.addPass(this.count);
     if (s.ao !== 'off') {
       const gtao = new GTAOPass(scene, camera, 4, 4);
       gtao.blendIntensity = 1;

@@ -142,10 +142,9 @@ function vitrine(pb: PartBuilder, labels: Labels, spec: CaseSpec, L: CaseLayout,
   fr.holes.push(rrectHole(D - 30, H - 30, 8, 0, cy));
   pb.add(extrude(fr, 3, 0.9, 'xy', 16), F.shell, new THREE.Matrix4().makeTranslation(x1, 0, 0).multiply(ZY));
   perforated(pb, F, D - 28, H - 28, xf({ p: [x1 - 1.8, cy, 0], r: [0, PI / 2, 0] }), 1.5);
-  const br = new THREE.Shape(); rrect(br, -70, y0 + 4, 140, 474, 4);
-  for (const fy of [100, 222, 344]) {
-    br.holes.push(circleHole(0, fy, 57.5));
-  }
+  // Two rails on the fans' screw lines, tied by a bar at each end: a solid plate hid the fan frames behind the mesh.
+  const br = new THREE.Shape(); rrect(br, -58.5, y0 + 4, 117, 474, 4);
+  br.holes.push(rrectHole(93, 474 - 28, 3, 0, y0 + 4 + 237));
   pb.add(extrude(br, 1.5, 0.2, 'xy', 24, 1), F.inner, new THREE.Matrix4().makeTranslation(224.5, 0, 0).multiply(ZY));
   // Threaded fan screw holes: tapped into the bracket, so no light shows through them behind the mesh.
   for (const fy of [100, 222, 344]) for (const [dy, dz] of HOLES4) for (const sx of [1, -1]) pb.add(cyl(2.0, 0.2, 'x', 16), 'darkVoid', at(223.75 + sx * 0.85, fy + dy, dz), { uv: 'keep' });
@@ -183,15 +182,15 @@ function vitrine(pb: PartBuilder, labels: Labels, spec: CaseSpec, L: CaseLayout,
   const gc = L.grommets.find((g) => g.id === 'gpu');
   if (gc) st.holes.push(rrectHole(gc.size[0], gc.size[1], 8, gc.center[0], -gc.center[2]));
   // A smoked window over the drive cage, so a drive in the upper bay shows its label from above.
-  const shw = { x: 71, z: 54, w: 98, d: 96 };
-  st.holes.push(rrectHole(shw.w, shw.d, 6, shw.x, -shw.z));
+  const shw = L.shroudWindow;
+  if (shw) st.holes.push(rrectHole(shw.w, shw.d, 6, shw.x, -shw.z));
   pb.add(extrude(st, 1.5, 0.45, 'xy', 12), F.shell, new THREE.Matrix4().makeTranslation(0, 116.5, 0).multiply(new THREE.Matrix4().makeRotationX(-PI / 2)).multiply(new THREE.Matrix4().makeTranslation(0, 0, 0)));
   if (gc) {
     const ring = rrectShape(gc.size[0] + 6, gc.size[1] + 6, 10, gc.center[0], -gc.center[2]);
     ring.holes.push(rrectHole(gc.size[0] - 2, gc.size[1] - 2, 7, gc.center[0], -gc.center[2]));
     pb.add(extrude(ring, 2.8, 0.9, 'xy', 12, 2), F.foot, new THREE.Matrix4().makeTranslation(0, 117.2, 0).multiply(new THREE.Matrix4().makeRotationX(-PI / 2)));
   }
-  {
+  if (shw) {
     const gasket = rrectShape(shw.w + 5, shw.d + 5, 8.5, shw.x, -shw.z);
     gasket.holes.push(rrectHole(shw.w - 3, shw.d - 3, 4.5, shw.x, -shw.z));
     pb.add(extrude(gasket, 2.2, 0.7, 'xy', 12, 2), F.foot, new THREE.Matrix4().makeTranslation(0, 117.0, 0).multiply(new THREE.Matrix4().makeRotationX(-PI / 2)));

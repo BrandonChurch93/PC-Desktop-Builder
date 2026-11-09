@@ -142,7 +142,9 @@ export function buildFan(pb: PartBuilder, labels: Labels, look: FanLook, size: 1
       pb.mesh(torus(radius, 1.55, 10, Math.round(96 * detail)), dm, at(0, 0, fz), { to: holder, uv: 'keep' });
       // The face against the mount sends its light out of the case, so it ranks last for a lamp.
       const outward = opts.mountSide !== undefined && opts.mountSide !== 0 && Math.sign(fz) === opts.mountSide;
-      z.emit(new THREE.Vector3(0, 0, fz), new THREE.Vector3(0, 0, Math.sign(fz) || -1), D.size * 0.8, D.size * 0.8, outward ? 0.3 : 0.8);
+      // A case fan's inner face lights the case around it: the tray, the shroud and the card's front end.
+      const mounted = opts.mountSide !== undefined && opts.mountSide !== 0;
+      z.emit(new THREE.Vector3(0, 0, fz), new THREE.Vector3(0, 0, Math.sign(fz) || -1), D.size * 0.8, D.size * 0.8, outward ? 0.3 : mounted ? 1.4 : 0.8);
     }
     z.owner = holder;
     out.zones.push(z);

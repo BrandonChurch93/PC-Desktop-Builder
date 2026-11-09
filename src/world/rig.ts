@@ -8,6 +8,7 @@ import { rotate, type V3 } from './layout/math';
 import { place, type Placed } from './layout/place';
 import type { Zone } from './light/zones';
 import { generate } from './parts';
+import { wellShades } from './well';
 import type { GenOpts, PartObject, Rotor } from './parts/types';
 
 const MM = 0.001;
@@ -92,6 +93,9 @@ export class Rig {
     if (sig !== this.cableSig) {
       if (this.cables) { this.cables.removeFromParent(); disposeTree(this.cables); }
       this.cables = buildCables(build, this.items, this.detail);
+      const layout = build.case ? CASE_LAYOUTS[build.case.id] : undefined;
+      const shades = layout ? wellShades(layout, this.items) : null;
+      if (shades) this.cables.add(shades);
       this.group.add(this.cables);
       this.cableSig = sig;
     }

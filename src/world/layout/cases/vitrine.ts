@@ -47,6 +47,7 @@ export const VITRINE: CaseLayout = {
   glass: [{ side: 'left', inner: GLASS_IN, outer: 116.5, rect: { min: [-226, FLOOR, GLASS_IN], max: [226, 496, 116.5] } }],
   sideInner: GLASS_IN,
   supportFloorY: SHROUD,
+  shroudWindow: { x: 71, z: 54, w: 98, d: 96, y: 116.5 },
   boxes: [
     box([OUT.x0, 18, OUT.z0], [REAR_IN, OUT.y1, OUT.z1], 'rear'),
     box([227, 18, OUT.z0], [OUT.x1, OUT.y1, OUT.z1], 'front'),

@@ -4,7 +4,9 @@ import { getCable, getGpu } from '../data/catalog';
 import type { Build } from '../engine/types';
 import { mat, sleeve } from './kit/materials';
 import { rbox, rrect as rrectPath } from './kit/geometry';
+import { plugSection } from './layout/boards';
 import { CASE_LAYOUTS } from './layout/cases';
+import { DIMS } from './layout/dims';
 import type { CaseLayout } from './layout/types';
 import type { Anchor } from './parts/types';
 import type { RigItem } from './rig';
@@ -72,9 +74,61 @@ export type Run = {
   colors: string[];
   comb: string;
   plugAt: 'end' | 'start' | 'none';
+  /** a board plug with a latch arm over its header's ramp, or a plain housing with a clip */
+  plug?: 'latch' | 'clip';
   /** sleeved runs carry combs; flat drive leads do not */
   combs?: boolean;
+  /** arc length from the path start to the first comb */
+  combFrom?: number;
 };
+
+/** A comb's outline hugs each wire with a soft lobe, as molded combs do, so it reads as a comb and not as a bar. */
+function combProfile(run: Run): THREE.Shape {
+  const hole = run.wire + 0.12; const R = hole + 1.15; const dip = Math.min(0.8, run.pitch * 0.19);
+  const xr = ((run.rows - 1) / 2) * run.pitch; const ym = ((run.cols - 1) / 2) * run.pitch;
+  const lobe = (y: number) => {
+    const d = Math.abs(((y + ym) % run.pitch + run.pitch) % run.pitch - run.pitch / 2);
+    return R - dip + dip * (0.5 - 0.5 * Math.cos((2 * Math.PI * d) / run.pitch));
+  };
+  const pts: THREE.Vector2[] = [];
+  const n = Math.max(2, (run.cols - 1) * 12);
+  const cap = (from: number, cy: number) => { for (let k = 1; k < 18; k++) { const a = from + (k / 18) * Math.PI; pts.push(new THREE.Vector2((xr + R) * Math.cos(a), cy + R * Math.sin(a))); } };
+  for (let k = 0; k <= n; k++) { const y = -ym + (2 * ym * k) / n; pts.push(new THREE.Vector2(xr + lobe(y), y)); }
+  cap(0, ym);
+  for (let k = 0; k <= n; k++) { const y = ym - (2 * ym * k) / n; pts.push(new THREE.Vector2(-(xr + lobe(y)), y)); }
+  cap(Math.PI, -ym);
+  const s = new THREE.Shape(pts);
+  for (let r = 0; r < run.rows; r++) for (let c = 0; c < run.cols; c++) {
+    const h = new THREE.Path(); h.absarc((r - (run.rows - 1) / 2) * run.pitch, (c - (run.cols - 1) / 2) * run.pitch, hole, 0, Math.PI * 2, true); s.holes.push(h);
+  }
+  return s;
+}
+
+/**
+ * A board plug: the housing, a collar of square cells the wires enter, and a latch arm that rides over the header's wall and
+ * hooks behind the ramp on it. Built in the plug's frame: x out of the header along the wires, y toward the latch.
+ */
+function latchPlug(run: Run, frame: THREE.Matrix4): THREE.BufferGeometry[] {
+  const { ph, pw } = plugSection(run.rows, run.cols, run.pitch);
+  const len = DIMS.plugLength; const collar = 1.8; const wall = ph / 2 + DIMS.plugWall;
+  const parts: THREE.BufferGeometry[] = [];
+  const put = (g: THREE.BufferGeometry, x: number, y: number) => { g.applyMatrix4(new THREE.Matrix4().makeTranslation(x, y, 0).premultiply(frame)); parts.push(g); };
+  put(rbox(len - collar, ph, pw, 0.8, 2), (len - collar) / 2, 0);
+  const cells = rrectPath(new THREE.Shape(), -(ph - 0.5) / 2, -(pw - 0.5) / 2, ph - 0.5, pw - 0.5, 0.7);
+  const cell = run.wire * 2 + 0.45;
+  for (let r = 0; r < run.rows; r++) for (let c = 0; c < run.cols; c++) {
+    cells.holes.push(rrectPath(new THREE.Path(), (r - (run.rows - 1) / 2) * run.pitch - cell / 2, (c - (run.cols - 1) / 2) * run.pitch - cell / 2, cell, cell, 0.5));
+  }
+  const cg = new THREE.ExtrudeGeometry(cells, { depth: collar, bevelEnabled: false, curveSegments: 3 });
+  cg.applyMatrix4(new THREE.Matrix4().makeBasis(v(0, 1, 0), v(0, 0, 1), v(1, 0, 0)));
+  put(cg, len - collar, 0);
+  const arm = wall + 0.9 + 0.45;
+  put(rbox(len + 3.6, 0.9, 4.4, 0.3, 1), (len + 3.6) / 2 - 3.4, arm);
+  put(rbox(2.4, arm - ph / 2, 4.4, 0.3, 1), len * 0.45, (arm + ph / 2) / 2 - 0.2);
+  put(rbox(1.2, 1.1, 4.4, 0.25, 1), -2.8, wall + 0.55);
+  for (const x of [len - 0.6, len - 1.8, len - 3.0]) put(rbox(0.45, 0.5, 4.4, 0.15, 1), x, arm + 0.6);
+  return parts;
+}
 
 function sweep(points: V[], r: number, radial: number): THREE.BufferGeometry {
   const curve = new THREE.CatmullRomCurve3(points, false, 'centripetal', 0.5);
@@ -106,26 +160,25 @@ export function buildRun(run: Run, group: THREE.Group, detail = 1) {
     group.add(mesh);
   }
   if (run.rows * run.cols < 2 && run.plugAt === 'none') return;
-  const total = run.path.reduce((s, p, i) => (i ? s + p.distanceTo(run.path[i - 1]!) : 0), 0);
+  const cum: number[] = [0];
+  for (let i = 1; i < run.path.length; i++) cum.push(cum[i - 1]! + run.path[i]!.distanceTo(run.path[i - 1]!));
+  const total = cum[cum.length - 1]!;
   const combMat = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(run.comb), roughness: 0.55, clearcoat: 0.12, clearcoatRoughness: 0.45 });
   const cw = run.cols * run.pitch + 3; const ch = run.rows * run.pitch + 3;
-  const combShape = new THREE.Shape(); rrectPath(combShape, -ch / 2, -cw / 2, ch, cw, 1.6);
-  for (let r = 0; r < run.rows; r++) for (let c = 0; c < run.cols; c++) { const h = new THREE.Path(); h.absarc((r - (run.rows - 1) / 2) * run.pitch, (c - (run.cols - 1) / 2) * run.pitch, run.wire + 0.12, 0, Math.PI * 2, true); combShape.holes.push(h); }
-  const comb = new THREE.ExtrudeGeometry(combShape, { depth: 4.2, bevelEnabled: true, bevelThickness: 0.5, bevelSize: 0.5, bevelOffset: -0.5, bevelSegments: 2, curveSegments: 12 });
+  const comb = new THREE.ExtrudeGeometry(combProfile(run), { depth: 4.2, bevelEnabled: true, bevelThickness: 0.5, bevelSize: 0.4, bevelOffset: -0.4, bevelSegments: 2, curveSegments: 12 });
   comb.translate(0, 0, -2.1);
   const holes: THREE.BufferGeometry[] = [];
   const combs: THREE.Matrix4[] = [];
-  let acc = 0; let next = 34;
-  for (let i = 1; run.combs !== false && i < run.path.length - 1; i++) {
-    acc += run.path[i]!.distanceTo(run.path[i - 1]!);
-    if (acc >= next && acc < total - 24) {
-      const bend = T[i - 1]!.dot(T[Math.min(T.length - 1, i + 2)]!) < 0.995;
-      if (!bend || acc - next > 20) {
-        const m = new THREE.Matrix4().makeBasis(N[i]!, B[i]!, T[i]!).setPosition(run.path[i]!);
-        combs.push(m);
-        next = acc + 50;
-      }
-    }
+  const straightAt = (i: number) => T[Math.max(0, i - 1)]!.dot(T[Math.min(T.length - 1, i + 2)]!) >= 0.995;
+  let s = run.combFrom ?? 34; let slip = 0;
+  while (run.combs !== false && s < total - 24) {
+    let i = 0; while (i < cum.length - 2 && cum[i + 1]! <= s) i++;
+    if (!straightAt(i) && slip < 20) { s += 2.5; slip += 2.5; continue; }
+    const f = (s - cum[i]!) / Math.max(1e-6, cum[i + 1]! - cum[i]!);
+    const t = T[i]!.clone().lerp(T[i + 1]!, f).normalize();
+    const n = N[i]!.clone().lerp(N[i + 1]!, f); n.addScaledVector(t, -n.dot(t)).normalize();
+    combs.push(new THREE.Matrix4().makeBasis(n, new THREE.Vector3().crossVectors(t, n), t).setPosition(run.path[i]!.clone().lerp(run.path[i + 1]!, f)));
+    s += 50; slip = 0;
   }
   for (const m of combs) {
     const g = comb.clone(); g.applyMatrix4(m); holes.push(g);
@@ -136,7 +189,15 @@ export function buildRun(run: Run, group: THREE.Group, detail = 1) {
   }
   for (const g of holes) g.dispose();
   comb.dispose();
-  if (run.plugAt !== 'none') {
+  if (run.plugAt !== 'none' && run.plug === 'latch') {
+    const i = run.plugAt === 'end' ? run.path.length - 1 : 0;
+    const out = run.plugAt === 'end' ? T[i]!.clone().negate() : T[i]!.clone();
+    const frame = new THREE.Matrix4().makeBasis(out, N[i]!, new THREE.Vector3().crossVectors(out, N[i]!)).setPosition(run.path[i]!);
+    const parts = latchPlug(run, frame);
+    const merged = mergeGeometries(parts.map((x) => x.toNonIndexed()), false);
+    for (const g of parts) g.dispose();
+    if (merged) { const mesh = new THREE.Mesh(merged, mat('plasticDark')); mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.flexible = true; group.add(mesh); }
+  } else if (run.plugAt !== 'none') {
     const i = run.plugAt === 'end' ? run.path.length - 1 : 0;
     const dir = run.plugAt === 'end' ? T[i]!.clone() : T[i]!.clone().negate();
     const m = new THREE.Matrix4().makeBasis(dir, N[i]!, new THREE.Vector3().crossVectors(dir, N[i]!)).setPosition(run.path[i]!.clone().addScaledVector(dir, -4.5));
@@ -174,8 +235,8 @@ export function buildCables(build: Build, items: Map<string, RigItem>, detail = 
     if (a && g) {
       const { p } = toCase(board, a);
       const gz = g.center[2];
-      runs.push({ name: 'atx24', rows: 2, cols: 12, pitch: 4.2, wire: 1.65, rowAxis: v(1, 0, 0), colors, comb, plugAt: 'start',
-        path: filletPath([p.clone(), v(p.x, p.y, p.z + 40), v(g.center[0], p.y + (g.center[1] - p.y) * 0.5, p.z + 40), v(g.center[0], g.center[1], gz - 14)], 19) });
+      runs.push({ name: 'atx24', rows: 2, cols: 12, pitch: 4.2, wire: 1.65, rowAxis: v(0, 0, 1), colors, comb, plugAt: 'start', plug: 'latch', combFrom: DIMS.plugLength + 6.5,
+        path: filletPath([p.clone(), v(g.center[0], p.y, p.z), v(g.center[0], p.y, gz - 24)], 19, 2.5, DIMS.plugLength + 12) });
     }
     const e = board.part.anchors.eps; const ge = grommet('eps');
     if (e && ge) {

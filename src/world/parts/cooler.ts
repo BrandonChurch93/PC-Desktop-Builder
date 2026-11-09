@@ -31,11 +31,13 @@ function buildPump(pb: PartBuilder, labels: Labels, k: CoolerSpec, key: string, 
   const root = pb.group(`pump:${key}`, pb.root, m);
   const body: MatName = frost ? 'aluWhite' : 'aluBlack';
   pb.add(puck(27, 2.4, 0.4, 64), 'copper', undefined, { to: root });
-  const arm = roundedPoly([[-42, -6], [-14, -6], [-6, -14], [-6, -42], [6, -42], [6, -14], [14, -6], [42, -6], [42, 6], [14, 6], [6, 14], [6, 42], [-6, 42], [-6, 14], [-14, 6], [-42, 6]], 2.2);
-  pb.add(extrude(arm, 2.4, 0.5, 'xy', 8), frost ? 'powderWhite' : 'aluGunmetal', at(0, 0, 2.4), { to: root });
+  // An X bracket out to the socket's four corner holes, so its arms and thumbscrews stand clear of the pump body.
+  const A = 64; const hw = 6.5;
+  const arm = roundedPoly([[-A, -hw], [-14, -hw], [-hw, -14], [-hw, -A], [hw, -A], [hw, -14], [14, -hw], [A, -hw], [A, hw], [14, hw], [hw, 14], [hw, A], [-hw, A], [-hw, 14], [-14, hw], [-A, hw]], 2.6);
+  pb.add(extrude(arm, 2.4, 0.5, 'xy', 8), frost ? 'powderWhite' : 'aluGunmetal', at(0, 0, 2.4).multiply(new THREE.Matrix4().makeRotationZ(PI / 4)), { to: root });
   const screws = pb.group('pump-screws', root);
-  for (const [sx, sy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as [number, number][]) {
-    const s = pb.group('thumb', screws, at(sx * 38, sy * 38, 4.8));
+  for (const [sx, sy] of [[1, 1], [1, -1], [-1, 1], [-1, -1]] as [number, number][]) {
+    const s = pb.group('thumb', screws, at(sx * 42, sy * 42, 4.8));
     pb.add(lathe([[0, 0], [4.6, 0], [4.8, 0.6], [4.8, 3.2], [4.3, 4.0], [0, 4.0]], 24), 'nickel', undefined, { to: s });
     for (let i = 0; i < 12; i++) { const a = (i / 12) * PI * 2; pb.add(rbox(0.6, 0.9, 2.6, 0.2, 1), 'nickel', xf({ p: [Math.cos(a) * 4.85, Math.sin(a) * 4.85, 1.9], r: [0, 0, a] }), { to: s }); }
     pb.add(new THREE.BoxGeometry(4.4, 0.8, 0.4), 'darkVoid', at(0, 0, 4.05), { to: s, uv: 'keep' });
@@ -45,8 +47,9 @@ function buildPump(pb: PartBuilder, labels: Labels, k: CoolerSpec, key: string, 
   const cap = new THREE.Shape(); cap.absarc(0, 0, 29.4, 0, PI * 2, false);
   pb.add(extrude(cap, 1.4, 0.5, 'xy', 96), frost ? 'plasticWhiteGloss' : 'plasticGloss', at(0, 0, 46.2), { to: root });
   const zone = new Zone(`${key}:pump`, 'cooler', true, Array.from({ length: 24 }, (_, i) => { const a = (i / 24) * PI * 2; return new THREE.Vector3(Math.cos(a) * 31.5, Math.sin(a) * 31.5, 47); }), 0.3);
-  pb.mesh(torus(31.6, 1.35, 10, 128), zone.diffuser(1.0, frost ? 0xd8dadf : 0x1c1d21), at(0, 0, 46.9), { to: root, uv: 'keep' });
-  pb.mesh(torus(23, 0.6, 8, 128), zone.diffuser(0.8, frost ? 0xd8dadf : 0x1c1d21), at(0, 0, 47.6), { to: root, uv: 'keep' });
+  // The rings are thin, so they run brighter than a fan ring for the same LEDs; a blue comet head barely read at 1.0.
+  pb.mesh(torus(31.6, 1.35, 10, 128), zone.diffuser(1.3, frost ? 0xd8dadf : 0x1c1d21), at(0, 0, 46.9), { to: root, uv: 'keep' });
+  pb.mesh(torus(23, 0.6, 8, 128), zone.diffuser(1.05, frost ? 0xd8dadf : 0x1c1d21), at(0, 0, 47.6), { to: root, uv: 'keep' });
   pb.mesh(spillRing(30.3, 12, 96), zone.spill(frost ? 0.18 : 0.3), at(0, 0, 47.66), { to: root, uv: 'keep' }).userData.spill = true;
   zone.emit(new THREE.Vector3(0, 0, 48.5), new THREE.Vector3(0, 0, 1), 70, 70, 0.9);
   zone.emit(new THREE.Vector3(0, 0, 30), new THREE.Vector3(0, 0, -1), 90, 90, 0.5);

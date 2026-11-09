@@ -14,6 +14,11 @@ export const DIMS = {
   fingerOffset: 28,
   /** the edge connector's bottom sits this far above the board face, inside the slot */
   fingerSeat: 2,
+  /** a power plug: the part of its housing outside the header, and the header wall around it */
+  plugLength: 10,
+  plugWall: 2.15,
+  /** a right angle header at the board edge, from its mouth back over the board */
+  edgeHeaderDepth: 12,
   pcieX16Length: 89,
   pcieSlotHeight: 11,
   pcieSlotWidth: 7.6,

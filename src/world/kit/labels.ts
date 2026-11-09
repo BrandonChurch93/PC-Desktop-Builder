@@ -109,7 +109,8 @@ export class Labels {
     });
     const first = list[0]!;
     const material = first.lit
-      ? new THREE.MeshStandardMaterial({ color: 0x0e0f12, roughness: 0.4, metalness: 0, alphaMap: tex, emissive: 0xffffff, emissiveMap: first.lit.tex, emissiveIntensity: first.lit.intensity, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -6, polygonOffsetUnits: -6 })
+      // A lit mark is a frosted diffuser: its letters stay visible as pale grey when its LEDs are low or off.
+      ? new THREE.MeshStandardMaterial({ color: 0x3e4046, roughness: 0.55, metalness: 0, alphaMap: tex, emissive: 0xffffff, emissiveMap: first.lit.tex, emissiveIntensity: first.lit.intensity, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -6, polygonOffsetUnits: -6 })
       : new THREE.MeshStandardMaterial({ map: tex, roughness: first.rough, metalness: 0, transparent: true, premultipliedAlpha: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -6, polygonOffsetUnits: -6 });
     if (first.lit) { tex.colorSpace = THREE.NoColorSpace; }
     material.name = first.lit ? 'label-lit' : 'label';

@@ -89,7 +89,8 @@ export function psuPart(id: string, opts: GenOpts = {}): PartObject {
     const s = new THREE.Shape(); rrect(s, -W / 2 + t, t, W - 2 * t, H - t - 2.2, 1);
     if (sign < 0) {
       const boss = (x: number, y: number) => [H / 2 + 36, H / 2 - 36].some((by) => Math.hypot(x - 66, y - by) < 8);
-      s.holes.push(...honeycombHoles((x, y) => x > -W / 2 + 46 && x < W / 2 - 6 && y > 6 && y < H - 6 && !boss(x, y), -W / 2 + 46, W / 2 - 6, 6, H - 6, 6.2, 1.1));
+      // The field stops clear of the screw bosses and the side walls: cells at the wall showed the lit wall inside as half cells.
+      s.holes.push(...honeycombHoles((x, y) => x > -W / 2 + 46 && x < W / 2 - 17 && y > 7 && y < H - 7 && !boss(x, y), -W / 2 + 46, W / 2 - 17, 7, H - 7, 6.2, 1.1));
       s.holes.push(rrectHole(28, 22, 2, -W / 2 + 22, H * 0.58));
       s.holes.push(rrectHole(13.5, 19, 1.5, -W / 2 + 22, H * 0.2 + 1));
     } else {

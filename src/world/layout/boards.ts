@@ -100,6 +100,19 @@ export const BOARD_LAYOUTS: Record<BoardSize, BoardLayout> = {
 
 export const boardLayout = (b: BoardSpec) => BOARD_LAYOUTS[b.size];
 
+/** The cross section of a power plug's housing for its wire grid. */
+export const plugSection = (rows: number, cols: number, pitch: number) => ({ ph: rows * pitch + 2.4, pw: cols * pitch + 2.4 });
+
+/**
+ * The 24 pin header is a right angle header flush with the board's front edge, as on many premium boards: the plug goes in
+ * along +x and lies flat, so it can be seen from the glass. A vertical header hid its plug under the cable's bend.
+ */
+export function atx24Header(boardW: number) {
+  const { ph, pw } = plugSection(2, 12, 4.2);
+  const h = ph + 2 * DIMS.plugWall;
+  return { x0: boardW - DIMS.edgeHeaderDepth, x1: boardW, w: pw + 2 * DIMS.plugWall, h, mid: T + h / 2 };
+}
+
 /** Height of an M.2 region box above the board face. A stacked heatsink holds two drives. */
 const m2Height = (stacked: boolean) => (stacked ? 16.5 : DIMS.m2PlateHeight);
 const socketSize = (platform: string): [number, number] => (platform === 'hb' ? [60, 84] : [60, 74]);
@@ -116,7 +129,8 @@ export function boardBoxes(id: string): Box[] {
   const vr = L.vrmRear; out.push(box([vr.x0, vr.y0, T], [vr.x1, vr.y1, T + vr.h], 'vrm'));
   const vt = L.vrmTop; out.push(box([vt.x0, vt.y0, T], [vt.x1, vt.y1, T + vt.h], 'vrm'));
   out.push(cbox([L.eps.x, L.eps.y, T + 6.5], [21.2, 10.2, 13], 'eps'));
-  out.push(cbox([L.atx24.x, L.atx24.y, T + 6.75], [15.1, 51.6, 13.5], 'atx24'));
+  const hd = atx24Header(L.w);
+  out.push(box([hd.x0, L.atx24.y - hd.w / 2, T], [hd.x1, L.atx24.y + hd.w / 2, T + hd.h + 0.9], 'atx24'));
   const [sw, sh] = socketSize(spec.platform);
   out.push(cbox([L.socket.x, L.socket.y, T + 2.5], [sw, sh, 5], 'socket'));
   for (const d of L.dimms.slice(0, spec.ramSlots)) out.push(cbox([d.x, d.y, T + DIMS.dimmSlotHeight / 2], [6.6, DIMS.dimmSlotLength, DIMS.dimmSlotHeight], `dimm:${d.name}`));

@@ -137,7 +137,15 @@ function hdd(pb: PartBuilder, labels: Labels, mounted: boolean): Record<string, 
   const field = roundedPoly([[-w / 2 + 9, -l / 2 + 9], [w / 2 - 9, -l / 2 + 9], [w / 2 - 9, l / 2 - 30], [w / 2 - 19, l / 2 - 9], [-w / 2 + 9, l / 2 - 9]], 3);
   pb.add(extrude(field, 0.35, 0.25, 'xz', 6), 'aluLid', xf({ p: [0, h - 0.9, 0] }));
   const lid = h - 0.55;
-  pb.add(lathe([[17, 0], [15.6, 0.14], [14.2, 0.45], [10.8, 0.45], [10.3, 0.78], [0, 0.78]], 72), 'aluStamp', xf({ p: [-8, lid, 24], r: [-Math.PI / 2, 0, 0] }));
+  // A shallow pressing in the lid's own brushed sheet: a tall smooth dome read as a clear lens laid on the lid.
+  {
+    // The pressed spindle cover carries a spun finish, centered on the spindle.
+    // A pressed collar with a crisp rim step, so it reads as formed in the lid and not laid on it.
+    const dome = lathe([[17.4, 0], [17, 0.06], [16.5, 0.5], [16, 0.62], [11.6, 0.62], [11, 0.9], [0, 0.92]], 96);
+    const dp = dome.getAttribute('position'); const duv = dome.getAttribute('uv');
+    for (let i = 0; i < dp.count; i++) duv.setXY(i, dp.getX(i) / 34.8 + 0.5, dp.getY(i) / 34.8 + 0.5);
+    pb.add(dome, 'aluLidStamp', xf({ p: [-8, lid, 24], r: [-Math.PI / 2, 0, 0] }), { uv: 'keep' });
+  }
   {
     const ok = (x: number, z: number) => z > 12 && x > -w / 2 + 11 && x < w / 2 - 11 && z < l / 2 - 11 && !(x > w / 2 - 22 && z > l / 2 - 32);
     let run: [number, number, number][] = [];
@@ -152,11 +160,16 @@ function hdd(pb: PartBuilder, labels: Labels, mounted: boolean): Record<string, 
   const sm = pb.own(new THREE.MeshPhysicalMaterial({ color: 0x8d9097, metalness: 1, roughness: 0.58, vertexColors: true }));
   const pts: [number, number][] = [[-w / 2 + 6, -l / 2 + 6], [w / 2 - 6, -l / 2 + 6], [-w / 2 + 6, l / 2 - 6], [w / 2 - 18, l / 2 - 6], [-w / 2 + 6, 0], [w / 2 - 6, 0]];
   for (const [x, z] of pts) pb.add(sg.clone(), sm, xf({ p: [x, h - 0.9, z], r: [-Math.PI / 2, 0, 0] }), { uv: 'keep' });
-  pb.add(sg.clone(), sm, xf({ p: [-8, lid + 0.78, 24], r: [-Math.PI / 2, 0, 0] }), { uv: 'keep' });
+  pb.add(sg.clone(), sm, xf({ p: [-8, lid + 0.92, 24], r: [-Math.PI / 2, 0, 0] }), { uv: 'keep' });
   const pcbW = w - 13; const pcbL = l - 33; const pcbZ = -l / 2 + 7 + pcbL / 2;
   const pcb = smallBoardMaterial('hdd', pcbW, pcbL, { mask: 'rgba(15,56,37,1)', trace: 'rgba(28,80,54,1)', pad: 'rgba(168,158,118,1)', body: 'rgba(46,42,36,1)' }, [-pcbW / 2, pcbZ - pcbL / 2]);
   pb.add(rbox(pcbW, 1.2, pcbL, 0.4, 1), pcb, xf({ p: [0, 1.4, pcbZ] }));
-  pb.add(cyl(10, 1.6, 'y', 48), 'steelZinc', xf({ p: [-8, 0.8, l / 2 - 13] }));
+  // The spindle motor's stepped steel base, and the threaded bottom mounting holes of a 3.5 inch drive.
+  pb.add(lathe([[3.6, 0], [10.6, 0], [10.6, 0.9], [9.6, 1.6], [3.6, 1.6]], 64), 'aluSatin', xf({ p: [-8, 0, l / 2 - 13], r: [-Math.PI / 2, 0, 0] }));
+  for (const sx of [1, -1]) for (const z of [-l / 2 + 41.3, -l / 2 + 85.7, -l / 2 + 117.5]) {
+    pb.add(cyl(1.75, 0.5, 'y', 16), 'darkVoid', xf({ p: [sx * 47.6, 2.0, z] }), { uv: 'keep' });
+    pb.add(torus(2.1, 0.28, 6, 24), 'steelZinc', xf({ p: [sx * 47.6, 2.15, z], r: [Math.PI / 2, 0, 0] }));
+  }
   pb.add(cyl(3.6, 0.6, 'y', 32), 'darkVoid', xf({ p: [-8, 0.1, l / 2 - 13] }), { uv: 'keep' });
   for (const sx of [1, -1]) for (const sz of [1, -1]) pb.add(sg.clone(), sm, xf({ p: [sx * (pcbW / 2 - 4), 0.8, pcbZ + sz * (pcbL / 2 - 4)], r: [Math.PI / 2, 0, 0] }), { uv: 'keep' });
   sg.dispose();
@@ -199,9 +212,10 @@ function hdd(pb: PartBuilder, labels: Labels, mounted: boolean): Record<string, 
   pb.add(new THREE.BoxGeometry(w - 18, 0.1, 70), 'labelPaper', xf({ p: [2, lid + 0.06, -26] }));
   const spec = getStorage('hdd');
   gridLabel(labels, w - 18, 70, xf({ p: [2, lid + 0.12, -26], r: [-Math.PI / 2, 0, 0] }), ['SATA 6 Gb/s', '7200 RPM', '5 V 0.6 A', '12 V 0.5 A', 'PN PL-VT4T', 'SN 26097712', '256 MB CACHE', '3.5 IN'], brandName(spec?.brand ?? 'pellam').toUpperCase(), spec?.name ?? 'Vault 4 TB', TAB_COLOR.hdd, false);
-  pb.add(cyl(0.9, 0.3, 'y', 16), 'darkVoid', xf({ p: [-20, lid + 0.08, 37.5] }), { uv: 'keep' });
-  pb.add(torus(1.25, 0.18, 6, 20), 'steelZinc', xf({ p: [-20, lid + 0.02, 37.5], r: [Math.PI / 2, 0, 0] }));
-  labels.text('DO NOT COVER BREATHER HOLE', TINY_TYPE, 1.8, xf({ p: [-8, lid + 0.07, 42], r: [-Math.PI / 2, 0, 0] }), { color: '#1f2228' });
+  // Clear of the spindle collar, whose stamped rim reaches 17 mm from its center.
+  pb.add(cyl(0.9, 0.3, 'y', 16), 'darkVoid', xf({ p: [-24, lid + 0.08, 45] }), { uv: 'keep' });
+  pb.add(torus(1.25, 0.18, 6, 20), 'steelZinc', xf({ p: [-24, lid + 0.02, 45], r: [Math.PI / 2, 0, 0] }));
+  labels.text('DO NOT COVER BREATHER HOLE', TINY_TYPE, 1.8, xf({ p: [-6, lid + 0.07, 49], r: [-Math.PI / 2, 0, 0] }), { color: '#1f2228' });
   return { sataData: { pos: [-w / 2 + 22, 4.2, -l / 2 - 0.1], dir: [0, 0, -1] }, sataPower: { pos: [-w / 2 + 48, 4.2, -l / 2 - 0.1], dir: [0, 0, -1] }, label: { pos: [2, h, -26], dir: [0, 1, 0] } };
 }
 

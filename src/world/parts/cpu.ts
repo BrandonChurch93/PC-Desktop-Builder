@@ -112,7 +112,7 @@ export function cpuPart(id: string, opts: GenOpts = {}): PartObject {
     }
   }, at(hb ? -top[0]! / 2 + 7 : -top[0]! / 2 + 6, top[1]! / 2 - 6.5, z), { rough: 0.62 });
   labels.text(brand, { ...(BRAND_TYPE[spec?.brand ?? 'cindervane'] ?? SPEC_TYPE), weight: hb ? 400 : 300 }, 1.7, at(hb ? -top[0]! / 2 + 11 : -top[0]! / 2 + 10.5, top[1]! / 2 - 6.5, z), { color: etch, align: 'left', rough: 0.62 });
-  labels.text(spec?.name ?? '', MODEL_TYPE, 2.4, at(-top[0]! / 2 + 3, 0, z), { color: '#6e7179', align: 'left', rough: 0.62 });
+  labels.text(spec?.name ?? '', { ...MODEL_TYPE, weight: 600 }, 2.4, at(-top[0]! / 2 + 3, 0, z), { color: '#4f525a', align: 'left', rough: 0.62 });
   labels.text(`${spec?.cores ?? 8} CORES · ${spec?.draw ?? 0} W · ${pl?.socketLabel ?? ''}`, TINY_TYPE, 0.9, at(-top[0]! / 2 + 3, -3.6, z), { color: etch, align: 'left', rough: 0.62 });
   labels.text(hb ? 'HB-16X · 2B47 · L4L9' : 'CV-8E · 1C22 · K7A2', TINY_TYPE, 0.85, at(-top[0]! / 2 + 3, -6.2, z), { color: etch, align: 'left', rough: 0.62 });
   labels.draw(5.2, 5.2, (g, W) => {

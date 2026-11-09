@@ -220,8 +220,8 @@ export class Inspector {
       // A part that stands on a thin edge, such as a memory stick, still gets a shade band a few centimeters wide.
       // A stick that lies flat, such as an M.2 drive, needs a wider shade to show past its edges.
       const flat = category === 'storage' && id === 'nvme' ? 1.5 : 1;
-      this.shade.scale.set(this.size.x * sk * flat, Math.max(this.size.z * sk * flat, category === 'ram' ? 0.034 : 0), 1);
-      (this.shade.material as THREE.MeshBasicMaterial).opacity = flat > 1 ? 0.92 : 0.75;
+      this.shade.scale.set(this.size.x * sk * flat, Math.max(this.size.z * sk * flat, category === 'ram' ? 0.05 : 0), 1);
+      (this.shade.material as THREE.MeshBasicMaterial).opacity = flat > 1 || category === 'ram' ? 0.92 : 0.75;
       const gs = Math.max(this.size.x, this.size.z) * 2.6;
       this.glow.scale.set(gs, gs, 1);
       this.holder.updateMatrixWorld(true);

@@ -1,10 +1,27 @@
 import * as THREE from 'three';
-import { textures, TILE_MM, type TextureSet } from './textures';
+import { canvas, textures, TILE_MM, wrap, type TextureSet } from './textures';
+import { seededFor } from './rng';
+
+/** A spun finish: fine concentric rings of varying tone, for a round part pressed or turned on a lathe. Uv 0..1 across it. */
+let spunTex: THREE.Texture | null = null;
+function spun(): THREE.Texture {
+  if (spunTex) return spunTex;
+  const S = 1024; const { canvas: c, g } = canvas(S, S);
+  const r = seededFor('spun');
+  g.fillStyle = 'rgb(180,180,180)'; g.fillRect(0, 0, S, S);
+  for (let rad = S / 2; rad > 2; rad -= 1 + r() * 1.5) {
+    const v = 150 + Math.floor(r() * 70);
+    g.strokeStyle = `rgb(${v},${v},${v})`; g.lineWidth = 1 + r();
+    g.beginPath(); g.arc(S / 2, S / 2, rad, 0, Math.PI * 2); g.stroke();
+  }
+  spunTex = wrap(c, { repeat: false });
+  return spunTex;
+}
 
 export type MatName =
-  | 'powderBlack' | 'powderBlackInner' | 'powderWhite' | 'powderWhiteInner' | 'powderGunmetal' | 'powderGunmetalInner' | 'powderPanel' | 'panelPowder' | 'finAnodized' | 'capTop' | 'capBody' | 'pcbCore' | 'stickerMatte' | 'chipTop' | 'plasticMolded' | 'finGraphite' | 'aluLid' | 'aluStamp'
+  | 'powderBlack' | 'powderBlackInner' | 'powderWhite' | 'powderWhiteInner' | 'powderGunmetal' | 'powderGunmetalInner' | 'powderPanel' | 'panelPowder' | 'finAnodized' | 'capTop' | 'capBody' | 'pcbCore' | 'stickerMatte' | 'chipTop' | 'plasticMolded' | 'finGraphite' | 'aluLidStamp' | 'aluLid' | 'aluStamp'
   | 'steelBare' | 'steelZinc'
-  | 'aluBlack' | 'aluSilver' | 'aluWhite' | 'aluRaw' | 'aluBrushed' | 'aluBrushedDark' | 'aluBrushedPlate' | 'aluAnodized' | 'aluCast' | 'aluSatin' | 'aluSatinDark' | 'aluGunmetal'
+  | 'aluBlack' | 'aluSilver' | 'aluWhite' | 'aluRaw' | 'aluBrushed' | 'aluBrushedDark' | 'aluBrushedPlate' | 'aluAnodized' | 'aluCast' | 'aluSatin' | 'aluSatinDark' | 'aluGunmetal' | 'aluFacet'
   | 'nickel' | 'nickelLapped' | 'pipeNickel' | 'copper' | 'gold' | 'solder'
   | 'plasticMatte' | 'plasticSatin' | 'plasticSoft' | 'plasticGloss' | 'plasticWhite' | 'plasticWhiteGloss' | 'plasticGrey' | 'plasticDark' | 'plasticNylon'
   | 'rubber' | 'rubberWhite'
@@ -17,6 +34,29 @@ export type MatName =
   | 'thermalPad' | 'diffuserOff' | 'darkVoid'
   | 'desk' | 'wall';
 
+/**
+ * three r187 normalizes the screen derivatives in its bump mapping, so a bump is measured per pixel: a fine texture flattens as
+ * the camera comes closer, which is the opposite of what leaning in should show. With WORLD_BUMP defined a material keeps the
+ * original surface gradient form, where bumpScale is a height in meters per unit of the map, so detail holds up close and
+ * averages out with distance.
+ */
+const SIGMA = /vec3 vSigmaX = normalize\( dFdx\( surf_pos\.xyz \) \);\s*vec3 vSigmaY = normalize\( dFdy\( surf_pos\.xyz \) \);/;
+if (!SIGMA.test(THREE.ShaderChunk.bumpmap_pars_fragment)) throw new Error('bump chunk changed: WORLD_BUMP patch no longer applies');
+THREE.ShaderChunk.bumpmap_pars_fragment = THREE.ShaderChunk.bumpmap_pars_fragment.replace(SIGMA, [
+  '#ifdef WORLD_BUMP',
+  '\t\tvec3 vSigmaX = dFdx( surf_pos.xyz );',
+  '\t\tvec3 vSigmaY = dFdy( surf_pos.xyz );',
+  '#else',
+  '\t\tvec3 vSigmaX = normalize( dFdx( surf_pos.xyz ) );',
+  '\t\tvec3 vSigmaY = normalize( dFdy( surf_pos.xyz ) );',
+  '#endif',
+].join('\n'));
+
+function worldBump<M extends THREE.Material>(m: M): M {
+  m.defines = { ...(m.defines ?? {}), WORLD_BUMP: '' };
+  return m;
+}
+
 let T: TextureSet | null = null;
 const cache = new Map<string, THREE.Material>();
 
@@ -26,10 +66,11 @@ function physical(o: THREE.MeshPhysicalMaterialParameters): THREE.MeshPhysicalMa
   return new THREE.MeshPhysicalMaterial(o);
 }
 
-const powder = (color: number, rough: number, coat: number, bump = 0.06) => physical({
-  color, metalness: 0, roughness: rough, roughnessMap: tex().grain, bumpMap: tex().grain, bumpScale: bump,
+/** Powder coat: a slow roughness drift and a fine orange peel, its height in meters per unit of the map. */
+const powder = (color: number, rough: number, coat: number, peel = 3.6e-5) => worldBump(physical({
+  color, metalness: 0, roughness: rough, roughnessMap: tex().mottle, bumpMap: tex().orange, bumpScale: peel,
   clearcoat: coat, clearcoatRoughness: 0.42, specularIntensity: 0.6,
-});
+}));
 
 const metal = (color: number, rough: number, map: THREE.Texture | null, extra: THREE.MeshPhysicalMaterialParameters = {}) => physical({
   color, metalness: 1, roughness: rough, roughnessMap: map, ...extra,
@@ -66,12 +107,12 @@ function makeMat(name: MatName): THREE.Material {
   const t = tex();
   switch (name) {
     case 'powderBlack': return powder(0x28292e, 0.58, 0.14);
-    case 'powderBlackInner': return powder(0x222327, 0.74, 0, 0.04);
+    case 'powderBlackInner': return powder(0x222327, 0.74, 0, 3e-5);
     // The socket panel is seen close up: an orange peel that reads at that range, which on the whole shell read as leather.
     case 'panelPowder': return physical({ color: 0x323439, metalness: 0, roughness: 0.42, roughnessMap: t.grain, bumpMap: t.peel, bumpScale: 2.4, clearcoat: 0.15, clearcoatRoughness: 0.45, specularIntensity: 0.6 });
     case 'powderPanel': return physical({ color: 0x34363c, metalness: 0, roughness: 0.5, roughnessMap: t.peel, bumpMap: t.grainFine, bumpScale: 0.22, clearcoat: 0.2, clearcoatRoughness: 0.45, specularIntensity: 0.6 });
     case 'powderWhite': return powder(0xe4e5e9, 0.42, 0.35);
-    case 'powderWhiteInner': return powder(0xcfd1d6, 0.5, 0.2, 0.04);
+    case 'powderWhiteInner': return powder(0xcfd1d6, 0.5, 0.2, 3e-5);
     case 'powderGunmetal': return physical({ color: 0x45484f, metalness: 0.55, roughness: 0.4, roughnessMap: t.grainFine, bumpMap: t.peel, bumpScale: 0.25, clearcoat: 0.55, clearcoatRoughness: 0.22 });
     case 'powderGunmetalInner': return physical({ color: 0x2e3036, metalness: 0.45, roughness: 0.5, roughnessMap: t.grainFine, bumpMap: t.peel, bumpScale: 0.25, clearcoat: 0.25, clearcoatRoughness: 0.35 });
     case 'steelBare': return metal(0xa6a9af, 0.34, t.grainFine);
@@ -98,15 +139,20 @@ function makeMat(name: MatName): THREE.Material {
     case 'aluStamp': return metal(0xc0c3c8, 0.44, t.mottle);
     case 'aluSatinDark': return metal(0x464950, 0.36, t.brushed, { anisotropy: 0.5 });
     case 'aluGunmetal': return metal(0x4b4e55, 0.38, t.brushed, { anisotropy: 0.6 });
+    // Memory facets: satin anodized, rough enough that each tilted plane takes the softboxes from a wide angle.
+    case 'aluFacet': return metal(0x5c6068, 0.5, t.brushed, { anisotropy: 0.35 });
     case 'nickel': return metal(0xcdced2, 0.22, t.grainFine);
-    case 'pipeNickel': return metal(0x9c9fa5, 0.56, t.mottle);
-    case 'nickelLapped': return metal(0xaeb0b4, 0.48, t.lap, { bumpMap: t.lap, bumpScale: 0.01 });
+    // Seen from above through a backplate cutout the pipes mirror the overhead softbox; capped so they stay metal grey.
+    case 'pipeNickel': return capHighlights(metal(0x9c9fa5, 0.62, t.mottle), 0.3, 'pipe-nickel');
+    // Bloom is for LEDs: the radiused spreader corner mirrored the key softbox above the bloom threshold and flared.
+    case 'nickelLapped': return capHighlights(metal(0xaeb0b4, 0.52, t.lap, { bumpMap: t.lap, bumpScale: 0.01 }), 1.3, 'nickel-lapped');
+    case 'aluLidStamp': return metal(0xc0c3c8, 0.5, spun(), { bumpMap: spun(), bumpScale: 0.02 });
     case 'copper': return metal(0xd38b5d, 0.28, t.grainFine);
     case 'gold': return metal(0xe3bc68, 0.22, null);
     case 'solder': return metal(0xb9bcc0, 0.3, null);
     case 'plasticMatte': return plastic(0x232428, 0.6);
     // A card shroud's textured molded finish, visible at the closest zoom.
-    case 'plasticSatin': return physical({ color: 0x222328, metalness: 0, roughness: 0.5, roughnessMap: t.bead, bumpMap: t.bead, bumpScale: 0.14, specularIntensity: 0.6 });
+    case 'plasticSatin': return worldBump(physical({ color: 0x222328, metalness: 0, roughness: 0.5, roughnessMap: t.bead, bumpMap: t.stipple, bumpScale: 2.8e-5, specularIntensity: 0.6 }));
     case 'plasticSoft': return plastic(0x25262b, 0.82, { sheen: 0.25, sheenRoughness: 0.8, sheenColor: new THREE.Color(0x3a3d48) });
     case 'plasticGloss': return physical({ color: 0x0f0f12, metalness: 0, roughness: 0.22, clearcoat: 0.8, clearcoatRoughness: 0.14 });
     case 'plasticWhite': return plastic(0xe1e2e6, 0.55);
@@ -237,6 +283,13 @@ const GLASS_FRAG_BODY = `{
 `;
 
 /** The glass layer adds light; its output is capped so a bright reflection never reaches bloom. */
+/** Keeps a surface's highlights below the bloom threshold, so only LEDs bloom. */
+function capHighlights(m: THREE.MeshPhysicalMaterial, cap: number, key: string): THREE.MeshPhysicalMaterial {
+  m.onBeforeCompile = (sh) => { sh.fragmentShader = sh.fragmentShader.replace('#include <dithering_fragment>', `gl_FragColor.rgb = min(gl_FragColor.rgb, vec3(${cap.toFixed(2)}));\n#include <dithering_fragment>`); };
+  m.customProgramCacheKey = () => `cap-${key}`;
+  return m;
+}
+
 function clampGlass(m: THREE.MeshPhysicalMaterial): THREE.MeshPhysicalMaterial {
   m.onBeforeCompile = (sh) => {
     Object.assign(sh.uniforms, glassUniforms);

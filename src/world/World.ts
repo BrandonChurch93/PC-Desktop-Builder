@@ -67,6 +67,8 @@ export class World {
   constructor(private canvasEl: HTMLCanvasElement, private store: Store) {
     this.renderer = new THREE.WebGLRenderer({ canvas: canvasEl, antialias: false, powerPreference: 'high-performance', alpha: false, preserveDrawingBuffer: false });
     this.renderer.shadowMap.enabled = true;
+    // Counters span the whole frame, every pass, so stats can report the scene and the frame apart.
+    this.renderer.info.autoReset = false;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = EXPOSURE;
@@ -319,6 +321,7 @@ export class World {
   private draw() {
     const t0 = performance.now();
     if (this.showingInspector) this.inspector.frame(this.width / this.height);
+    this.renderer.info.reset();
     this.post.composer.render();
     this.framesDrawn++;
     this.frameTimes.push(performance.now() - t0);
@@ -367,7 +370,7 @@ export class World {
     const q = (p: number) => (sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))]! : 0);
     void from;
     const info = this.renderer.info.render;
-    return { frames, medianMs: q(0.5), p95Ms: q(0.95), drawCalls: info.calls, triangles: info.triangles };
+    return { frames, medianMs: q(0.5), p95Ms: q(0.95), drawCalls: this.post.count.calls, triangles: this.post.count.triangles, frameCalls: info.calls, frameTriangles: info.triangles };
   }
 
   /** Generates a part alone and measures how far its geometry reaches outside its declared boxes. */

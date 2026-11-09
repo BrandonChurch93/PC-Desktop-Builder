@@ -182,6 +182,21 @@ export function spillStrip(length: number, depth: number, segments = 1): THREE.B
   return g;
 }
 
+/** Fades a spill strip out over its last few millimeters at both ends, as light falls off past the end of its strip. */
+export function fadeEnds(g: THREE.BufferGeometry, fade: number): THREE.BufferGeometry {
+  const p = g.getAttribute('position');
+  let x0 = Infinity; let x1 = -Infinity;
+  for (let i = 0; i < p.count; i++) { x0 = Math.min(x0, p.getX(i)); x1 = Math.max(x1, p.getX(i)); }
+  const col = new Float32Array(p.count * 3);
+  for (let i = 0; i < p.count; i++) {
+    const t = Math.min(1, Math.min(p.getX(i) - x0, x1 - p.getX(i)) / fade);
+    const k = t * t * (3 - 2 * t);
+    col[i * 3] = k; col[i * 3 + 1] = k; col[i * 3 + 2] = k;
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  return g;
+}
+
 /** Part of a spill strip: the piece from 'from' to 'to' along a strip of length 'total' centered on x = 0, so u still matches the LEDs. */
 export function spillStripRange(total: number, from: number, to: number, depth: number, segments = 1): THREE.BufferGeometry {
   const g = new THREE.PlaneGeometry(to - from, depth, segments, 1);

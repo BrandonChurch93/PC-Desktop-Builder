@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { brandName, getBoard, PLATFORMS, type BoardSpec } from '../../data/catalog';
-import { boardBoxes, boardLayout } from '../layout/boards';
+import { atx24Header, boardBoxes, boardLayout, plugSection } from '../layout/boards';
 import { DIMS } from '../layout/dims';
 import type { BoardLayout } from '../layout/types';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -10,7 +10,7 @@ import { mat, type MatName } from '../kit/materials';
 import { seededFor } from '../kit/rng';
 import { canvas, wrap } from '../kit/textures';
 import { BRAND_TYPE, MODEL_TYPE, SPEC_TYPE, TINY_TYPE } from '../kit/type';
-import { spillStrip, spillStripRange, stripLeds, uvAlong, Zone } from '../light/zones';
+import { fadeEnds, spillStrip, spillStripRange, stripLeds, uvAlong, Zone } from '../light/zones';
 import type { Anchor, GenOpts, PartObject } from './types';
 
 const PI = Math.PI;
@@ -81,7 +81,7 @@ function surface(b: BoardSpec, L: BoardLayout, look: Look, ppm: number): { map: 
   L.dimms.slice(0, b.ramSlots).forEach((d) => outline(d.x - 4, d.y + 74, d.x + 4, d.y - 74));
   L.pcie.forEach((s) => outline(s.x0 - 1.5, s.y + 5, s.x0 + s.len + 1.5, s.y - 5));
   L.m2.slice(0, b.m2Slots).forEach((m) => { if (m.level === 0) outline(m.x0 - 7, m.y + 14, m.x0 + 93, m.y - 14); });
-  outline(L.atx24.x - 8.5, L.atx24.y + 27, L.atx24.x + 8.5, L.atx24.y - 27);
+  outline(L.w - DIMS.edgeHeaderDepth - 1.2, L.atx24.y + 30, L.w - 0.8, L.atx24.y - 30);
   outline(L.eps.x - 11.5, L.eps.y + 6, L.eps.x + 11.5, L.eps.y - 6);
   g.fillStyle = look.silk; g.textBaseline = 'middle';
   const silk = (text: string, x: number, y: number, size = 1.3, rot = 0) => {
@@ -90,7 +90,7 @@ function surface(b: BoardSpec, L: BoardLayout, look: Look, ppm: number): { map: 
   L.dimms.slice(0, b.ramSlots).forEach((d) => silk(`DIMM_${d.name}`, d.x - 2, d.y + 78, 1.1, -PI / 2));
   L.pcie.forEach((s, i) => silk(i === 0 ? 'PCIEX16_1' : s.kind === 'x16' ? 'PCIEX16_2' : s.kind === 'x4' ? 'PCIEX4' : 'PCIEX1_1', s.x0 + s.len + 3, s.y, 1.25));
   L.m2.slice(0, b.m2Slots).forEach((m, i) => { if (m.level === 0) silk(`M2_${i + 1}`, m.x0 - 6, m.y - 15.5, 1.15); });
-  silk('ATX_PWR1', L.atx24.x - 10, L.atx24.y - 29, 1.2);
+  silk('ATX_PWR1', L.w - DIMS.edgeHeaderDepth - 1.2, L.atx24.y - 32, 1.2);
   silk('CPU_PWR1', L.eps.x - 11, L.eps.y - 7.5, 1.1);
   silk(PLATFORMS.get(b.platform)?.socketLabel.toUpperCase() ?? 'SOCKET', L.socket.x - 30, L.socket.y - (b.platform === 'hb' ? 45 : 40), 1.2);
   for (const hd of L.headers) silk(hd.kind === 'fan' ? 'FAN' : hd.kind === 'rgb' ? 'ARGB_12V' : hd.kind === 'panel' ? 'F_PANEL' : 'USB', hd.x - hd.w / 2, hd.y - hd.h / 2 - 1.6, 1.0);
@@ -263,6 +263,32 @@ function housing(pb: PartBuilder, look: Look, x: number, y: number, w: number, h
     pb.add(new THREE.BoxGeometry(pitch * 0.68, pitch * 0.68, 0.6), 'darkVoid', at(x + ox, y + oy, T + depth + 0.02), { uv: 'keep' });
     pb.add(cyl(0.55, 0.4, 'z', 8), 'gold', at(x + ox, y + oy, T + depth - 2.5));
   }
+}
+
+/**
+ * The right angle 24 pin header: a shroud whose mouth is the board edge, a grid of pin cells set back inside the mouth, and the
+ * latch ramp on top.
+ */
+function edgeHeader(pb: PartBuilder, look: Look, edge: number, y: number): Anchor {
+  const hd = atx24Header(edge);
+  const d = hd.x1 - hd.x0; const mouth = 3;
+  pb.add(rbox(d - mouth + 0.6, hd.w, hd.h, 0.6, 2), look.plastic, at(hd.x0 + (d - mouth + 0.6) / 2, y, hd.mid));
+  const { ph, pw } = plugSection(2, 12, 4.2);
+  const ow = pw + 0.9; const oh = ph + 0.9;
+  const frame = rrectShape(hd.h, hd.w, 0.6); frame.holes.push(rrectHole(oh, ow, 0.5));
+  pb.add(extrude(frame, mouth, 0.3, 'zy'), look.plastic, at(edge - mouth, y, hd.mid));
+  const cells = rrectShape(oh, ow, 0.5); const pins: THREE.Matrix4[] = [];
+  for (let r = 0; r < 2; r++) for (let c = 0; c < 12; c++) {
+    const oz = (r - 0.5) * 4.2; const oy = (c - 5.5) * 4.2;
+    cells.holes.push(rrectHole(3.75, 3.75, 0.5, oz, oy));
+    pins.push(at(edge - mouth + 0.9, y + oy, hd.mid - oz));
+  }
+  pb.add(extrude(cells, 2.2, 0.15, 'zy'), look.plastic, at(edge - mouth, y, hd.mid));
+  pb.add(new THREE.BoxGeometry(0.2, ow, oh), 'darkVoid', at(edge - mouth + 0.1, y, hd.mid), { uv: 'keep' });
+  pb.instanced(new THREE.BoxGeometry(1.6, 0.64, 0.64), 'gold', pins);
+  pb.add(rbox(2.2, 4.4, 0.9, 0.3, 1), look.plastic, at(edge - 1.1, y, T + hd.h + 0.45));
+  for (const s of [-1, 1]) pb.add(rbox(d - 3, 1.2, 0.8, 0.3, 1), look.plastic, at(hd.x0 + d / 2 - 1, y + s * (hd.w / 2 - 4), T + hd.h + 0.3));
+  return { pos: [edge, y, hd.mid], dir: [1, 0, 0] };
 }
 
 function pinHeader(pb: PartBuilder, look: Look, x: number, y: number, cols: number, rows: number, shroud: boolean) {
@@ -519,9 +545,7 @@ export function boardPart(id: string, opts: GenOpts = {}): PartObject {
   }
 
   // connectors, ports, headers, battery
-  housing(pb, look, L.atx24.x, L.atx24.y, 15.1, 51.6, 13.5, 2, 12, 4.2, 'x');
-  pb.add(rbox(2, 8, 4, 0.5, 1), look.plastic, at(L.atx24.x + 8.5, L.atx24.y, T + 9));
-  anchors.atx24 = { pos: [L.atx24.x, L.atx24.y, T + 13.5], dir: [0, 0, 1] };
+  anchors.atx24 = edgeHeader(pb, look, L.w, L.atx24.y);
   housing(pb, look, L.eps.x, L.eps.y, 21.2, 10.2, 13, 4, 2, 4.2, 'x');
   anchors.eps = { pos: [L.eps.x, L.eps.y, T + 13], dir: [0, 0, 1] };
   L.sata.slice(0, b.sataPorts).forEach((p, i) => {
@@ -612,14 +636,18 @@ export function boardPart(id: string, opts: GenOpts = {}): PartObject {
     pb.mesh(spillStrip(p0.y - p1.y, 22, 8), z.spill(look.frost ? 0.42 : 0.8), toMinusX.clone().setPosition(p0.x - 1.2, (p0.y + p1.y) / 2, chipZ + 0.06), { uv: 'keep' }).userData.spill = true;
     // And on the board beside the chipset, toward the SATA ports.
     const onBoard = new THREE.Matrix4().makeBasis(new THREE.Vector3(0, -1, 0), new THREE.Vector3(-1, 0, 0), new THREE.Vector3(0, 0, -1));
-    pb.mesh(spillStrip(p0.y - p1.y, 44, 8), z.spill(look.frost ? 0.6 : 1.2), onBoard.setPosition(cs.x1 + 0.3, (p0.y + p1.y) / 2, T + 0.1), { uv: 'keep' }).userData.spill = true;
+    // Spills beside the accent fade out past its ends; a strip lit to its ends read as a pasted rectangle.
+    const faded = pb.own(z.spill(look.frost ? 0.5 : 1.0).clone()); faded.vertexColors = true;
+    pb.mesh(fadeEnds(spillStrip(p0.y - p1.y, 44, 32), 14), faded, onBoard.setPosition(cs.x1 + 0.3, (p0.y + p1.y) / 2, T + 0.1), { uv: 'keep' }).userData.spill = true;
     // On the faces of the SATA ports that look back at the accent.
     const sata = L.sata.slice(0, b.sataPorts);
     if (sata.length) {
       const sy0 = Math.max(...sata.map((s) => s.y)) + 4.3; const sy1 = Math.min(...sata.map((s) => s.y)) - 4.3; const sx = Math.min(...sata.map((s) => s.x)) - 5.08;
       const toMinusXUp = new THREE.Matrix4().makeBasis(new THREE.Vector3(0, -1, 0), new THREE.Vector3(0, 0, 1), new THREE.Vector3(-1, 0, 0));
       const mid = (p0.y + p1.y) / 2;
-      pb.mesh(spillStripRange(p0.y - p1.y, mid - sy0, mid - sy1, 13, 8), z.spill(look.frost ? 0.4 : 0.8), toMinusXUp.setPosition(sx, mid, T + 13), { uv: 'keep' }).userData.spill = true;
+      // One sided: from behind the board it glowed past the board's edge.
+      const front = pb.own(faded.clone()); front.side = THREE.FrontSide;
+      pb.mesh(fadeEnds(spillStripRange(p0.y - p1.y, mid - sy0, mid - sy1, 13, 24), 6), front, toMinusXUp.setPosition(sx, mid, T + 13), { uv: 'keep' }).userData.spill = true;
     }
     z.emit(new THREE.Vector3(p0.x, (p0.y + p1.y) / 2, chipZ + 1), new THREE.Vector3(0, 0, 1), p0.y - p1.y, 10, 0.7, new THREE.Vector3(0, 1, 0));
     z.emit(new THREE.Vector3(p0.x + 1.2, (p0.y + p1.y) / 2, chipZ - 2), new THREE.Vector3(1, 0, 0.25), p0.y - p1.y, 6, 0.6, new THREE.Vector3(0, 1, 0));

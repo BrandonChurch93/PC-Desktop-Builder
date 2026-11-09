@@ -7,9 +7,9 @@ PHASE 2 IN PROGRESS · step 1
 ## Where things stand
 
 - Current phase: 2 · World foundation and the hero slice
-- Current step: 1 · World class
-- Next action: read the Phase 2 Read first files (04-WORLD, 07-QUALITY-BAR, reference source), then build the World class and post chain
-- Uncommitted work: none
+- Current step: 2 to 5 · world kit and generators
+- Next action: cooler (pump, radiator, combined), board, Vitrine case, cables; then rig shots and the loop
+- Uncommitted work: src/world (World, post, room, env, rig, inspector, kit, light, layout, parts), src/state/store.ts, src/hook.ts, App, styles, scripts/shot-list.mjs, scripts/peek.mjs, layout tests
 
 ## Phases
 
@@ -60,6 +60,11 @@ PHASE 2 IN PROGRESS · step 1
 
 One line each: what you checked, where, what you found.
 
+- ATX 24 pin housing (Molex Mini-Fit Jr 39-01-2240): 51.6 x 15.1 mm, 4.2 mm pitch (RS listing via web search). EPS and PCIe 8 pin use the same 4.2 mm pitch. 12V-2x6 uses 3.0 mm pitch power pins plus four sense pins.
+- ATX hole and slot coordinates: the spec figure was not reachable in search results. Used the standard 9.6 x 12 in outline, the 158.75 x 44.45 I/O opening, slot pitch from the catalog, slot 1 at 160 mm below the top edge so an ITX board (170 tall) keeps its x16 slot near its bottom edge, and holes on three columns. Logged as a decision.
+- three r187 GTAOPass builds its denoise noise from SimplexNoise with Math.random (GTAOPass.js line 693). Replaced with a seeded noise texture so frames are the same on every load.
+- three r187 Object3D.lookAt on lights points them at the target; RectAreaLight lights one side only, so a lamp plane that cuts through a part lights only the part in front of it (found while debugging the inspector).
+
 - Pinned versions installed exactly as kit/06-ARCHITECTURE.md lists, read from node_modules/*/package.json.
 - Headless Chromium on this Mac reports a hardware ANGLE Metal renderer, so performance numbers measured here are valid.
 
@@ -74,6 +79,14 @@ One line each: the question, what you chose, which step of the decision rule set
 - Removed ids that are not strings in a bad link are reported as String(id). The reference keeps the raw value. Only bad links reach this (step 3).
 - Card status for fans when every mount is under the radiator: blocked with FAN_MOUNT_TAKEN, The radiator uses this mount. The kit only says fans fit when a free mount exists (step 3).
 - RAM_SLOTS with exactly one free slot would read 1 is free. It cannot happen with this catalog (kits are 2 or 4 sticks) (step 4).
+- Board layout (atx, matx, itx) shares the top rear corner: socket at 112,-82 (itx 82,-76), DIMMs A1..B2 at x 166..194.5 with 9.5 pitch, x16 slot 1 at y -160 from x 22, M.2 slot 1 between socket and slot 1, the rest between slots. ITX stacks its second M.2 above the first under one two tier heatsink. Real ITX boards do this (step 1).
+- Memory height and cooler memory clearance are both measured from the DIMM slot floor (2 mm above the board), so a 44 mm kit under a 45 mm clearance has 1 mm and a 52 mm kit would touch (step 3).
+- Card space: the anchor is the bottom of the edge connector at its bracket end; the bracket inner face is 28 mm behind it; the card stands to its catalog height above the board face and its thickness hangs below the slot plane with a 5 mm backplate rise (step 3).
+- Vitrine top fan mounts are 134 mm apart on a slotted rail so a 240 radiator on mounts 1 and 2 clears a fan on mount 3; radiator fans keep a fixed 122 mm pitch (step 1: real slotted top rails).
+- Vitrine rear fan sits at z 40 beside the board I/O, not over it, so it clears the I/O cover (step 5).
+- Inspector studio: no spot shadow (tiny geometry gave acne), no wall wash lamp, soft edged softboxes with a dim horizon band and low front softboxes so vertical metal faces seen from above reflect light, as product studios do (step 1).
+- Black materials sit at 2 to 3 percent albedo (sRGB about 0x23 to 0x28), the range of real black plastic and anodizing, so black parts read as dark grey with highlights (step 1).
+- Printed text on every part is baked into one atlas per part and one mesh per material group, and static geometry is merged per material, to stay inside the draw call budget (step 4).
 - check-copy maker names are matched as whole words with the maker capitalization, so ordinary lowercase words never trip it. The self check removes any entry that matches a catalog name. None did (step 3).
 
 ## Dependencies added
@@ -120,6 +133,7 @@ One line per feature id in kit/01-PRODUCT.md: `F01 · where it is tested or show
 
 Newest first. One entry per working session or per compaction: what was done, what is next.
 
+- 2026-11-08 session 1, Phase 2 in progress: pure layout (Vitrine, boards, part boxes, place) with 11 layout tests passing; World, post chain with seeded GTAO noise, room, studio envs, inspector, RGB engine with oriented lamps, store, hook subset, peek tool; generators done: fan, CPU, memory, storage, supply, Veltrin card. Next: cooler, board, case, cables.
 - 2026-11-08 session 1, Phase 1: catalog types, engine (rules, sanitize, sheet, codec, lighting, messages, queries), tests, check-copy. Gate 1 passed.
 - 2026-11-08 session 1: read the whole kit, Phase 0 done (env, git, starter, install, four checks, harness on the reference, reference notes, empty shot check). Next: Phase 1 engine.
 

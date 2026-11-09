@@ -2,14 +2,15 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import '@fontsource-variable/unbounded';
 import '@fontsource-variable/dm-sans';
-import catalog from './data/catalog.json';
+import './styles/tokens.css';
+import './styles/global.css';
+import { App } from './App';
 
-function App() {
-  return <main>{catalog.constants.productName}</main>;
+const root = document.getElementById('root');
+if (root) {
+  createRoot(root).render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  );
 }
-
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-);

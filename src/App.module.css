@@ -1,0 +1,12 @@
+.stage {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+}
+
+.canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}

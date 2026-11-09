@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Desktop PC Builder · Night Rig reference</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="./fonts.css">
+<link rel="stylesheet" href="./ui.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.187.0/examples/jsm/","gsap":"https://cdn.jsdelivr.net/npm/gsap@3.15.1/index.js"}}</script>
+</head>
+<body>
+<canvas id="stage" aria-label="3D view of the PC build. Drag to orbit, pinch or scroll to zoom."></canvas>
+<div id="ui">
+  <header class="brand">
+    <div class="brand__name">Desktop PC Builder</div>
+    <div class="eyebrow" id="buildName">Night Rig · build mode</div>
+  </header>
+
+  <nav class="modes glass" aria-label="View">
+    <button class="mode is-on" data-mode="build">Build</button>
+    <button class="mode" data-mode="showcase">Showcase</button>
+    <button class="mode" data-mode="exploded">Exploded</button>
+    <button class="mode mode--cta" data-mode="share">Share build</button>
+  </nav>
+
+  <section class="light glass" aria-label="Lighting">
+    <div class="panel__head"><span class="eyebrow">Lighting</span><button class="chip is-on" id="sync" aria-pressed="true">Synced</button></div>
+    <div class="fx" id="fx"></div>
+    <div class="gradient" id="gradient" role="img" aria-label="Current color gradient"></div>
+    <label class="slider"><span>Speed</span><input id="speed" type="range" min="0" max="1.5" step="0.01" value="0.6"><output id="speedOut">60</output></label>
+    <label class="slider"><span>Brightness</span><input id="bright" type="range" min="0" max="1" step="0.01" value="0.85"><output id="brightOut">85</output></label>
+  </section>
+
+  <section class="spec glass" aria-label="Spec sheet">
+    <div class="panel__head"><span class="eyebrow">Spec sheet</span><span class="ok">No warnings</span></div>
+    <div class="stat"><span class="eyebrow">Memory</span><strong>32 GB</strong><small>2 of 4 slots</small></div>
+    <div class="stat"><span class="eyebrow">Storage</span><strong>6 TB</strong><small>1 of 3 slots · 1 of 2 bays</small></div>
+    <div class="stat"><span class="eyebrow">Power</span><strong>558 W</strong><small>of 850 W · 66 percent</small><div class="meter"><i style="width:66%"></i></div></div>
+    <div class="stat"><span class="eyebrow">Graphics</span><strong id="gpuStat">322 mm</strong><small id="gpuStatSub">of 400 mm clearance</small></div>
+    <button class="ghost" id="sheet">Open full sheet</button>
+  </section>
+
+  <section class="dock glass" aria-label="Parts">
+    <div class="dock__head">
+      <div class="tabs" role="tablist">
+        <button class="tab">Case</button><button class="tab">Board</button><button class="tab">Processor</button><button class="tab">Cooler</button><button class="tab">Memory</button><button class="tab is-on">Graphics</button><button class="tab">Storage</button><button class="tab">Power</button><button class="tab">Fans</button><button class="tab">Cables</button>
+      </div>
+      <div class="hint">Drag into the case, or tap a card and then the slot</div>
+    </div>
+    <div class="cards">
+      <button class="card is-installed" id="gpuCard"><span class="thumb thumb--a"></span><span class="card__t"><b>Veltrin Apex 3X</b><small>322 mm · 3 fans · 2 light zones</small><em id="gpuState">Installed · tap to remove</em></span></button>
+      <button class="card"><span class="thumb thumb--b"></span><span class="card__t"><b>Veltrin Apex 2X</b><small>245 mm · 2 fans · 1 light zone</small><em class="fit">Fits</em></span></button>
+      <button class="card"><span class="thumb thumb--c"></span><span class="card__t"><b>Veltrin Crest</b><small>372 mm · 3 fans · 3 light zones</small><em class="warn">Fits · low power headroom</em></span></button>
+      <button class="card"><span class="thumb thumb--d"></span><span class="card__t"><b>Veltrin Mini</b><small>180 mm · 2 fans · unlit</small><em class="fit">Fits</em></span></button>
+    </div>
+  </section>
+
+  <div class="toggles">
+    <button class="chip is-on" id="glass" aria-pressed="true">Glass panel</button>
+    <button class="chip is-on" id="power" aria-pressed="true">Power</button>
+  </div>
+</div>
+<script type="module" src="./main.js"></script>
+</body>
+</html>

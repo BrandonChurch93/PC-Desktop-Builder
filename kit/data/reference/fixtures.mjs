@@ -1,0 +1,112 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+import { catalog as C } from './catalog.mjs';
+import { emptyBuild, buildFromPreset, install, remove, check, revalidate, sheet, temps, encode, decode, payload, occupiedFanMounts, gpuMaxLength } from './rules.mjs';
+
+const out = { version: 1, note: 'Computed at planning time by the reference in kit/data/reference. The TypeScript engine must reproduce every value here.', presets: [], checks: [], decodes: [] };
+const P = Object.fromEntries(C.presets.map((p) => [p.id, buildFromPreset(p)]));
+
+for (const p of C.presets) {
+  const b = P[p.id];
+  const v = revalidate(b);
+  assert.deepEqual(v.removed, [], p.id + ' preset must be valid');
+  assert.deepEqual(v.build, b, p.id + ' preset must be canonical');
+  const s = sheet(b);
+  assert.equal(s.canPowerOn, true, p.id);
+  assert.equal(s.warnings.filter((w) => w.level !== 'info').length, 0, p.id + ' ' + JSON.stringify(s.warnings));
+  const code = encode(b);
+  assert.deepEqual(decode(code).build, b, p.id + ' round trip');
+  out.presets.push({ id: p.id, build: b, encoded: code, sheet: s, temps: { idle: temps(b, 0), half: temps(b, 0.5), full: temps(b, 1) }, occupiedFanMounts: occupiedFanMounts(b), gpuMaxLength: gpuMaxLength(b) });
+}
+
+const from = (id, edit) => { const b = JSON.parse(JSON.stringify(P[id])); if (edit) edit(b); return b; };
+const chk = (name, build, action, expect) => {
+  const r = action.type === 'remove' ? remove(build, action.category, action.opts) : install(build, action.category, action.id, action.opts);
+  const got = { ok: r.ok, code: r.ok ? null : r.code, removed: r.removed };
+  assert.deepEqual({ ok: got.ok, code: got.code }, { ok: expect.ok, code: expect.code ?? null }, name + ' -> ' + JSON.stringify(got));
+  if (expect.removed) assert.deepEqual(got.removed.map((x) => x.category + ':' + x.id + ':' + x.code + (x.count ? ':' + x.count : '') + (x.mount ? '@' + x.mount : '')), expect.removed, name);
+  out.checks.push({ name, build, action, expect: { ok: got.ok, code: got.code, removed: got.removed, sheet: r.ok ? sheet(r.build) : null, cooler: r.ok ? r.build.cooler : undefined } });
+};
+const E = emptyBuild();
+const withCase = (id) => install(E, 'case', id).build;
+
+chk('board needs a case', E, { type: 'install', category: 'board', id: 'z7' }, { ok: false, code: 'NEED_CASE' });
+chk('cpu needs a board', withCase('vitrine'), { type: 'install', category: 'cpu', id: 'ember8' }, { ok: false, code: 'NEED_BOARD' });
+chk('cooler needs a cpu', install(withCase('vitrine'), 'board', 'z7').build, { type: 'install', category: 'cooler', id: 'pillar' }, { ok: false, code: 'NEED_CPU' });
+chk('psu needs a case', E, { type: 'install', category: 'psu', id: 't850' }, { ok: false, code: 'NEED_CASE' });
+chk('nvme needs a board', withCase('vitrine'), { type: 'install', category: 'storage', id: 'nvme' }, { ok: false, code: 'NEED_BOARD' });
+chk('hdd installs with a case and no board', withCase('vitrine'), { type: 'install', category: 'storage', id: 'hdd' }, { ok: true });
+chk('atx board does not fit the cub', withCase('cub'), { type: 'install', category: 'board', id: 'z7' }, { ok: false, code: 'BOARD_SIZE' });
+chk('itx board fits the cub', withCase('cub'), { type: 'install', category: 'board', id: 'z7i' }, { ok: true });
+chk('wrong platform cpu', from('night-rig', (b) => { b.cpu = null; b.cooler = null; }), { type: 'install', category: 'cpu', id: 'tidal16' }, { ok: false, code: 'CPU_PLATFORM' });
+chk('twin pillar too tall for atrium', from('white-out', (b) => { b.cooler = null; }), { type: 'install', category: 'cooler', id: 'twin' }, { ok: false, code: 'COOLER_HEIGHT' });
+chk('pillar fits atrium', from('white-out', (b) => { b.cooler = null; }), { type: 'install', category: 'cooler', id: 'pillar' }, { ok: true });
+chk('tower cooler too tall for cub', from('pocket', (b) => { b.cooler = null; }), { type: 'install', category: 'cooler', id: 'pillar' }, { ok: false, code: 'COOLER_HEIGHT' });
+chk('slate lp blocked by tall ram', from('pocket', (b) => { b.cooler = null; }), { type: 'install', category: 'cooler', id: 'slate' }, { ok: false, code: 'RAM_CLEARANCE' });
+chk('slate lp fits with low ram and warns on capacity', from('pocket', (b) => { b.cooler = null; b.ram = ['mono32']; }), { type: 'install', category: 'cooler', id: 'slate' }, { ok: true });
+chk('tall ram blocked under twin pillar', from('windbreak', (b) => { b.ram = []; }), { type: 'install', category: 'ram', id: 'crown96' }, { ok: false, code: 'RAM_CLEARANCE' });
+chk('facet ram fits under twin pillar', from('windbreak', (b) => { b.ram = []; }), { type: 'install', category: 'ram', id: 'facet32' }, { ok: true });
+chk('second kit fills four slots', P['night-rig'], { type: 'install', category: 'ram', id: 'facet64' }, { ok: true });
+chk('quad kit does not fit two free slots', P['night-rig'], { type: 'install', category: 'ram', id: 'facet64x4' }, { ok: false, code: 'RAM_SLOTS' });
+chk('third kit has no slots', install(P['night-rig'], 'ram', 'facet64').build, { type: 'install', category: 'ram', id: 'mono16' }, { ok: false, code: 'RAM_SLOTS' });
+chk('second kit blocked on itx board', P['pocket'], { type: 'install', category: 'ram', id: 'mono16' }, { ok: false, code: 'RAM_SLOTS' });
+chk('long gpu blocked in cub', from('pocket', (b) => { b.gpu = null; }), { type: 'install', category: 'gpu', id: 'apex3x' }, { ok: false, code: 'GPU_LENGTH' });
+chk('thick gpu blocked in cub', from('pocket', (b) => { b.gpu = null; }), { type: 'install', category: 'gpu', id: 'crest' }, { ok: false, code: 'GPU_THICKNESS' });
+chk('gpu swap keeps everything else', P['night-rig'], { type: 'install', category: 'gpu', id: 'crest' }, { ok: true, removed: [] });
+chk('front radiator shortens gpu clearance in vent', from('windbreak', (b) => { b.cooler = { id: 'tarn360', mount: 'front' }; b.fans = { 'top-1': 'gale', 'top-2': 'gale', 'rear-1': 'gale' }; b.gpu = null; }), { type: 'install', category: 'gpu', id: 'crest' }, { ok: false, code: 'GPU_LENGTH' });
+chk('the longest card fits vent with no front radiator', from('windbreak', (b) => { b.gpu = null; }), { type: 'install', category: 'gpu', id: 'crest' }, { ok: true });
+chk('front radiator makes the longest card too long in vitrine', from('night-rig', (b) => { b.cooler = { id: 'tarn360-lux', mount: 'front' }; b.fans = { 'rear-1': 'gale-lux' }; b.gpu = null; }), { type: 'install', category: 'gpu', id: 'crest' }, { ok: false, code: 'GPU_LENGTH' });
+chk('a shorter card fits beside the front radiator', from('night-rig', (b) => { b.cooler = { id: 'tarn360-lux', mount: 'front' }; b.fans = { 'rear-1': 'gale-lux' }; b.gpu = null; }), { type: 'install', category: 'gpu', id: 'monolith' }, { ok: true });
+chk('radiator refused on the front mount when the card is too long', from('night-rig', (b) => { b.cooler = null; b.gpu = 'crest'; b.fans = { 'rear-1': 'gale-lux' }; }), { type: 'install', category: 'cooler', id: 'tarn360', opts: { mount: 'front' } }, { ok: false, code: 'RAD_GPU_CLEARANCE' });
+chk('radiator goes to the top mount on its own when the card is long', from('night-rig', (b) => { b.cooler = null; b.gpu = 'crest'; b.fans = { 'rear-1': 'gale-lux' }; }), { type: 'install', category: 'cooler', id: 'tarn360' }, { ok: true });
+chk('aio picks the first mount that keeps the gpu', from('windbreak', (b) => { b.cooler = null; b.gpu = 'crest'; }), { type: 'install', category: 'cooler', id: 'tarn240' }, { ok: true });
+chk('360 radiator has only the front mount in vent', from('windbreak', (b) => { b.cooler = null; }), { type: 'install', category: 'cooler', id: 'tarn360' }, { ok: true, removed: ['fan:gale:FAN_MOUNT_TAKEN@front-1', 'fan:gale:FAN_MOUNT_TAKEN@front-2', 'fan:gale:FAN_MOUNT_TAKEN@front-3'] });
+chk('360 radiator does not fit the cub', from('pocket', (b) => { b.cooler = null; }), { type: 'install', category: 'cooler', id: 'tarn360' }, { ok: false, code: 'NO_RAD_MOUNT' });
+chk('requested mount of the wrong size', from('windbreak', (b) => { b.cooler = null; }), { type: 'install', category: 'cooler', id: 'tarn360', opts: { mount: 'top' } }, { ok: false, code: 'NO_RAD_MOUNT' });
+chk('fan blocked on a radiator mount', P['night-rig'], { type: 'install', category: 'fan', id: 'gale', opts: { mount: 'top-2' } }, { ok: false, code: 'FAN_MOUNT_TAKEN' });
+chk('fan replaces a fan', P['night-rig'], { type: 'install', category: 'fan', id: 'aureole', opts: { mount: 'front-2' } }, { ok: true, removed: [] });
+chk('fan on an unknown mount', P['night-rig'], { type: 'install', category: 'fan', id: 'aureole', opts: { mount: 'side-1' } }, { ok: false, code: 'FAN_MOUNT_UNKNOWN' });
+chk('240 radiator frees the third top mount', from('night-rig', (b) => { b.cooler = { id: 'tarn240', mount: 'top' }; }), { type: 'install', category: 'fan', id: 'gale', opts: { mount: 'top-3' } }, { ok: true });
+chk('nvme slots full on z7', from('night-rig', (b) => { b.storage.nvme = 3; }), { type: 'install', category: 'storage', id: 'nvme' }, { ok: false, code: 'M2_SLOTS' });
+chk('35 inch bays full in vitrine', from('night-rig', (b) => { b.storage.hdd = 2; }), { type: 'install', category: 'storage', id: 'hdd' }, { ok: false, code: 'BAYS_35' });
+chk('no 35 inch bays in cub', P['pocket'], { type: 'install', category: 'storage', id: 'hdd' }, { ok: false, code: 'BAYS_35' });
+chk('25 inch bays full in cub', from('pocket', (b) => { b.storage.ssd = 2; }), { type: 'install', category: 'storage', id: 'ssd' }, { ok: false, code: 'BAYS_25' });
+chk('sata ports full on matx board', from('flagship', (b) => { b.board = 'x9m'; b.storage = { nvme: 2, ssd: 2, hdd: 2 }; }), { type: 'install', category: 'storage', id: 'ssd' }, { ok: false, code: 'SATA_PORTS' });
+chk('sfx supply required in cub', from('pocket', (b) => { b.psu = null; }), { type: 'install', category: 'psu', id: 't850' }, { ok: false, code: 'PSU_FORM' });
+chk('sfx supply rejected in a tower', from('night-rig', (b) => { b.psu = null; }), { type: 'install', category: 'psu', id: 'sf750' }, { ok: false, code: 'PSU_FORM' });
+chk('long supply does not fit gantry', from('open-frame', (b) => { b.psu = null; }), { type: 'install', category: 'psu', id: 't1200' }, { ok: false, code: 'PSU_LENGTH' });
+chk('small supply installs and reports over capacity', P['flagship'], { type: 'install', category: 'psu', id: 't650' }, { ok: true, removed: [] });
+chk('low headroom warning', P['night-rig'], { type: 'install', category: 'psu', id: 't650' }, { ok: true, removed: [] });
+chk('unknown part id', withCase('vitrine'), { type: 'install', category: 'board', id: 'nope' }, { ok: false, code: 'UNKNOWN_PART' });
+
+chk('board swap to the other platform removes cpu and cooler', P['night-rig'], { type: 'install', category: 'board', id: 'x9' }, { ok: true, removed: ['cpu:ember8:CPU_PLATFORM', 'cooler:tarn360-lux:NEED_CPU'] });
+chk('board swap to itx trims memory and nvme', from('flagship', (b) => { b.ram = ['facet32', 'mono16']; }), { type: 'install', category: 'board', id: 'x9i' }, { ok: true, removed: ['ram:mono16:RAM_SLOTS', 'storage:nvme:M2_SLOTS:2', 'storage:ssd:SATA_PORTS:2'] });
+chk('case swap to cub removes what cannot follow', P['night-rig'], { type: 'install', category: 'case', id: 'cub' }, { ok: true, removed: ['board:z7:BOARD_SIZE', 'cpu:ember8:NEED_BOARD', 'cooler:tarn360-lux:NEED_CPU', 'ram:facet32:NEED_BOARD', 'gpu:apex3x:NEED_BOARD', 'storage:nvme:NEED_BOARD:1', 'storage:hdd:BAYS_35:1', 'psu:t850:PSU_FORM', 'fan:gale-lux:FAN_MOUNT_UNKNOWN@front-1', 'fan:gale-lux:FAN_MOUNT_UNKNOWN@front-2', 'fan:gale-lux:FAN_MOUNT_UNKNOWN@front-3'] });
+chk('case swap keeps a compatible build and reseats the radiator', P['open-frame'], { type: 'install', category: 'case', id: 'bulwark' }, { ok: true, removed: [] });
+chk('case swap to vent moves a 360 radiator to the front', P['night-rig'], { type: 'install', category: 'case', id: 'vent' }, { ok: true, removed: ['fan:gale-lux:FAN_MOUNT_TAKEN@front-1', 'fan:gale-lux:FAN_MOUNT_TAKEN@front-2', 'fan:gale-lux:FAN_MOUNT_TAKEN@front-3'] });
+chk('removing the cpu removes the cooler', P['night-rig'], { type: 'remove', category: 'cpu' }, { ok: true, removed: ['cooler:tarn360-lux:NEED_CPU'] });
+chk('removing the board cascades', P['pocket'], { type: 'remove', category: 'board' }, { ok: true, removed: ['cpu:tidal16:NEED_BOARD', 'cooler:tarn240-frost:NEED_CPU', 'ram:facet32:NEED_BOARD', 'gpu:halide:NEED_BOARD', 'storage:nvme:NEED_BOARD:2'] });
+chk('removing the case removes everything', P['pocket'], { type: 'remove', category: 'case' }, { ok: true, removed: ['board:x9i:NEED_CASE', 'cpu:tidal16:NEED_BOARD', 'cooler:tarn240-frost:NEED_CPU', 'ram:facet32:NEED_BOARD', 'gpu:halide:NEED_BOARD', 'storage:nvme:NEED_BOARD:2', 'storage:ssd:NEED_CASE:1', 'psu:sf750:NEED_CASE', 'fan:petal:NEED_CASE@rear-1'] });
+chk('removing one ram kit by index', install(P['night-rig'], 'ram', 'facet64').build, { type: 'remove', category: 'ram', opts: { index: 0 } }, { ok: true, removed: [] });
+chk('removing a drive', P['night-rig'], { type: 'remove', category: 'storage', opts: { type: 'hdd' } }, { ok: true, removed: [] });
+chk('removing a fan', P['night-rig'], { type: 'remove', category: 'fan', opts: { mount: 'rear-1' } }, { ok: true, removed: [] });
+
+const dec = (name, str, expect) => { const r = decode(str); if (expect.error) assert.equal(r.error, expect.error, name); else assert.deepEqual(r.removed.map((x) => x.category + ':' + x.id + ':' + x.code), expect.removed, name + JSON.stringify(r.removed)); out.decodes.push({ name, encoded: str, expect: r.error ? { error: r.error } : { build: r.build, removed: r.removed } }); };
+const b64 = (a) => Buffer.from(JSON.stringify(a), 'utf8').toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+dec('garbage string', '!!!not-a-link', { error: 'BAD_LINK' });
+dec('valid base64 that is not a payload', b64({ hello: 1 }), { error: 'BAD_LINK' });
+dec('newer version', b64([2, 'vitrine', 'onyx']), { error: 'NEWER_LINK' });
+dec('unknown ids are dropped', b64([1, 'vitrine', 'neon', 'z7', 'nope', 0, 0, ['facet32', 'bogus'], 'apex3x', [1, 0, 9], 't850', [['front-1', 'gale'], ['side-9', 'gale']], 'plaid', 1, ['wave', 999, -5, 1, ['ff2bd1', 'zzz', '18e0ff'], [['gpu', 0], ['desk', 0]]], 'x'.repeat(60)]), { removed: ['cpu:nope:UNKNOWN_PART', 'ram:bogus:UNKNOWN_PART', 'storage:hdd:BAYS_35', 'fan:gale:FAN_MOUNT_UNKNOWN'] });
+dec('version below one', b64([-1, 'vitrine', 'onyx']), { error: 'BAD_LINK' });
+dec('ids that are object property names', b64([1, 'vitrine', 'onyx', 'toString', 0, 0, 0, ['__proto__', 'constructor'], 0, [0, 0, 0], 'hasOwnProperty', [['front-1', 'valueOf']], 'onyx', 1, ['wave', 60, 85, 1, ['ff2bd1', '18e0ff'], []], '']), { removed: ['board:toString:UNKNOWN_PART', 'ram:__proto__:UNKNOWN_PART', 'ram:constructor:UNKNOWN_PART', 'psu:hasOwnProperty:UNKNOWN_PART', 'fan:valueOf:UNKNOWN_PART'] });
+dec('glass given as a non zero value stays on', b64([1, 'vitrine', 'onyx', 0, 0, 0, 0, [], 0, [0, 0, 0], 0, [], 'onyx', 7, ['wave', 60, 85, 1, ['ff2bd1', '18e0ff'], []], '']), { removed: [] });
+dec('conflicting cooler and memory', b64(payload(from('windbreak', (b) => { b.ram = ['crown96']; }))), { removed: ['ram:crown96:RAM_CLEARANCE'] });
+dec('empty build', encode(E), { removed: [] });
+const lit = from('night-rig', (b) => { b.lighting.overrides = { gpu: 'off', ram: { effect: 'static', speed: 60, brightness: 100, direction: -1, stops: ['#ffffff', '#18e0ff'] } }; b.name = 'Night Rig · v2'; });
+dec('overrides and a name with an interpunct', encode(lit), { removed: [] });
+assert.deepEqual(decode(encode(lit)).build, lit);
+
+fs.writeFileSync(process.argv[2] + '/fixtures.json', JSON.stringify(out, null, 1));
+fs.writeFileSync(process.argv[2] + '/catalog.json', JSON.stringify(C, null, 1));
+console.log('presets', out.presets.length, 'checks', out.checks.length, 'decodes', out.decodes.length);
+for (const p of out.presets) console.log(p.id.padEnd(11), 'draw', p.sheet.drawW, 'of', p.sheet.psuCapacityW, p.sheet.loadPercent + '%', 'rec', p.sheet.recommendedPsuW, 'mem', p.sheet.memoryGb, 'sto', p.sheet.storageTb, 'fans', p.sheet.intakeFans + '/' + p.sheet.exhaustFans, p.sheet.pressure, 'temps', JSON.stringify(p.temps.full), 'warn', JSON.stringify(p.sheet.warnings), 'len', p.encoded.length);

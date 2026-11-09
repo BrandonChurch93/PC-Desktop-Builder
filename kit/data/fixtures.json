@@ -1,0 +1,5288 @@
+{
+ "version": 1,
+ "note": "Computed at planning time by the reference in kit/data/reference. The TypeScript engine must reproduce every value here.",
+ "presets": [
+  {
+   "id": "night-rig",
+   "build": {
+    "v": 1,
+    "name": "Night Rig",
+    "case": {
+     "id": "vitrine",
+     "finish": "onyx"
+    },
+    "board": "z7",
+    "cpu": "ember8",
+    "cooler": {
+     "id": "tarn360-lux",
+     "mount": "top"
+    },
+    "ram": [
+     "facet32"
+    ],
+    "gpu": "apex3x",
+    "storage": {
+     "nvme": 1,
+     "ssd": 0,
+     "hdd": 1
+    },
+    "psu": "t850",
+    "fans": {
+     "front-1": "gale-lux",
+     "front-2": "gale-lux",
+     "front-3": "gale-lux",
+     "rear-1": "gale-lux"
+    },
+    "cables": "orchid",
+    "glass": true,
+    "lighting": {
+     "effect": "wave",
+     "speed": 60,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff2bd1",
+      "#7b3dff",
+      "#18e0ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "encoded": "WzEsInZpdHJpbmUiLCJvbnl4IiwiejciLCJlbWJlcjgiLCJ0YXJuMzYwLWx1eCIsInRvcCIsWyJmYWNldDMyIl0sImFwZXgzeCIsWzEsMCwxXSwidDg1MCIsW1siZnJvbnQtMSIsImdhbGUtbHV4Il0sWyJmcm9udC0yIiwiZ2FsZS1sdXgiXSxbImZyb250LTMiLCJnYWxlLWx1eCJdLFsicmVhci0xIiwiZ2FsZS1sdXgiXV0sIm9yY2hpZCIsMSxbIndhdmUiLDYwLDg1LDEsWyJmZjJiZDEiLCI3YjNkZmYiLCIxOGUwZmYiXSxbXV0sIk5pZ2h0IFJpZyJd",
+   "sheet": {
+    "memoryGb": 32,
+    "ramSlotsUsed": 2,
+    "ramSlots": 4,
+    "storageTb": 6,
+    "m2Used": 1,
+    "m2Slots": 3,
+    "bays25Used": 0,
+    "bays25": 2,
+    "bays35Used": 1,
+    "bays35": 2,
+    "sataUsed": 1,
+    "sataPorts": 6,
+    "drawW": 558,
+    "psuCapacityW": 850,
+    "loadPercent": 66,
+    "recommendedPsuW": 750,
+    "gpuLength": 322,
+    "gpuMaxLength": 400,
+    "coolerCapacityW": 300,
+    "cpuDrawW": 125,
+    "intakeFans": 3,
+    "exhaustFans": 4,
+    "pressure": "negative",
+    "missing": [],
+    "warnings": [],
+    "canPowerOn": true
+   },
+   "temps": {
+    "idle": {
+     "cpuC": 32,
+     "gpuC": 34
+    },
+    "half": {
+     "cpuC": 42,
+     "gpuC": 48
+    },
+    "full": {
+     "cpuC": 53,
+     "gpuC": 63
+    }
+   },
+   "occupiedFanMounts": [
+    "top-1",
+    "top-2",
+    "top-3"
+   ],
+   "gpuMaxLength": 400
+  },
+  {
+   "id": "white-out",
+   "build": {
+    "v": 1,
+    "name": "White Out",
+    "case": {
+     "id": "atrium",
+     "finish": "frost"
+    },
+    "board": "x9",
+    "cpu": "tidal16",
+    "cooler": {
+     "id": "tarn240-frost",
+     "mount": "top"
+    },
+    "ram": [
+     "crown96"
+    ],
+    "gpu": "halide",
+    "storage": {
+     "nvme": 2,
+     "ssd": 0,
+     "hdd": 0
+    },
+    "psu": "t1200",
+    "fans": {
+     "side-1": "petal",
+     "side-2": "petal",
+     "side-3": "petal",
+     "bottom-1": "petal",
+     "bottom-2": "petal",
+     "bottom-3": "petal",
+     "rear-1": "petal"
+    },
+    "cables": "frost",
+    "glass": true,
+    "lighting": {
+     "effect": "static",
+     "speed": 60,
+     "brightness": 80,
+     "direction": 1,
+     "stops": [
+      "#dff3ff",
+      "#8fd3ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "encoded": "WzEsImF0cml1bSIsImZyb3N0IiwieDkiLCJ0aWRhbDE2IiwidGFybjI0MC1mcm9zdCIsInRvcCIsWyJjcm93bjk2Il0sImhhbGlkZSIsWzIsMCwwXSwidDEyMDAiLFtbInNpZGUtMSIsInBldGFsIl0sWyJzaWRlLTIiLCJwZXRhbCJdLFsic2lkZS0zIiwicGV0YWwiXSxbImJvdHRvbS0xIiwicGV0YWwiXSxbImJvdHRvbS0yIiwicGV0YWwiXSxbImJvdHRvbS0zIiwicGV0YWwiXSxbInJlYXItMSIsInBldGFsIl1dLCJmcm9zdCIsMSxbInN0YXRpYyIsNjAsODAsMSxbImRmZjNmZiIsIjhmZDNmZiJdLFtdXSwiV2hpdGUgT3V0Il0",
+   "sheet": {
+    "memoryGb": 96,
+    "ramSlotsUsed": 2,
+    "ramSlots": 4,
+    "storageTb": 4,
+    "m2Used": 2,
+    "m2Slots": 4,
+    "bays25Used": 0,
+    "bays25": 3,
+    "bays35Used": 0,
+    "bays35": 2,
+    "sataUsed": 0,
+    "sataPorts": 6,
+    "drawW": 587,
+    "psuCapacityW": 1200,
+    "loadPercent": 49,
+    "recommendedPsuW": 800,
+    "gpuLength": 304,
+    "gpuMaxLength": 420,
+    "coolerCapacityW": 220,
+    "cpuDrawW": 170,
+    "intakeFans": 6,
+    "exhaustFans": 3,
+    "pressure": "positive",
+    "missing": [],
+    "warnings": [],
+    "canPowerOn": true
+   },
+   "temps": {
+    "idle": {
+     "cpuC": 32,
+     "gpuC": 34
+    },
+    "half": {
+     "cpuC": 51,
+     "gpuC": 48
+    },
+    "full": {
+     "cpuC": 70,
+     "gpuC": 63
+    }
+   },
+   "occupiedFanMounts": [
+    "top-1",
+    "top-2"
+   ],
+   "gpuMaxLength": 420
+  },
+  {
+   "id": "windbreak",
+   "build": {
+    "v": 1,
+    "name": "Windbreak",
+    "case": {
+     "id": "vent",
+     "finish": "gunmetal"
+    },
+    "board": "z7",
+    "cpu": "ember8",
+    "cooler": {
+     "id": "twin",
+     "mount": null
+    },
+    "ram": [
+     "mono32"
+    ],
+    "gpu": "monolith",
+    "storage": {
+     "nvme": 1,
+     "ssd": 0,
+     "hdd": 2
+    },
+    "psu": "t850",
+    "fans": {
+     "front-1": "gale",
+     "front-2": "gale",
+     "front-3": "gale",
+     "top-1": "gale",
+     "top-2": "gale",
+     "rear-1": "gale"
+    },
+    "cables": "onyx",
+    "glass": true,
+    "lighting": {
+     "effect": "static",
+     "speed": 60,
+     "brightness": 0,
+     "direction": 1,
+     "stops": [
+      "#ffffff",
+      "#ffffff"
+     ],
+     "overrides": {}
+    }
+   },
+   "encoded": "WzEsInZlbnQiLCJndW5tZXRhbCIsIno3IiwiZW1iZXI4IiwidHdpbiIsMCxbIm1vbm8zMiJdLCJtb25vbGl0aCIsWzEsMCwyXSwidDg1MCIsW1siZnJvbnQtMSIsImdhbGUiXSxbImZyb250LTIiLCJnYWxlIl0sWyJmcm9udC0zIiwiZ2FsZSJdLFsidG9wLTEiLCJnYWxlIl0sWyJ0b3AtMiIsImdhbGUiXSxbInJlYXItMSIsImdhbGUiXV0sIm9ueXgiLDEsWyJzdGF0aWMiLDYwLDAsMSxbImZmZmZmZiIsImZmZmZmZiJdLFtdXSwiV2luZGJyZWFrIl0",
+   "sheet": {
+    "memoryGb": 32,
+    "ramSlotsUsed": 2,
+    "ramSlots": 4,
+    "storageTb": 10,
+    "m2Used": 1,
+    "m2Slots": 3,
+    "bays25Used": 0,
+    "bays25": 2,
+    "bays35Used": 2,
+    "bays35": 3,
+    "sataUsed": 2,
+    "sataPorts": 6,
+    "drawW": 605,
+    "psuCapacityW": 850,
+    "loadPercent": 71,
+    "recommendedPsuW": 800,
+    "gpuLength": 336,
+    "gpuMaxLength": 400,
+    "coolerCapacityW": 250,
+    "cpuDrawW": 125,
+    "intakeFans": 3,
+    "exhaustFans": 3,
+    "pressure": "balanced",
+    "missing": [],
+    "warnings": [],
+    "canPowerOn": true
+   },
+   "temps": {
+    "idle": {
+     "cpuC": 32,
+     "gpuC": 34
+    },
+    "half": {
+     "cpuC": 44,
+     "gpuC": 49
+    },
+    "full": {
+     "cpuC": 57,
+     "gpuC": 64
+    }
+   },
+   "occupiedFanMounts": [],
+   "gpuMaxLength": 400
+  },
+  {
+   "id": "flagship",
+   "build": {
+    "v": 1,
+    "name": "Flagship",
+    "case": {
+     "id": "bulwark",
+     "finish": "onyx"
+    },
+    "board": "x9",
+    "cpu": "tidal16",
+    "cooler": {
+     "id": "tarn360-lux",
+     "mount": "front"
+    },
+    "ram": [
+     "facet64x4"
+    ],
+    "gpu": "crest",
+    "storage": {
+     "nvme": 4,
+     "ssd": 2,
+     "hdd": 2
+    },
+    "psu": "t1200",
+    "fans": {
+     "bottom-1": "aureole",
+     "bottom-2": "aureole",
+     "top-1": "aureole",
+     "top-2": "aureole",
+     "top-3": "aureole",
+     "rear-1": "aureole"
+    },
+    "cables": "ember",
+    "glass": true,
+    "lighting": {
+     "effect": "comet",
+     "speed": 70,
+     "brightness": 90,
+     "direction": 1,
+     "stops": [
+      "#ff3b1f",
+      "#ff9a1f"
+     ],
+     "overrides": {}
+    }
+   },
+   "encoded": "WzEsImJ1bHdhcmsiLCJvbnl4IiwieDkiLCJ0aWRhbDE2IiwidGFybjM2MC1sdXgiLCJmcm9udCIsWyJmYWNldDY0eDQiXSwiY3Jlc3QiLFs0LDIsMl0sInQxMjAwIixbWyJib3R0b20tMSIsImF1cmVvbGUiXSxbImJvdHRvbS0yIiwiYXVyZW9sZSJdLFsidG9wLTEiLCJhdXJlb2xlIl0sWyJ0b3AtMiIsImF1cmVvbGUiXSxbInRvcC0zIiwiYXVyZW9sZSJdLFsicmVhci0xIiwiYXVyZW9sZSJdXSwiZW1iZXIiLDEsWyJjb21ldCIsNzAsOTAsMSxbImZmM2IxZiIsImZmOWExZiJdLFtdXSwiRmxhZ3NoaXAiXQ",
+   "sheet": {
+    "memoryGb": 64,
+    "ramSlotsUsed": 4,
+    "ramSlots": 4,
+    "storageTb": 20,
+    "m2Used": 4,
+    "m2Slots": 4,
+    "bays25Used": 2,
+    "bays25": 4,
+    "bays35Used": 2,
+    "bays35": 4,
+    "sataUsed": 4,
+    "sataPorts": 6,
+    "drawW": 800,
+    "psuCapacityW": 1200,
+    "loadPercent": 67,
+    "recommendedPsuW": 1050,
+    "gpuLength": 372,
+    "gpuMaxLength": 450,
+    "coolerCapacityW": 300,
+    "cpuDrawW": 170,
+    "intakeFans": 5,
+    "exhaustFans": 4,
+    "pressure": "positive",
+    "missing": [],
+    "warnings": [],
+    "canPowerOn": true
+   },
+   "temps": {
+    "idle": {
+     "cpuC": 32,
+     "gpuC": 34
+    },
+    "half": {
+     "cpuC": 46,
+     "gpuC": 52
+    },
+    "full": {
+     "cpuC": 60,
+     "gpuC": 70
+    }
+   },
+   "occupiedFanMounts": [
+    "front-1",
+    "front-2",
+    "front-3"
+   ],
+   "gpuMaxLength": 450
+  },
+  {
+   "id": "pocket",
+   "build": {
+    "v": 1,
+    "name": "Pocket",
+    "case": {
+     "id": "cub",
+     "finish": "frost"
+    },
+    "board": "x9i",
+    "cpu": "tidal16",
+    "cooler": {
+     "id": "tarn240-frost",
+     "mount": "top"
+    },
+    "ram": [
+     "facet32"
+    ],
+    "gpu": "halide",
+    "storage": {
+     "nvme": 2,
+     "ssd": 1,
+     "hdd": 0
+    },
+    "psu": "sf750",
+    "fans": {
+     "rear-1": "petal"
+    },
+    "cables": "tide",
+    "glass": true,
+    "lighting": {
+     "effect": "shift",
+     "speed": 45,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff6ad5",
+      "#2de2e6"
+     ],
+     "overrides": {}
+    }
+   },
+   "encoded": "WzEsImN1YiIsImZyb3N0IiwieDlpIiwidGlkYWwxNiIsInRhcm4yNDAtZnJvc3QiLCJ0b3AiLFsiZmFjZXQzMiJdLCJoYWxpZGUiLFsyLDEsMF0sInNmNzUwIixbWyJyZWFyLTEiLCJwZXRhbCJdXSwidGlkZSIsMSxbInNoaWZ0Iiw0NSw4NSwxLFsiZmY2YWQ1IiwiMmRlMmU2Il0sW11dLCJQb2NrZXQiXQ",
+   "sheet": {
+    "memoryGb": 32,
+    "ramSlotsUsed": 2,
+    "ramSlots": 2,
+    "storageTb": 6,
+    "m2Used": 2,
+    "m2Slots": 2,
+    "bays25Used": 1,
+    "bays25": 2,
+    "bays35Used": 0,
+    "bays35": 0,
+    "sataUsed": 1,
+    "sataPorts": 2,
+    "drawW": 538,
+    "psuCapacityW": 750,
+    "loadPercent": 72,
+    "recommendedPsuW": 700,
+    "gpuLength": 304,
+    "gpuMaxLength": 310,
+    "coolerCapacityW": 220,
+    "cpuDrawW": 170,
+    "intakeFans": 0,
+    "exhaustFans": 3,
+    "pressure": "negative",
+    "missing": [],
+    "warnings": [],
+    "canPowerOn": true
+   },
+   "temps": {
+    "idle": {
+     "cpuC": 32,
+     "gpuC": 34
+    },
+    "half": {
+     "cpuC": 54,
+     "gpuC": 51
+    },
+    "full": {
+     "cpuC": 77,
+     "gpuC": 68
+    }
+   },
+   "occupiedFanMounts": [
+    "top-1",
+    "top-2"
+   ],
+   "gpuMaxLength": 310
+  },
+  {
+   "id": "open-frame",
+   "build": {
+    "v": 1,
+    "name": "Open Frame",
+    "case": {
+     "id": "gantry",
+     "finish": "raw"
+    },
+    "board": "z7",
+    "cpu": "ember8",
+    "cooler": {
+     "id": "tarn360",
+     "mount": "spine"
+    },
+    "ram": [
+     "facet64"
+    ],
+    "gpu": "crest",
+    "storage": {
+     "nvme": 1,
+     "ssd": 0,
+     "hdd": 0
+    },
+    "psu": "t1000",
+    "fans": {},
+    "cables": "citrine",
+    "glass": true,
+    "lighting": {
+     "effect": "starlight",
+     "speed": 60,
+     "brightness": 100,
+     "direction": 1,
+     "stops": [
+      "#ffffff",
+      "#8fb8ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "encoded": "WzEsImdhbnRyeSIsInJhdyIsIno3IiwiZW1iZXI4IiwidGFybjM2MCIsInNwaW5lIixbImZhY2V0NjQiXSwiY3Jlc3QiLFsxLDAsMF0sInQxMDAwIixbXSwiY2l0cmluZSIsMSxbInN0YXJsaWdodCIsNjAsMTAwLDEsWyJmZmZmZmYiLCI4ZmI4ZmYiXSxbXV0sIk9wZW4gRnJhbWUiXQ",
+   "sheet": {
+    "memoryGb": 64,
+    "ramSlotsUsed": 2,
+    "ramSlots": 4,
+    "storageTb": 2,
+    "m2Used": 1,
+    "m2Slots": 3,
+    "bays25Used": 0,
+    "bays25": 2,
+    "bays35Used": 0,
+    "bays35": 1,
+    "sataUsed": 0,
+    "sataPorts": 6,
+    "drawW": 654,
+    "psuCapacityW": 1000,
+    "loadPercent": 65,
+    "recommendedPsuW": 900,
+    "gpuLength": 372,
+    "gpuMaxLength": 450,
+    "coolerCapacityW": 300,
+    "cpuDrawW": 125,
+    "intakeFans": 3,
+    "exhaustFans": 0,
+    "pressure": "positive",
+    "missing": [],
+    "warnings": [],
+    "canPowerOn": true
+   },
+   "temps": {
+    "idle": {
+     "cpuC": 32,
+     "gpuC": 34
+    },
+    "half": {
+     "cpuC": 44,
+     "gpuC": 55
+    },
+    "full": {
+     "cpuC": 56,
+     "gpuC": 76
+    }
+   },
+   "occupiedFanMounts": [
+    "spine-1",
+    "spine-2",
+    "spine-3"
+   ],
+   "gpuMaxLength": 450
+  }
+ ],
+ "checks": [
+  {
+   "name": "board needs a case",
+   "build": {
+    "v": 1,
+    "name": "",
+    "case": null,
+    "board": null,
+    "cpu": null,
+    "cooler": null,
+    "ram": [],
+    "gpu": null,
+    "storage": {
+     "nvme": 0,
+     "ssd": 0,
+     "hdd": 0
+    },
+    "psu": null,
+    "fans": {},
+    "cables": "onyx",
+    "glass": true,
+    "lighting": {
+     "effect": "wave",
+     "speed": 60,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff2bd1",
+      "#7b3dff",
+      "#18e0ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "board",
+    "id": "z7"
+   },
+   "expect": {
+    "ok": false,
+    "code": "NEED_CASE",
+    "removed": [],
+    "sheet": null
+   }
+  },
+  {
+   "name": "cpu needs a board",
+   "build": {
+    "v": 1,
+    "name": "",
+    "case": {
+     "id": "vitrine",
+     "finish": "onyx"
+    },
+    "board": null,
+    "cpu": null,
+    "cooler": null,
+    "ram": [],
+    "gpu": null,
+    "storage": {
+     "nvme": 0,
+     "ssd": 0,
+     "hdd": 0
+    },
+    "psu": null,
+    "fans": {},
+    "cables": "onyx",
+    "glass": true,
+    "lighting": {
+     "effect": "wave",
+     "speed": 60,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff2bd1",
+      "#7b3dff",
+      "#18e0ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "cpu",
+    "id": "ember8"
+   },
+   "expect": {
+    "ok": false,
+    "code": "NEED_BOARD",
+    "removed": [],
+    "sheet": null
+   }
+  },
+  {
+   "name": "cooler needs a cpu",
+   "build": {
+    "v": 1,
+    "name": "",
+    "case": {
+     "id": "vitrine",
+     "finish": "onyx"
+    },
+    "board": "z7",
+    "cpu": null,
+    "cooler": null,
+    "ram": [],
+    "gpu": null,
+    "storage": {
+     "nvme": 0,
+     "ssd": 0,
+     "hdd": 0
+    },
+    "psu": null,
+    "fans": {},
+    "cables": "onyx",
+    "glass": true,
+    "lighting": {
+     "effect": "wave",
+     "speed": 60,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff2bd1",
+      "#7b3dff",
+      "#18e0ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "cooler",
+    "id": "pillar"
+   },
+   "expect": {
+    "ok": false,
+    "code": "NEED_CPU",
+    "removed": [],
+    "sheet": null
+   }
+  },
+  {
+   "name": "psu needs a case",
+   "build": {
+    "v": 1,
+    "name": "",
+    "case": null,
+    "board": null,
+    "cpu": null,
+    "cooler": null,
+    "ram": [],
+    "gpu": null,
+    "storage": {
+     "nvme": 0,
+     "ssd": 0,
+     "hdd": 0
+    },
+    "psu": null,
+    "fans": {},
+    "cables": "onyx",
+    "glass": true,
+    "lighting": {
+     "effect": "wave",
+     "speed": 60,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff2bd1",
+      "#7b3dff",
+      "#18e0ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "psu",
+    "id": "t850"
+   },
+   "expect": {
+    "ok": false,
+    "code": "NEED_CASE",
+    "removed": [],
+    "sheet": null
+   }
+  },
+  {
+   "name": "nvme needs a board",
+   "build": {
+    "v": 1,
+    "name": "",
+    "case": {
+     "id": "vitrine",
+     "finish": "onyx"
+    },
+    "board": null,
+    "cpu": null,
+    "cooler": null,
+    "ram": [],
+    "gpu": null,
+    "storage": {
+     "nvme": 0,
+     "ssd": 0,
+     "hdd": 0
+    },
+    "psu": null,
+    "fans": {},
+    "cables": "onyx",
+    "glass": true,
+    "lighting": {
+     "effect": "wave",
+     "speed": 60,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff2bd1",
+      "#7b3dff",
+      "#18e0ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "storage",
+    "id": "nvme"
+   },
+   "expect": {
+    "ok": false,
+    "code": "NEED_BOARD",
+    "removed": [],
+    "sheet": null
+   }
+  },
+  {
+   "name": "hdd installs with a case and no board",
+   "build": {
+    "v": 1,
+    "name": "",
+    "case": {
+     "id": "vitrine",
+     "finish": "onyx"
+    },
+    "board": null,
+    "cpu": null,
+    "cooler": null,
+    "ram": [],
+    "gpu": null,
+    "storage": {
+     "nvme": 0,
+     "ssd": 0,
+     "hdd": 0
+    },
+    "psu": null,
+    "fans": {},
+    "cables": "onyx",
+    "glass": true,
+    "lighting": {
+     "effect": "wave",
+     "speed": 60,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff2bd1",
+      "#7b3dff",
+      "#18e0ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "storage",
+    "id": "hdd"
+   },
+   "expect": {
+    "ok": true,
+    "code": null,
+    "removed": [],
+    "sheet": {
+     "memoryGb": 0,
+     "ramSlotsUsed": 0,
+     "ramSlots": 0,
+     "storageTb": 4,
+     "m2Used": 0,
+     "m2Slots": 0,
+     "bays25Used": 0,
+     "bays25": 2,
+     "bays35Used": 1,
+     "bays35": 2,
+     "sataUsed": 1,
+     "sataPorts": 0,
+     "drawW": 8,
+     "psuCapacityW": 0,
+     "loadPercent": null,
+     "recommendedPsuW": 50,
+     "gpuLength": 0,
+     "gpuMaxLength": 400,
+     "coolerCapacityW": 0,
+     "cpuDrawW": 0,
+     "intakeFans": 0,
+     "exhaustFans": 0,
+     "pressure": "none",
+     "missing": [
+      "board",
+      "cpu",
+      "cooler",
+      "ram",
+      "psu"
+     ],
+     "warnings": [
+      {
+       "code": "NO_FANS",
+       "level": "info"
+      }
+     ],
+     "canPowerOn": false
+    },
+    "cooler": null
+   }
+  },
+  {
+   "name": "atx board does not fit the cub",
+   "build": {
+    "v": 1,
+    "name": "",
+    "case": {
+     "id": "cub",
+     "finish": "frost"
+    },
+    "board": null,
+    "cpu": null,
+    "cooler": null,
+    "ram": [],
+    "gpu": null,
+    "storage": {
+     "nvme": 0,
+     "ssd": 0,
+     "hdd": 0
+    },
+    "psu": null,
+    "fans": {},
+    "cables": "onyx",
+    "glass": true,
+    "lighting": {
+     "effect": "wave",
+     "speed": 60,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff2bd1",
+      "#7b3dff",
+      "#18e0ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "board",
+    "id": "z7"
+   },
+   "expect": {
+    "ok": false,
+    "code": "BOARD_SIZE",
+    "removed": [],
+    "sheet": null
+   }
+  },
+  {
+   "name": "itx board fits the cub",
+   "build": {
+    "v": 1,
+    "name": "",
+    "case": {
+     "id": "cub",
+     "finish": "frost"
+    },
+    "board": null,
+    "cpu": null,
+    "cooler": null,
+    "ram": [],
+    "gpu": null,
+    "storage": {
+     "nvme": 0,
+     "ssd": 0,
+     "hdd": 0
+    },
+    "psu": null,
+    "fans": {},
+    "cables": "onyx",
+    "glass": true,
+    "lighting": {
+     "effect": "wave",
+     "speed": 60,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff2bd1",
+      "#7b3dff",
+      "#18e0ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "board",
+    "id": "z7i"
+   },
+   "expect": {
+    "ok": true,
+    "code": null,
+    "removed": [],
+    "sheet": {
+     "memoryGb": 0,
+     "ramSlotsUsed": 0,
+     "ramSlots": 2,
+     "storageTb": 0,
+     "m2Used": 0,
+     "m2Slots": 1,
+     "bays25Used": 0,
+     "bays25": 2,
+     "bays35Used": 0,
+     "bays35": 0,
+     "sataUsed": 0,
+     "sataPorts": 2,
+     "drawW": 30,
+     "psuCapacityW": 0,
+     "loadPercent": null,
+     "recommendedPsuW": 50,
+     "gpuLength": 0,
+     "gpuMaxLength": 310,
+     "coolerCapacityW": 0,
+     "cpuDrawW": 0,
+     "intakeFans": 0,
+     "exhaustFans": 0,
+     "pressure": "none",
+     "missing": [
+      "cpu",
+      "cooler",
+      "ram",
+      "psu"
+     ],
+     "warnings": [
+      {
+       "code": "NO_FANS",
+       "level": "info"
+      }
+     ],
+     "canPowerOn": false
+    },
+    "cooler": null
+   }
+  },
+  {
+   "name": "wrong platform cpu",
+   "build": {
+    "v": 1,
+    "name": "Night Rig",
+    "case": {
+     "id": "vitrine",
+     "finish": "onyx"
+    },
+    "board": "z7",
+    "cpu": null,
+    "cooler": null,
+    "ram": [
+     "facet32"
+    ],
+    "gpu": "apex3x",
+    "storage": {
+     "nvme": 1,
+     "ssd": 0,
+     "hdd": 1
+    },
+    "psu": "t850",
+    "fans": {
+     "front-1": "gale-lux",
+     "front-2": "gale-lux",
+     "front-3": "gale-lux",
+     "rear-1": "gale-lux"
+    },
+    "cables": "orchid",
+    "glass": true,
+    "lighting": {
+     "effect": "wave",
+     "speed": 60,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff2bd1",
+      "#7b3dff",
+      "#18e0ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "cpu",
+    "id": "tidal16"
+   },
+   "expect": {
+    "ok": false,
+    "code": "CPU_PLATFORM",
+    "removed": [],
+    "sheet": null
+   }
+  },
+  {
+   "name": "twin pillar too tall for atrium",
+   "build": {
+    "v": 1,
+    "name": "White Out",
+    "case": {
+     "id": "atrium",
+     "finish": "frost"
+    },
+    "board": "x9",
+    "cpu": "tidal16",
+    "cooler": null,
+    "ram": [
+     "crown96"
+    ],
+    "gpu": "halide",
+    "storage": {
+     "nvme": 2,
+     "ssd": 0,
+     "hdd": 0
+    },
+    "psu": "t1200",
+    "fans": {
+     "side-1": "petal",
+     "side-2": "petal",
+     "side-3": "petal",
+     "bottom-1": "petal",
+     "bottom-2": "petal",
+     "bottom-3": "petal",
+     "rear-1": "petal"
+    },
+    "cables": "frost",
+    "glass": true,
+    "lighting": {
+     "effect": "static",
+     "speed": 60,
+     "brightness": 80,
+     "direction": 1,
+     "stops": [
+      "#dff3ff",
+      "#8fd3ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "cooler",
+    "id": "twin"
+   },
+   "expect": {
+    "ok": false,
+    "code": "COOLER_HEIGHT",
+    "removed": [],
+    "sheet": null
+   }
+  },
+  {
+   "name": "pillar fits atrium",
+   "build": {
+    "v": 1,
+    "name": "White Out",
+    "case": {
+     "id": "atrium",
+     "finish": "frost"
+    },
+    "board": "x9",
+    "cpu": "tidal16",
+    "cooler": null,
+    "ram": [
+     "crown96"
+    ],
+    "gpu": "halide",
+    "storage": {
+     "nvme": 2,
+     "ssd": 0,
+     "hdd": 0
+    },
+    "psu": "t1200",
+    "fans": {
+     "side-1": "petal",
+     "side-2": "petal",
+     "side-3": "petal",
+     "bottom-1": "petal",
+     "bottom-2": "petal",
+     "bottom-3": "petal",
+     "rear-1": "petal"
+    },
+    "cables": "frost",
+    "glass": true,
+    "lighting": {
+     "effect": "static",
+     "speed": 60,
+     "brightness": 80,
+     "direction": 1,
+     "stops": [
+      "#dff3ff",
+      "#8fd3ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "cooler",
+    "id": "pillar"
+   },
+   "expect": {
+    "ok": true,
+    "code": null,
+    "removed": [],
+    "sheet": {
+     "memoryGb": 96,
+     "ramSlotsUsed": 2,
+     "ramSlots": 4,
+     "storageTb": 4,
+     "m2Used": 2,
+     "m2Slots": 4,
+     "bays25Used": 0,
+     "bays25": 3,
+     "bays35Used": 0,
+     "bays35": 2,
+     "sataUsed": 0,
+     "sataPorts": 6,
+     "drawW": 572,
+     "psuCapacityW": 1200,
+     "loadPercent": 48,
+     "recommendedPsuW": 750,
+     "gpuLength": 304,
+     "gpuMaxLength": 420,
+     "coolerCapacityW": 180,
+     "cpuDrawW": 170,
+     "intakeFans": 6,
+     "exhaustFans": 1,
+     "pressure": "positive",
+     "missing": [],
+     "warnings": [],
+     "canPowerOn": true
+    },
+    "cooler": {
+     "id": "pillar",
+     "mount": null
+    }
+   }
+  },
+  {
+   "name": "tower cooler too tall for cub",
+   "build": {
+    "v": 1,
+    "name": "Pocket",
+    "case": {
+     "id": "cub",
+     "finish": "frost"
+    },
+    "board": "x9i",
+    "cpu": "tidal16",
+    "cooler": null,
+    "ram": [
+     "facet32"
+    ],
+    "gpu": "halide",
+    "storage": {
+     "nvme": 2,
+     "ssd": 1,
+     "hdd": 0
+    },
+    "psu": "sf750",
+    "fans": {
+     "rear-1": "petal"
+    },
+    "cables": "tide",
+    "glass": true,
+    "lighting": {
+     "effect": "shift",
+     "speed": 45,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff6ad5",
+      "#2de2e6"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "cooler",
+    "id": "pillar"
+   },
+   "expect": {
+    "ok": false,
+    "code": "COOLER_HEIGHT",
+    "removed": [],
+    "sheet": null
+   }
+  },
+  {
+   "name": "slate lp blocked by tall ram",
+   "build": {
+    "v": 1,
+    "name": "Pocket",
+    "case": {
+     "id": "cub",
+     "finish": "frost"
+    },
+    "board": "x9i",
+    "cpu": "tidal16",
+    "cooler": null,
+    "ram": [
+     "facet32"
+    ],
+    "gpu": "halide",
+    "storage": {
+     "nvme": 2,
+     "ssd": 1,
+     "hdd": 0
+    },
+    "psu": "sf750",
+    "fans": {
+     "rear-1": "petal"
+    },
+    "cables": "tide",
+    "glass": true,
+    "lighting": {
+     "effect": "shift",
+     "speed": 45,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff6ad5",
+      "#2de2e6"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "cooler",
+    "id": "slate"
+   },
+   "expect": {
+    "ok": false,
+    "code": "RAM_CLEARANCE",
+    "removed": [],
+    "sheet": null
+   }
+  },
+  {
+   "name": "slate lp fits with low ram and warns on capacity",
+   "build": {
+    "v": 1,
+    "name": "Pocket",
+    "case": {
+     "id": "cub",
+     "finish": "frost"
+    },
+    "board": "x9i",
+    "cpu": "tidal16",
+    "cooler": null,
+    "ram": [
+     "mono32"
+    ],
+    "gpu": "halide",
+    "storage": {
+     "nvme": 2,
+     "ssd": 1,
+     "hdd": 0
+    },
+    "psu": "sf750",
+    "fans": {
+     "rear-1": "petal"
+    },
+    "cables": "tide",
+    "glass": true,
+    "lighting": {
+     "effect": "shift",
+     "speed": 45,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff6ad5",
+      "#2de2e6"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "cooler",
+    "id": "slate"
+   },
+   "expect": {
+    "ok": true,
+    "code": null,
+    "removed": [],
+    "sheet": {
+     "memoryGb": 32,
+     "ramSlotsUsed": 2,
+     "ramSlots": 2,
+     "storageTb": 6,
+     "m2Used": 2,
+     "m2Slots": 2,
+     "bays25Used": 1,
+     "bays25": 2,
+     "bays35Used": 0,
+     "bays35": 0,
+     "sataUsed": 1,
+     "sataPorts": 2,
+     "drawW": 521,
+     "psuCapacityW": 750,
+     "loadPercent": 69,
+     "recommendedPsuW": 700,
+     "gpuLength": 304,
+     "gpuMaxLength": 310,
+     "coolerCapacityW": 130,
+     "cpuDrawW": 170,
+     "intakeFans": 0,
+     "exhaustFans": 1,
+     "pressure": "negative",
+     "missing": [],
+     "warnings": [
+      {
+       "code": "COOLER_CAPACITY",
+       "level": "warn"
+      }
+     ],
+     "canPowerOn": true
+    },
+    "cooler": {
+     "id": "slate",
+     "mount": null
+    }
+   }
+  },
+  {
+   "name": "tall ram blocked under twin pillar",
+   "build": {
+    "v": 1,
+    "name": "Windbreak",
+    "case": {
+     "id": "vent",
+     "finish": "gunmetal"
+    },
+    "board": "z7",
+    "cpu": "ember8",
+    "cooler": {
+     "id": "twin",
+     "mount": null
+    },
+    "ram": [],
+    "gpu": "monolith",
+    "storage": {
+     "nvme": 1,
+     "ssd": 0,
+     "hdd": 2
+    },
+    "psu": "t850",
+    "fans": {
+     "front-1": "gale",
+     "front-2": "gale",
+     "front-3": "gale",
+     "top-1": "gale",
+     "top-2": "gale",
+     "rear-1": "gale"
+    },
+    "cables": "onyx",
+    "glass": true,
+    "lighting": {
+     "effect": "static",
+     "speed": 60,
+     "brightness": 0,
+     "direction": 1,
+     "stops": [
+      "#ffffff",
+      "#ffffff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "ram",
+    "id": "crown96"
+   },
+   "expect": {
+    "ok": false,
+    "code": "RAM_CLEARANCE",
+    "removed": [],
+    "sheet": null
+   }
+  },
+  {
+   "name": "facet ram fits under twin pillar",
+   "build": {
+    "v": 1,
+    "name": "Windbreak",
+    "case": {
+     "id": "vent",
+     "finish": "gunmetal"
+    },
+    "board": "z7",
+    "cpu": "ember8",
+    "cooler": {
+     "id": "twin",
+     "mount": null
+    },
+    "ram": [],
+    "gpu": "monolith",
+    "storage": {
+     "nvme": 1,
+     "ssd": 0,
+     "hdd": 2
+    },
+    "psu": "t850",
+    "fans": {
+     "front-1": "gale",
+     "front-2": "gale",
+     "front-3": "gale",
+     "top-1": "gale",
+     "top-2": "gale",
+     "rear-1": "gale"
+    },
+    "cables": "onyx",
+    "glass": true,
+    "lighting": {
+     "effect": "static",
+     "speed": 60,
+     "brightness": 0,
+     "direction": 1,
+     "stops": [
+      "#ffffff",
+      "#ffffff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "ram",
+    "id": "facet32"
+   },
+   "expect": {
+    "ok": true,
+    "code": null,
+    "removed": [],
+    "sheet": {
+     "memoryGb": 32,
+     "ramSlotsUsed": 2,
+     "ramSlots": 4,
+     "storageTb": 10,
+     "m2Used": 1,
+     "m2Slots": 3,
+     "bays25Used": 0,
+     "bays25": 2,
+     "bays35Used": 2,
+     "bays35": 3,
+     "sataUsed": 2,
+     "sataPorts": 6,
+     "drawW": 607,
+     "psuCapacityW": 850,
+     "loadPercent": 71,
+     "recommendedPsuW": 800,
+     "gpuLength": 336,
+     "gpuMaxLength": 400,
+     "coolerCapacityW": 250,
+     "cpuDrawW": 125,
+     "intakeFans": 3,
+     "exhaustFans": 3,
+     "pressure": "balanced",
+     "missing": [],
+     "warnings": [],
+     "canPowerOn": true
+    },
+    "cooler": {
+     "id": "twin",
+     "mount": null
+    }
+   }
+  },
+  {
+   "name": "second kit fills four slots",
+   "build": {
+    "v": 1,
+    "name": "Night Rig",
+    "case": {
+     "id": "vitrine",
+     "finish": "onyx"
+    },
+    "board": "z7",
+    "cpu": "ember8",
+    "cooler": {
+     "id": "tarn360-lux",
+     "mount": "top"
+    },
+    "ram": [
+     "facet32"
+    ],
+    "gpu": "apex3x",
+    "storage": {
+     "nvme": 1,
+     "ssd": 0,
+     "hdd": 1
+    },
+    "psu": "t850",
+    "fans": {
+     "front-1": "gale-lux",
+     "front-2": "gale-lux",
+     "front-3": "gale-lux",
+     "rear-1": "gale-lux"
+    },
+    "cables": "orchid",
+    "glass": true,
+    "lighting": {
+     "effect": "wave",
+     "speed": 60,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff2bd1",
+      "#7b3dff",
+      "#18e0ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "ram",
+    "id": "facet64"
+   },
+   "expect": {
+    "ok": true,
+    "code": null,
+    "removed": [],
+    "sheet": {
+     "memoryGb": 96,
+     "ramSlotsUsed": 4,
+     "ramSlots": 4,
+     "storageTb": 6,
+     "m2Used": 1,
+     "m2Slots": 3,
+     "bays25Used": 0,
+     "bays25": 2,
+     "bays35Used": 1,
+     "bays35": 2,
+     "sataUsed": 1,
+     "sataPorts": 6,
+     "drawW": 568,
+     "psuCapacityW": 850,
+     "loadPercent": 67,
+     "recommendedPsuW": 750,
+     "gpuLength": 322,
+     "gpuMaxLength": 400,
+     "coolerCapacityW": 300,
+     "cpuDrawW": 125,
+     "intakeFans": 3,
+     "exhaustFans": 4,
+     "pressure": "negative",
+     "missing": [],
+     "warnings": [],
+     "canPowerOn": true
+    },
+    "cooler": {
+     "id": "tarn360-lux",
+     "mount": "top"
+    }
+   }
+  },
+  {
+   "name": "quad kit does not fit two free slots",
+   "build": {
+    "v": 1,
+    "name": "Night Rig",
+    "case": {
+     "id": "vitrine",
+     "finish": "onyx"
+    },
+    "board": "z7",
+    "cpu": "ember8",
+    "cooler": {
+     "id": "tarn360-lux",
+     "mount": "top"
+    },
+    "ram": [
+     "facet32"
+    ],
+    "gpu": "apex3x",
+    "storage": {
+     "nvme": 1,
+     "ssd": 0,
+     "hdd": 1
+    },
+    "psu": "t850",
+    "fans": {
+     "front-1": "gale-lux",
+     "front-2": "gale-lux",
+     "front-3": "gale-lux",
+     "rear-1": "gale-lux"
+    },
+    "cables": "orchid",
+    "glass": true,
+    "lighting": {
+     "effect": "wave",
+     "speed": 60,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff2bd1",
+      "#7b3dff",
+      "#18e0ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "ram",
+    "id": "facet64x4"
+   },
+   "expect": {
+    "ok": false,
+    "code": "RAM_SLOTS",
+    "removed": [],
+    "sheet": null
+   }
+  },
+  {
+   "name": "third kit has no slots",
+   "build": {
+    "v": 1,
+    "name": "Night Rig",
+    "case": {
+     "id": "vitrine",
+     "finish": "onyx"
+    },
+    "board": "z7",
+    "cpu": "ember8",
+    "cooler": {
+     "id": "tarn360-lux",
+     "mount": "top"
+    },
+    "ram": [
+     "facet32",
+     "facet64"
+    ],
+    "gpu": "apex3x",
+    "storage": {
+     "nvme": 1,
+     "ssd": 0,
+     "hdd": 1
+    },
+    "psu": "t850",
+    "fans": {
+     "front-1": "gale-lux",
+     "front-2": "gale-lux",
+     "front-3": "gale-lux",
+     "rear-1": "gale-lux"
+    },
+    "cables": "orchid",
+    "glass": true,
+    "lighting": {
+     "effect": "wave",
+     "speed": 60,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff2bd1",
+      "#7b3dff",
+      "#18e0ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "ram",
+    "id": "mono16"
+   },
+   "expect": {
+    "ok": false,
+    "code": "RAM_SLOTS",
+    "removed": [],
+    "sheet": null
+   }
+  },
+  {
+   "name": "second kit blocked on itx board",
+   "build": {
+    "v": 1,
+    "name": "Pocket",
+    "case": {
+     "id": "cub",
+     "finish": "frost"
+    },
+    "board": "x9i",
+    "cpu": "tidal16",
+    "cooler": {
+     "id": "tarn240-frost",
+     "mount": "top"
+    },
+    "ram": [
+     "facet32"
+    ],
+    "gpu": "halide",
+    "storage": {
+     "nvme": 2,
+     "ssd": 1,
+     "hdd": 0
+    },
+    "psu": "sf750",
+    "fans": {
+     "rear-1": "petal"
+    },
+    "cables": "tide",
+    "glass": true,
+    "lighting": {
+     "effect": "shift",
+     "speed": 45,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff6ad5",
+      "#2de2e6"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "ram",
+    "id": "mono16"
+   },
+   "expect": {
+    "ok": false,
+    "code": "RAM_SLOTS",
+    "removed": [],
+    "sheet": null
+   }
+  },
+  {
+   "name": "long gpu blocked in cub",
+   "build": {
+    "v": 1,
+    "name": "Pocket",
+    "case": {
+     "id": "cub",
+     "finish": "frost"
+    },
+    "board": "x9i",
+    "cpu": "tidal16",
+    "cooler": {
+     "id": "tarn240-frost",
+     "mount": "top"
+    },
+    "ram": [
+     "facet32"
+    ],
+    "gpu": null,
+    "storage": {
+     "nvme": 2,
+     "ssd": 1,
+     "hdd": 0
+    },
+    "psu": "sf750",
+    "fans": {
+     "rear-1": "petal"
+    },
+    "cables": "tide",
+    "glass": true,
+    "lighting": {
+     "effect": "shift",
+     "speed": 45,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff6ad5",
+      "#2de2e6"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "gpu",
+    "id": "apex3x"
+   },
+   "expect": {
+    "ok": false,
+    "code": "GPU_LENGTH",
+    "removed": [],
+    "sheet": null
+   }
+  },
+  {
+   "name": "thick gpu blocked in cub",
+   "build": {
+    "v": 1,
+    "name": "Pocket",
+    "case": {
+     "id": "cub",
+     "finish": "frost"
+    },
+    "board": "x9i",
+    "cpu": "tidal16",
+    "cooler": {
+     "id": "tarn240-frost",
+     "mount": "top"
+    },
+    "ram": [
+     "facet32"
+    ],
+    "gpu": null,
+    "storage": {
+     "nvme": 2,
+     "ssd": 1,
+     "hdd": 0
+    },
+    "psu": "sf750",
+    "fans": {
+     "rear-1": "petal"
+    },
+    "cables": "tide",
+    "glass": true,
+    "lighting": {
+     "effect": "shift",
+     "speed": 45,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff6ad5",
+      "#2de2e6"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "gpu",
+    "id": "crest"
+   },
+   "expect": {
+    "ok": false,
+    "code": "GPU_THICKNESS",
+    "removed": [],
+    "sheet": null
+   }
+  },
+  {
+   "name": "gpu swap keeps everything else",
+   "build": {
+    "v": 1,
+    "name": "Night Rig",
+    "case": {
+     "id": "vitrine",
+     "finish": "onyx"
+    },
+    "board": "z7",
+    "cpu": "ember8",
+    "cooler": {
+     "id": "tarn360-lux",
+     "mount": "top"
+    },
+    "ram": [
+     "facet32"
+    ],
+    "gpu": "apex3x",
+    "storage": {
+     "nvme": 1,
+     "ssd": 0,
+     "hdd": 1
+    },
+    "psu": "t850",
+    "fans": {
+     "front-1": "gale-lux",
+     "front-2": "gale-lux",
+     "front-3": "gale-lux",
+     "rear-1": "gale-lux"
+    },
+    "cables": "orchid",
+    "glass": true,
+    "lighting": {
+     "effect": "wave",
+     "speed": 60,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff2bd1",
+      "#7b3dff",
+      "#18e0ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "gpu",
+    "id": "crest"
+   },
+   "expect": {
+    "ok": true,
+    "code": null,
+    "removed": [],
+    "sheet": {
+     "memoryGb": 32,
+     "ramSlotsUsed": 2,
+     "ramSlots": 4,
+     "storageTb": 6,
+     "m2Used": 1,
+     "m2Slots": 3,
+     "bays25Used": 0,
+     "bays25": 2,
+     "bays35Used": 1,
+     "bays35": 2,
+     "sataUsed": 1,
+     "sataPorts": 6,
+     "drawW": 688,
+     "psuCapacityW": 850,
+     "loadPercent": 81,
+     "recommendedPsuW": 900,
+     "gpuLength": 372,
+     "gpuMaxLength": 400,
+     "coolerCapacityW": 300,
+     "cpuDrawW": 125,
+     "intakeFans": 3,
+     "exhaustFans": 4,
+     "pressure": "negative",
+     "missing": [],
+     "warnings": [
+      {
+       "code": "PSU_HEADROOM",
+       "level": "warn"
+      }
+     ],
+     "canPowerOn": true
+    },
+    "cooler": {
+     "id": "tarn360-lux",
+     "mount": "top"
+    }
+   }
+  },
+  {
+   "name": "front radiator shortens gpu clearance in vent",
+   "build": {
+    "v": 1,
+    "name": "Windbreak",
+    "case": {
+     "id": "vent",
+     "finish": "gunmetal"
+    },
+    "board": "z7",
+    "cpu": "ember8",
+    "cooler": {
+     "id": "tarn360",
+     "mount": "front"
+    },
+    "ram": [
+     "mono32"
+    ],
+    "gpu": null,
+    "storage": {
+     "nvme": 1,
+     "ssd": 0,
+     "hdd": 2
+    },
+    "psu": "t850",
+    "fans": {
+     "top-1": "gale",
+     "top-2": "gale",
+     "rear-1": "gale"
+    },
+    "cables": "onyx",
+    "glass": true,
+    "lighting": {
+     "effect": "static",
+     "speed": 60,
+     "brightness": 0,
+     "direction": 1,
+     "stops": [
+      "#ffffff",
+      "#ffffff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "gpu",
+    "id": "crest"
+   },
+   "expect": {
+    "ok": false,
+    "code": "GPU_LENGTH",
+    "removed": [],
+    "sheet": null
+   }
+  },
+  {
+   "name": "the longest card fits vent with no front radiator",
+   "build": {
+    "v": 1,
+    "name": "Windbreak",
+    "case": {
+     "id": "vent",
+     "finish": "gunmetal"
+    },
+    "board": "z7",
+    "cpu": "ember8",
+    "cooler": {
+     "id": "twin",
+     "mount": null
+    },
+    "ram": [
+     "mono32"
+    ],
+    "gpu": null,
+    "storage": {
+     "nvme": 1,
+     "ssd": 0,
+     "hdd": 2
+    },
+    "psu": "t850",
+    "fans": {
+     "front-1": "gale",
+     "front-2": "gale",
+     "front-3": "gale",
+     "top-1": "gale",
+     "top-2": "gale",
+     "rear-1": "gale"
+    },
+    "cables": "onyx",
+    "glass": true,
+    "lighting": {
+     "effect": "static",
+     "speed": 60,
+     "brightness": 0,
+     "direction": 1,
+     "stops": [
+      "#ffffff",
+      "#ffffff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "gpu",
+    "id": "crest"
+   },
+   "expect": {
+    "ok": true,
+    "code": null,
+    "removed": [],
+    "sheet": {
+     "memoryGb": 32,
+     "ramSlotsUsed": 2,
+     "ramSlots": 4,
+     "storageTb": 10,
+     "m2Used": 1,
+     "m2Slots": 3,
+     "bays25Used": 0,
+     "bays25": 2,
+     "bays35Used": 2,
+     "bays35": 3,
+     "sataUsed": 2,
+     "sataPorts": 6,
+     "drawW": 675,
+     "psuCapacityW": 850,
+     "loadPercent": 79,
+     "recommendedPsuW": 900,
+     "gpuLength": 372,
+     "gpuMaxLength": 400,
+     "coolerCapacityW": 250,
+     "cpuDrawW": 125,
+     "intakeFans": 3,
+     "exhaustFans": 3,
+     "pressure": "balanced",
+     "missing": [],
+     "warnings": [],
+     "canPowerOn": true
+    },
+    "cooler": {
+     "id": "twin",
+     "mount": null
+    }
+   }
+  },
+  {
+   "name": "front radiator makes the longest card too long in vitrine",
+   "build": {
+    "v": 1,
+    "name": "Night Rig",
+    "case": {
+     "id": "vitrine",
+     "finish": "onyx"
+    },
+    "board": "z7",
+    "cpu": "ember8",
+    "cooler": {
+     "id": "tarn360-lux",
+     "mount": "front"
+    },
+    "ram": [
+     "facet32"
+    ],
+    "gpu": null,
+    "storage": {
+     "nvme": 1,
+     "ssd": 0,
+     "hdd": 1
+    },
+    "psu": "t850",
+    "fans": {
+     "rear-1": "gale-lux"
+    },
+    "cables": "orchid",
+    "glass": true,
+    "lighting": {
+     "effect": "wave",
+     "speed": 60,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff2bd1",
+      "#7b3dff",
+      "#18e0ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "gpu",
+    "id": "crest"
+   },
+   "expect": {
+    "ok": false,
+    "code": "GPU_LENGTH",
+    "removed": [],
+    "sheet": null
+   }
+  },
+  {
+   "name": "a shorter card fits beside the front radiator",
+   "build": {
+    "v": 1,
+    "name": "Night Rig",
+    "case": {
+     "id": "vitrine",
+     "finish": "onyx"
+    },
+    "board": "z7",
+    "cpu": "ember8",
+    "cooler": {
+     "id": "tarn360-lux",
+     "mount": "front"
+    },
+    "ram": [
+     "facet32"
+    ],
+    "gpu": null,
+    "storage": {
+     "nvme": 1,
+     "ssd": 0,
+     "hdd": 1
+    },
+    "psu": "t850",
+    "fans": {
+     "rear-1": "gale-lux"
+    },
+    "cables": "orchid",
+    "glass": true,
+    "lighting": {
+     "effect": "wave",
+     "speed": 60,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff2bd1",
+      "#7b3dff",
+      "#18e0ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "gpu",
+    "id": "monolith"
+   },
+   "expect": {
+    "ok": true,
+    "code": null,
+    "removed": [],
+    "sheet": {
+     "memoryGb": 32,
+     "ramSlotsUsed": 2,
+     "ramSlots": 4,
+     "storageTb": 6,
+     "m2Used": 1,
+     "m2Slots": 3,
+     "bays25Used": 0,
+     "bays25": 2,
+     "bays35Used": 1,
+     "bays35": 2,
+     "sataUsed": 1,
+     "sataPorts": 6,
+     "drawW": 603,
+     "psuCapacityW": 850,
+     "loadPercent": 71,
+     "recommendedPsuW": 800,
+     "gpuLength": 336,
+     "gpuMaxLength": 370,
+     "coolerCapacityW": 300,
+     "cpuDrawW": 125,
+     "intakeFans": 3,
+     "exhaustFans": 1,
+     "pressure": "positive",
+     "missing": [],
+     "warnings": [],
+     "canPowerOn": true
+    },
+    "cooler": {
+     "id": "tarn360-lux",
+     "mount": "front"
+    }
+   }
+  },
+  {
+   "name": "radiator refused on the front mount when the card is too long",
+   "build": {
+    "v": 1,
+    "name": "Night Rig",
+    "case": {
+     "id": "vitrine",
+     "finish": "onyx"
+    },
+    "board": "z7",
+    "cpu": "ember8",
+    "cooler": null,
+    "ram": [
+     "facet32"
+    ],
+    "gpu": "crest",
+    "storage": {
+     "nvme": 1,
+     "ssd": 0,
+     "hdd": 1
+    },
+    "psu": "t850",
+    "fans": {
+     "rear-1": "gale-lux"
+    },
+    "cables": "orchid",
+    "glass": true,
+    "lighting": {
+     "effect": "wave",
+     "speed": 60,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff2bd1",
+      "#7b3dff",
+      "#18e0ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "cooler",
+    "id": "tarn360",
+    "opts": {
+     "mount": "front"
+    }
+   },
+   "expect": {
+    "ok": false,
+    "code": "RAD_GPU_CLEARANCE",
+    "removed": [],
+    "sheet": null
+   }
+  },
+  {
+   "name": "radiator goes to the top mount on its own when the card is long",
+   "build": {
+    "v": 1,
+    "name": "Night Rig",
+    "case": {
+     "id": "vitrine",
+     "finish": "onyx"
+    },
+    "board": "z7",
+    "cpu": "ember8",
+    "cooler": null,
+    "ram": [
+     "facet32"
+    ],
+    "gpu": "crest",
+    "storage": {
+     "nvme": 1,
+     "ssd": 0,
+     "hdd": 1
+    },
+    "psu": "t850",
+    "fans": {
+     "rear-1": "gale-lux"
+    },
+    "cables": "orchid",
+    "glass": true,
+    "lighting": {
+     "effect": "wave",
+     "speed": 60,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff2bd1",
+      "#7b3dff",
+      "#18e0ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "cooler",
+    "id": "tarn360"
+   },
+   "expect": {
+    "ok": true,
+    "code": null,
+    "removed": [],
+    "sheet": {
+     "memoryGb": 32,
+     "ramSlotsUsed": 2,
+     "ramSlots": 4,
+     "storageTb": 6,
+     "m2Used": 1,
+     "m2Slots": 3,
+     "bays25Used": 0,
+     "bays25": 2,
+     "bays35Used": 1,
+     "bays35": 2,
+     "sataUsed": 1,
+     "sataPorts": 6,
+     "drawW": 667,
+     "psuCapacityW": 850,
+     "loadPercent": 78,
+     "recommendedPsuW": 900,
+     "gpuLength": 372,
+     "gpuMaxLength": 400,
+     "coolerCapacityW": 300,
+     "cpuDrawW": 125,
+     "intakeFans": 0,
+     "exhaustFans": 4,
+     "pressure": "negative",
+     "missing": [],
+     "warnings": [],
+     "canPowerOn": true
+    },
+    "cooler": {
+     "id": "tarn360",
+     "mount": "top"
+    }
+   }
+  },
+  {
+   "name": "aio picks the first mount that keeps the gpu",
+   "build": {
+    "v": 1,
+    "name": "Windbreak",
+    "case": {
+     "id": "vent",
+     "finish": "gunmetal"
+    },
+    "board": "z7",
+    "cpu": "ember8",
+    "cooler": null,
+    "ram": [
+     "mono32"
+    ],
+    "gpu": "crest",
+    "storage": {
+     "nvme": 1,
+     "ssd": 0,
+     "hdd": 2
+    },
+    "psu": "t850",
+    "fans": {
+     "front-1": "gale",
+     "front-2": "gale",
+     "front-3": "gale",
+     "top-1": "gale",
+     "top-2": "gale",
+     "rear-1": "gale"
+    },
+    "cables": "onyx",
+    "glass": true,
+    "lighting": {
+     "effect": "static",
+     "speed": 60,
+     "brightness": 0,
+     "direction": 1,
+     "stops": [
+      "#ffffff",
+      "#ffffff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "cooler",
+    "id": "tarn240"
+   },
+   "expect": {
+    "ok": true,
+    "code": null,
+    "removed": [
+     {
+      "category": "fan",
+      "id": "gale",
+      "code": "FAN_MOUNT_TAKEN",
+      "mount": "top-1"
+     },
+     {
+      "category": "fan",
+      "id": "gale",
+      "code": "FAN_MOUNT_TAKEN",
+      "mount": "top-2"
+     }
+    ],
+    "sheet": {
+     "memoryGb": 32,
+     "ramSlotsUsed": 2,
+     "ramSlots": 4,
+     "storageTb": 10,
+     "m2Used": 1,
+     "m2Slots": 3,
+     "bays25Used": 0,
+     "bays25": 2,
+     "bays35Used": 2,
+     "bays35": 3,
+     "sataUsed": 2,
+     "sataPorts": 6,
+     "drawW": 677,
+     "psuCapacityW": 850,
+     "loadPercent": 80,
+     "recommendedPsuW": 900,
+     "gpuLength": 372,
+     "gpuMaxLength": 400,
+     "coolerCapacityW": 220,
+     "cpuDrawW": 125,
+     "intakeFans": 3,
+     "exhaustFans": 3,
+     "pressure": "balanced",
+     "missing": [],
+     "warnings": [],
+     "canPowerOn": true
+    },
+    "cooler": {
+     "id": "tarn240",
+     "mount": "top"
+    }
+   }
+  },
+  {
+   "name": "360 radiator has only the front mount in vent",
+   "build": {
+    "v": 1,
+    "name": "Windbreak",
+    "case": {
+     "id": "vent",
+     "finish": "gunmetal"
+    },
+    "board": "z7",
+    "cpu": "ember8",
+    "cooler": null,
+    "ram": [
+     "mono32"
+    ],
+    "gpu": "monolith",
+    "storage": {
+     "nvme": 1,
+     "ssd": 0,
+     "hdd": 2
+    },
+    "psu": "t850",
+    "fans": {
+     "front-1": "gale",
+     "front-2": "gale",
+     "front-3": "gale",
+     "top-1": "gale",
+     "top-2": "gale",
+     "rear-1": "gale"
+    },
+    "cables": "onyx",
+    "glass": true,
+    "lighting": {
+     "effect": "static",
+     "speed": 60,
+     "brightness": 0,
+     "direction": 1,
+     "stops": [
+      "#ffffff",
+      "#ffffff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "cooler",
+    "id": "tarn360"
+   },
+   "expect": {
+    "ok": true,
+    "code": null,
+    "removed": [
+     {
+      "category": "fan",
+      "id": "gale",
+      "code": "FAN_MOUNT_TAKEN",
+      "mount": "front-1"
+     },
+     {
+      "category": "fan",
+      "id": "gale",
+      "code": "FAN_MOUNT_TAKEN",
+      "mount": "front-2"
+     },
+     {
+      "category": "fan",
+      "id": "gale",
+      "code": "FAN_MOUNT_TAKEN",
+      "mount": "front-3"
+     }
+    ],
+    "sheet": {
+     "memoryGb": 32,
+     "ramSlotsUsed": 2,
+     "ramSlots": 4,
+     "storageTb": 10,
+     "m2Used": 1,
+     "m2Slots": 3,
+     "bays25Used": 0,
+     "bays25": 2,
+     "bays35Used": 2,
+     "bays35": 3,
+     "sataUsed": 2,
+     "sataPorts": 6,
+     "drawW": 607,
+     "psuCapacityW": 850,
+     "loadPercent": 71,
+     "recommendedPsuW": 800,
+     "gpuLength": 336,
+     "gpuMaxLength": 370,
+     "coolerCapacityW": 300,
+     "cpuDrawW": 125,
+     "intakeFans": 3,
+     "exhaustFans": 3,
+     "pressure": "balanced",
+     "missing": [],
+     "warnings": [],
+     "canPowerOn": true
+    },
+    "cooler": {
+     "id": "tarn360",
+     "mount": "front"
+    }
+   }
+  },
+  {
+   "name": "360 radiator does not fit the cub",
+   "build": {
+    "v": 1,
+    "name": "Pocket",
+    "case": {
+     "id": "cub",
+     "finish": "frost"
+    },
+    "board": "x9i",
+    "cpu": "tidal16",
+    "cooler": null,
+    "ram": [
+     "facet32"
+    ],
+    "gpu": "halide",
+    "storage": {
+     "nvme": 2,
+     "ssd": 1,
+     "hdd": 0
+    },
+    "psu": "sf750",
+    "fans": {
+     "rear-1": "petal"
+    },
+    "cables": "tide",
+    "glass": true,
+    "lighting": {
+     "effect": "shift",
+     "speed": 45,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff6ad5",
+      "#2de2e6"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "cooler",
+    "id": "tarn360"
+   },
+   "expect": {
+    "ok": false,
+    "code": "NO_RAD_MOUNT",
+    "removed": [],
+    "sheet": null
+   }
+  },
+  {
+   "name": "requested mount of the wrong size",
+   "build": {
+    "v": 1,
+    "name": "Windbreak",
+    "case": {
+     "id": "vent",
+     "finish": "gunmetal"
+    },
+    "board": "z7",
+    "cpu": "ember8",
+    "cooler": null,
+    "ram": [
+     "mono32"
+    ],
+    "gpu": "monolith",
+    "storage": {
+     "nvme": 1,
+     "ssd": 0,
+     "hdd": 2
+    },
+    "psu": "t850",
+    "fans": {
+     "front-1": "gale",
+     "front-2": "gale",
+     "front-3": "gale",
+     "top-1": "gale",
+     "top-2": "gale",
+     "rear-1": "gale"
+    },
+    "cables": "onyx",
+    "glass": true,
+    "lighting": {
+     "effect": "static",
+     "speed": 60,
+     "brightness": 0,
+     "direction": 1,
+     "stops": [
+      "#ffffff",
+      "#ffffff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "cooler",
+    "id": "tarn360",
+    "opts": {
+     "mount": "top"
+    }
+   },
+   "expect": {
+    "ok": false,
+    "code": "NO_RAD_MOUNT",
+    "removed": [],
+    "sheet": null
+   }
+  },
+  {
+   "name": "fan blocked on a radiator mount",
+   "build": {
+    "v": 1,
+    "name": "Night Rig",
+    "case": {
+     "id": "vitrine",
+     "finish": "onyx"
+    },
+    "board": "z7",
+    "cpu": "ember8",
+    "cooler": {
+     "id": "tarn360-lux",
+     "mount": "top"
+    },
+    "ram": [
+     "facet32"
+    ],
+    "gpu": "apex3x",
+    "storage": {
+     "nvme": 1,
+     "ssd": 0,
+     "hdd": 1
+    },
+    "psu": "t850",
+    "fans": {
+     "front-1": "gale-lux",
+     "front-2": "gale-lux",
+     "front-3": "gale-lux",
+     "rear-1": "gale-lux"
+    },
+    "cables": "orchid",
+    "glass": true,
+    "lighting": {
+     "effect": "wave",
+     "speed": 60,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff2bd1",
+      "#7b3dff",
+      "#18e0ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "fan",
+    "id": "gale",
+    "opts": {
+     "mount": "top-2"
+    }
+   },
+   "expect": {
+    "ok": false,
+    "code": "FAN_MOUNT_TAKEN",
+    "removed": [],
+    "sheet": null
+   }
+  },
+  {
+   "name": "fan replaces a fan",
+   "build": {
+    "v": 1,
+    "name": "Night Rig",
+    "case": {
+     "id": "vitrine",
+     "finish": "onyx"
+    },
+    "board": "z7",
+    "cpu": "ember8",
+    "cooler": {
+     "id": "tarn360-lux",
+     "mount": "top"
+    },
+    "ram": [
+     "facet32"
+    ],
+    "gpu": "apex3x",
+    "storage": {
+     "nvme": 1,
+     "ssd": 0,
+     "hdd": 1
+    },
+    "psu": "t850",
+    "fans": {
+     "front-1": "gale-lux",
+     "front-2": "gale-lux",
+     "front-3": "gale-lux",
+     "rear-1": "gale-lux"
+    },
+    "cables": "orchid",
+    "glass": true,
+    "lighting": {
+     "effect": "wave",
+     "speed": 60,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff2bd1",
+      "#7b3dff",
+      "#18e0ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "fan",
+    "id": "aureole",
+    "opts": {
+     "mount": "front-2"
+    }
+   },
+   "expect": {
+    "ok": true,
+    "code": null,
+    "removed": [],
+    "sheet": {
+     "memoryGb": 32,
+     "ramSlotsUsed": 2,
+     "ramSlots": 4,
+     "storageTb": 6,
+     "m2Used": 1,
+     "m2Slots": 3,
+     "bays25Used": 0,
+     "bays25": 2,
+     "bays35Used": 1,
+     "bays35": 2,
+     "sataUsed": 1,
+     "sataPorts": 6,
+     "drawW": 558,
+     "psuCapacityW": 850,
+     "loadPercent": 66,
+     "recommendedPsuW": 750,
+     "gpuLength": 322,
+     "gpuMaxLength": 400,
+     "coolerCapacityW": 300,
+     "cpuDrawW": 125,
+     "intakeFans": 3,
+     "exhaustFans": 4,
+     "pressure": "negative",
+     "missing": [],
+     "warnings": [],
+     "canPowerOn": true
+    },
+    "cooler": {
+     "id": "tarn360-lux",
+     "mount": "top"
+    }
+   }
+  },
+  {
+   "name": "fan on an unknown mount",
+   "build": {
+    "v": 1,
+    "name": "Night Rig",
+    "case": {
+     "id": "vitrine",
+     "finish": "onyx"
+    },
+    "board": "z7",
+    "cpu": "ember8",
+    "cooler": {
+     "id": "tarn360-lux",
+     "mount": "top"
+    },
+    "ram": [
+     "facet32"
+    ],
+    "gpu": "apex3x",
+    "storage": {
+     "nvme": 1,
+     "ssd": 0,
+     "hdd": 1
+    },
+    "psu": "t850",
+    "fans": {
+     "front-1": "gale-lux",
+     "front-2": "gale-lux",
+     "front-3": "gale-lux",
+     "rear-1": "gale-lux"
+    },
+    "cables": "orchid",
+    "glass": true,
+    "lighting": {
+     "effect": "wave",
+     "speed": 60,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff2bd1",
+      "#7b3dff",
+      "#18e0ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "fan",
+    "id": "aureole",
+    "opts": {
+     "mount": "side-1"
+    }
+   },
+   "expect": {
+    "ok": false,
+    "code": "FAN_MOUNT_UNKNOWN",
+    "removed": [],
+    "sheet": null
+   }
+  },
+  {
+   "name": "240 radiator frees the third top mount",
+   "build": {
+    "v": 1,
+    "name": "Night Rig",
+    "case": {
+     "id": "vitrine",
+     "finish": "onyx"
+    },
+    "board": "z7",
+    "cpu": "ember8",
+    "cooler": {
+     "id": "tarn240",
+     "mount": "top"
+    },
+    "ram": [
+     "facet32"
+    ],
+    "gpu": "apex3x",
+    "storage": {
+     "nvme": 1,
+     "ssd": 0,
+     "hdd": 1
+    },
+    "psu": "t850",
+    "fans": {
+     "front-1": "gale-lux",
+     "front-2": "gale-lux",
+     "front-3": "gale-lux",
+     "rear-1": "gale-lux"
+    },
+    "cables": "orchid",
+    "glass": true,
+    "lighting": {
+     "effect": "wave",
+     "speed": 60,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff2bd1",
+      "#7b3dff",
+      "#18e0ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "fan",
+    "id": "gale",
+    "opts": {
+     "mount": "top-3"
+    }
+   },
+   "expect": {
+    "ok": true,
+    "code": null,
+    "removed": [],
+    "sheet": {
+     "memoryGb": 32,
+     "ramSlotsUsed": 2,
+     "ramSlots": 4,
+     "storageTb": 6,
+     "m2Used": 1,
+     "m2Slots": 3,
+     "bays25Used": 0,
+     "bays25": 2,
+     "bays35Used": 1,
+     "bays35": 2,
+     "sataUsed": 1,
+     "sataPorts": 6,
+     "drawW": 552,
+     "psuCapacityW": 850,
+     "loadPercent": 65,
+     "recommendedPsuW": 750,
+     "gpuLength": 322,
+     "gpuMaxLength": 400,
+     "coolerCapacityW": 220,
+     "cpuDrawW": 125,
+     "intakeFans": 3,
+     "exhaustFans": 4,
+     "pressure": "negative",
+     "missing": [],
+     "warnings": [],
+     "canPowerOn": true
+    },
+    "cooler": {
+     "id": "tarn240",
+     "mount": "top"
+    }
+   }
+  },
+  {
+   "name": "nvme slots full on z7",
+   "build": {
+    "v": 1,
+    "name": "Night Rig",
+    "case": {
+     "id": "vitrine",
+     "finish": "onyx"
+    },
+    "board": "z7",
+    "cpu": "ember8",
+    "cooler": {
+     "id": "tarn360-lux",
+     "mount": "top"
+    },
+    "ram": [
+     "facet32"
+    ],
+    "gpu": "apex3x",
+    "storage": {
+     "nvme": 3,
+     "ssd": 0,
+     "hdd": 1
+    },
+    "psu": "t850",
+    "fans": {
+     "front-1": "gale-lux",
+     "front-2": "gale-lux",
+     "front-3": "gale-lux",
+     "rear-1": "gale-lux"
+    },
+    "cables": "orchid",
+    "glass": true,
+    "lighting": {
+     "effect": "wave",
+     "speed": 60,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff2bd1",
+      "#7b3dff",
+      "#18e0ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "storage",
+    "id": "nvme"
+   },
+   "expect": {
+    "ok": false,
+    "code": "M2_SLOTS",
+    "removed": [],
+    "sheet": null
+   }
+  },
+  {
+   "name": "35 inch bays full in vitrine",
+   "build": {
+    "v": 1,
+    "name": "Night Rig",
+    "case": {
+     "id": "vitrine",
+     "finish": "onyx"
+    },
+    "board": "z7",
+    "cpu": "ember8",
+    "cooler": {
+     "id": "tarn360-lux",
+     "mount": "top"
+    },
+    "ram": [
+     "facet32"
+    ],
+    "gpu": "apex3x",
+    "storage": {
+     "nvme": 1,
+     "ssd": 0,
+     "hdd": 2
+    },
+    "psu": "t850",
+    "fans": {
+     "front-1": "gale-lux",
+     "front-2": "gale-lux",
+     "front-3": "gale-lux",
+     "rear-1": "gale-lux"
+    },
+    "cables": "orchid",
+    "glass": true,
+    "lighting": {
+     "effect": "wave",
+     "speed": 60,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff2bd1",
+      "#7b3dff",
+      "#18e0ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "storage",
+    "id": "hdd"
+   },
+   "expect": {
+    "ok": false,
+    "code": "BAYS_35",
+    "removed": [],
+    "sheet": null
+   }
+  },
+  {
+   "name": "no 35 inch bays in cub",
+   "build": {
+    "v": 1,
+    "name": "Pocket",
+    "case": {
+     "id": "cub",
+     "finish": "frost"
+    },
+    "board": "x9i",
+    "cpu": "tidal16",
+    "cooler": {
+     "id": "tarn240-frost",
+     "mount": "top"
+    },
+    "ram": [
+     "facet32"
+    ],
+    "gpu": "halide",
+    "storage": {
+     "nvme": 2,
+     "ssd": 1,
+     "hdd": 0
+    },
+    "psu": "sf750",
+    "fans": {
+     "rear-1": "petal"
+    },
+    "cables": "tide",
+    "glass": true,
+    "lighting": {
+     "effect": "shift",
+     "speed": 45,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff6ad5",
+      "#2de2e6"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "storage",
+    "id": "hdd"
+   },
+   "expect": {
+    "ok": false,
+    "code": "BAYS_35",
+    "removed": [],
+    "sheet": null
+   }
+  },
+  {
+   "name": "25 inch bays full in cub",
+   "build": {
+    "v": 1,
+    "name": "Pocket",
+    "case": {
+     "id": "cub",
+     "finish": "frost"
+    },
+    "board": "x9i",
+    "cpu": "tidal16",
+    "cooler": {
+     "id": "tarn240-frost",
+     "mount": "top"
+    },
+    "ram": [
+     "facet32"
+    ],
+    "gpu": "halide",
+    "storage": {
+     "nvme": 2,
+     "ssd": 2,
+     "hdd": 0
+    },
+    "psu": "sf750",
+    "fans": {
+     "rear-1": "petal"
+    },
+    "cables": "tide",
+    "glass": true,
+    "lighting": {
+     "effect": "shift",
+     "speed": 45,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff6ad5",
+      "#2de2e6"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "storage",
+    "id": "ssd"
+   },
+   "expect": {
+    "ok": false,
+    "code": "BAYS_25",
+    "removed": [],
+    "sheet": null
+   }
+  },
+  {
+   "name": "sata ports full on matx board",
+   "build": {
+    "v": 1,
+    "name": "Flagship",
+    "case": {
+     "id": "bulwark",
+     "finish": "onyx"
+    },
+    "board": "x9m",
+    "cpu": "tidal16",
+    "cooler": {
+     "id": "tarn360-lux",
+     "mount": "front"
+    },
+    "ram": [
+     "facet64x4"
+    ],
+    "gpu": "crest",
+    "storage": {
+     "nvme": 2,
+     "ssd": 2,
+     "hdd": 2
+    },
+    "psu": "t1200",
+    "fans": {
+     "bottom-1": "aureole",
+     "bottom-2": "aureole",
+     "top-1": "aureole",
+     "top-2": "aureole",
+     "top-3": "aureole",
+     "rear-1": "aureole"
+    },
+    "cables": "ember",
+    "glass": true,
+    "lighting": {
+     "effect": "comet",
+     "speed": 70,
+     "brightness": 90,
+     "direction": 1,
+     "stops": [
+      "#ff3b1f",
+      "#ff9a1f"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "storage",
+    "id": "ssd"
+   },
+   "expect": {
+    "ok": false,
+    "code": "SATA_PORTS",
+    "removed": [],
+    "sheet": null
+   }
+  },
+  {
+   "name": "sfx supply required in cub",
+   "build": {
+    "v": 1,
+    "name": "Pocket",
+    "case": {
+     "id": "cub",
+     "finish": "frost"
+    },
+    "board": "x9i",
+    "cpu": "tidal16",
+    "cooler": {
+     "id": "tarn240-frost",
+     "mount": "top"
+    },
+    "ram": [
+     "facet32"
+    ],
+    "gpu": "halide",
+    "storage": {
+     "nvme": 2,
+     "ssd": 1,
+     "hdd": 0
+    },
+    "psu": null,
+    "fans": {
+     "rear-1": "petal"
+    },
+    "cables": "tide",
+    "glass": true,
+    "lighting": {
+     "effect": "shift",
+     "speed": 45,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff6ad5",
+      "#2de2e6"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "psu",
+    "id": "t850"
+   },
+   "expect": {
+    "ok": false,
+    "code": "PSU_FORM",
+    "removed": [],
+    "sheet": null
+   }
+  },
+  {
+   "name": "sfx supply rejected in a tower",
+   "build": {
+    "v": 1,
+    "name": "Night Rig",
+    "case": {
+     "id": "vitrine",
+     "finish": "onyx"
+    },
+    "board": "z7",
+    "cpu": "ember8",
+    "cooler": {
+     "id": "tarn360-lux",
+     "mount": "top"
+    },
+    "ram": [
+     "facet32"
+    ],
+    "gpu": "apex3x",
+    "storage": {
+     "nvme": 1,
+     "ssd": 0,
+     "hdd": 1
+    },
+    "psu": null,
+    "fans": {
+     "front-1": "gale-lux",
+     "front-2": "gale-lux",
+     "front-3": "gale-lux",
+     "rear-1": "gale-lux"
+    },
+    "cables": "orchid",
+    "glass": true,
+    "lighting": {
+     "effect": "wave",
+     "speed": 60,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff2bd1",
+      "#7b3dff",
+      "#18e0ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "psu",
+    "id": "sf750"
+   },
+   "expect": {
+    "ok": false,
+    "code": "PSU_FORM",
+    "removed": [],
+    "sheet": null
+   }
+  },
+  {
+   "name": "long supply does not fit gantry",
+   "build": {
+    "v": 1,
+    "name": "Open Frame",
+    "case": {
+     "id": "gantry",
+     "finish": "raw"
+    },
+    "board": "z7",
+    "cpu": "ember8",
+    "cooler": {
+     "id": "tarn360",
+     "mount": "spine"
+    },
+    "ram": [
+     "facet64"
+    ],
+    "gpu": "crest",
+    "storage": {
+     "nvme": 1,
+     "ssd": 0,
+     "hdd": 0
+    },
+    "psu": null,
+    "fans": {},
+    "cables": "citrine",
+    "glass": true,
+    "lighting": {
+     "effect": "starlight",
+     "speed": 60,
+     "brightness": 100,
+     "direction": 1,
+     "stops": [
+      "#ffffff",
+      "#8fb8ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "psu",
+    "id": "t1200"
+   },
+   "expect": {
+    "ok": false,
+    "code": "PSU_LENGTH",
+    "removed": [],
+    "sheet": null
+   }
+  },
+  {
+   "name": "small supply installs and reports over capacity",
+   "build": {
+    "v": 1,
+    "name": "Flagship",
+    "case": {
+     "id": "bulwark",
+     "finish": "onyx"
+    },
+    "board": "x9",
+    "cpu": "tidal16",
+    "cooler": {
+     "id": "tarn360-lux",
+     "mount": "front"
+    },
+    "ram": [
+     "facet64x4"
+    ],
+    "gpu": "crest",
+    "storage": {
+     "nvme": 4,
+     "ssd": 2,
+     "hdd": 2
+    },
+    "psu": "t1200",
+    "fans": {
+     "bottom-1": "aureole",
+     "bottom-2": "aureole",
+     "top-1": "aureole",
+     "top-2": "aureole",
+     "top-3": "aureole",
+     "rear-1": "aureole"
+    },
+    "cables": "ember",
+    "glass": true,
+    "lighting": {
+     "effect": "comet",
+     "speed": 70,
+     "brightness": 90,
+     "direction": 1,
+     "stops": [
+      "#ff3b1f",
+      "#ff9a1f"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "psu",
+    "id": "t650"
+   },
+   "expect": {
+    "ok": true,
+    "code": null,
+    "removed": [],
+    "sheet": {
+     "memoryGb": 64,
+     "ramSlotsUsed": 4,
+     "ramSlots": 4,
+     "storageTb": 20,
+     "m2Used": 4,
+     "m2Slots": 4,
+     "bays25Used": 2,
+     "bays25": 4,
+     "bays35Used": 2,
+     "bays35": 4,
+     "sataUsed": 4,
+     "sataPorts": 6,
+     "drawW": 800,
+     "psuCapacityW": 650,
+     "loadPercent": 123,
+     "recommendedPsuW": 1050,
+     "gpuLength": 372,
+     "gpuMaxLength": 450,
+     "coolerCapacityW": 300,
+     "cpuDrawW": 170,
+     "intakeFans": 5,
+     "exhaustFans": 4,
+     "pressure": "positive",
+     "missing": [],
+     "warnings": [
+      {
+       "code": "PSU_OVER",
+       "level": "error"
+      }
+     ],
+     "canPowerOn": false
+    },
+    "cooler": {
+     "id": "tarn360-lux",
+     "mount": "front"
+    }
+   }
+  },
+  {
+   "name": "low headroom warning",
+   "build": {
+    "v": 1,
+    "name": "Night Rig",
+    "case": {
+     "id": "vitrine",
+     "finish": "onyx"
+    },
+    "board": "z7",
+    "cpu": "ember8",
+    "cooler": {
+     "id": "tarn360-lux",
+     "mount": "top"
+    },
+    "ram": [
+     "facet32"
+    ],
+    "gpu": "apex3x",
+    "storage": {
+     "nvme": 1,
+     "ssd": 0,
+     "hdd": 1
+    },
+    "psu": "t850",
+    "fans": {
+     "front-1": "gale-lux",
+     "front-2": "gale-lux",
+     "front-3": "gale-lux",
+     "rear-1": "gale-lux"
+    },
+    "cables": "orchid",
+    "glass": true,
+    "lighting": {
+     "effect": "wave",
+     "speed": 60,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff2bd1",
+      "#7b3dff",
+      "#18e0ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "psu",
+    "id": "t650"
+   },
+   "expect": {
+    "ok": true,
+    "code": null,
+    "removed": [],
+    "sheet": {
+     "memoryGb": 32,
+     "ramSlotsUsed": 2,
+     "ramSlots": 4,
+     "storageTb": 6,
+     "m2Used": 1,
+     "m2Slots": 3,
+     "bays25Used": 0,
+     "bays25": 2,
+     "bays35Used": 1,
+     "bays35": 2,
+     "sataUsed": 1,
+     "sataPorts": 6,
+     "drawW": 558,
+     "psuCapacityW": 650,
+     "loadPercent": 86,
+     "recommendedPsuW": 750,
+     "gpuLength": 322,
+     "gpuMaxLength": 400,
+     "coolerCapacityW": 300,
+     "cpuDrawW": 125,
+     "intakeFans": 3,
+     "exhaustFans": 4,
+     "pressure": "negative",
+     "missing": [],
+     "warnings": [
+      {
+       "code": "PSU_HEADROOM",
+       "level": "warn"
+      }
+     ],
+     "canPowerOn": true
+    },
+    "cooler": {
+     "id": "tarn360-lux",
+     "mount": "top"
+    }
+   }
+  },
+  {
+   "name": "unknown part id",
+   "build": {
+    "v": 1,
+    "name": "",
+    "case": {
+     "id": "vitrine",
+     "finish": "onyx"
+    },
+    "board": null,
+    "cpu": null,
+    "cooler": null,
+    "ram": [],
+    "gpu": null,
+    "storage": {
+     "nvme": 0,
+     "ssd": 0,
+     "hdd": 0
+    },
+    "psu": null,
+    "fans": {},
+    "cables": "onyx",
+    "glass": true,
+    "lighting": {
+     "effect": "wave",
+     "speed": 60,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff2bd1",
+      "#7b3dff",
+      "#18e0ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "board",
+    "id": "nope"
+   },
+   "expect": {
+    "ok": false,
+    "code": "UNKNOWN_PART",
+    "removed": [],
+    "sheet": null
+   }
+  },
+  {
+   "name": "board swap to the other platform removes cpu and cooler",
+   "build": {
+    "v": 1,
+    "name": "Night Rig",
+    "case": {
+     "id": "vitrine",
+     "finish": "onyx"
+    },
+    "board": "z7",
+    "cpu": "ember8",
+    "cooler": {
+     "id": "tarn360-lux",
+     "mount": "top"
+    },
+    "ram": [
+     "facet32"
+    ],
+    "gpu": "apex3x",
+    "storage": {
+     "nvme": 1,
+     "ssd": 0,
+     "hdd": 1
+    },
+    "psu": "t850",
+    "fans": {
+     "front-1": "gale-lux",
+     "front-2": "gale-lux",
+     "front-3": "gale-lux",
+     "rear-1": "gale-lux"
+    },
+    "cables": "orchid",
+    "glass": true,
+    "lighting": {
+     "effect": "wave",
+     "speed": 60,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff2bd1",
+      "#7b3dff",
+      "#18e0ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "board",
+    "id": "x9"
+   },
+   "expect": {
+    "ok": true,
+    "code": null,
+    "removed": [
+     {
+      "category": "cpu",
+      "id": "ember8",
+      "code": "CPU_PLATFORM"
+     },
+     {
+      "category": "cooler",
+      "id": "tarn360-lux",
+      "code": "NEED_CPU"
+     }
+    ],
+    "sheet": {
+     "memoryGb": 32,
+     "ramSlotsUsed": 2,
+     "ramSlots": 4,
+     "storageTb": 6,
+     "m2Used": 1,
+     "m2Slots": 4,
+     "bays25Used": 0,
+     "bays25": 2,
+     "bays35Used": 1,
+     "bays35": 2,
+     "sataUsed": 1,
+     "sataPorts": 6,
+     "drawW": 415,
+     "psuCapacityW": 850,
+     "loadPercent": 49,
+     "recommendedPsuW": 550,
+     "gpuLength": 322,
+     "gpuMaxLength": 400,
+     "coolerCapacityW": 0,
+     "cpuDrawW": 0,
+     "intakeFans": 3,
+     "exhaustFans": 1,
+     "pressure": "positive",
+     "missing": [
+      "cpu",
+      "cooler"
+     ],
+     "warnings": [],
+     "canPowerOn": false
+    },
+    "cooler": null
+   }
+  },
+  {
+   "name": "board swap to itx trims memory and nvme",
+   "build": {
+    "v": 1,
+    "name": "Flagship",
+    "case": {
+     "id": "bulwark",
+     "finish": "onyx"
+    },
+    "board": "x9",
+    "cpu": "tidal16",
+    "cooler": {
+     "id": "tarn360-lux",
+     "mount": "front"
+    },
+    "ram": [
+     "facet32",
+     "mono16"
+    ],
+    "gpu": "crest",
+    "storage": {
+     "nvme": 4,
+     "ssd": 2,
+     "hdd": 2
+    },
+    "psu": "t1200",
+    "fans": {
+     "bottom-1": "aureole",
+     "bottom-2": "aureole",
+     "top-1": "aureole",
+     "top-2": "aureole",
+     "top-3": "aureole",
+     "rear-1": "aureole"
+    },
+    "cables": "ember",
+    "glass": true,
+    "lighting": {
+     "effect": "comet",
+     "speed": 70,
+     "brightness": 90,
+     "direction": 1,
+     "stops": [
+      "#ff3b1f",
+      "#ff9a1f"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "board",
+    "id": "x9i"
+   },
+   "expect": {
+    "ok": true,
+    "code": null,
+    "removed": [
+     {
+      "category": "ram",
+      "id": "mono16",
+      "code": "RAM_SLOTS"
+     },
+     {
+      "category": "storage",
+      "id": "nvme",
+      "code": "M2_SLOTS",
+      "count": 2
+     },
+     {
+      "category": "storage",
+      "id": "ssd",
+      "code": "SATA_PORTS",
+      "count": 2
+     }
+    ],
+    "sheet": {
+     "memoryGb": 32,
+     "ramSlotsUsed": 2,
+     "ramSlots": 2,
+     "storageTb": 12,
+     "m2Used": 2,
+     "m2Slots": 2,
+     "bays25Used": 0,
+     "bays25": 4,
+     "bays35Used": 2,
+     "bays35": 4,
+     "sataUsed": 2,
+     "sataPorts": 2,
+     "drawW": 750,
+     "psuCapacityW": 1200,
+     "loadPercent": 63,
+     "recommendedPsuW": 1000,
+     "gpuLength": 372,
+     "gpuMaxLength": 450,
+     "coolerCapacityW": 300,
+     "cpuDrawW": 170,
+     "intakeFans": 5,
+     "exhaustFans": 4,
+     "pressure": "positive",
+     "missing": [],
+     "warnings": [],
+     "canPowerOn": true
+    },
+    "cooler": {
+     "id": "tarn360-lux",
+     "mount": "front"
+    }
+   }
+  },
+  {
+   "name": "case swap to cub removes what cannot follow",
+   "build": {
+    "v": 1,
+    "name": "Night Rig",
+    "case": {
+     "id": "vitrine",
+     "finish": "onyx"
+    },
+    "board": "z7",
+    "cpu": "ember8",
+    "cooler": {
+     "id": "tarn360-lux",
+     "mount": "top"
+    },
+    "ram": [
+     "facet32"
+    ],
+    "gpu": "apex3x",
+    "storage": {
+     "nvme": 1,
+     "ssd": 0,
+     "hdd": 1
+    },
+    "psu": "t850",
+    "fans": {
+     "front-1": "gale-lux",
+     "front-2": "gale-lux",
+     "front-3": "gale-lux",
+     "rear-1": "gale-lux"
+    },
+    "cables": "orchid",
+    "glass": true,
+    "lighting": {
+     "effect": "wave",
+     "speed": 60,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff2bd1",
+      "#7b3dff",
+      "#18e0ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "case",
+    "id": "cub"
+   },
+   "expect": {
+    "ok": true,
+    "code": null,
+    "removed": [
+     {
+      "category": "board",
+      "id": "z7",
+      "code": "BOARD_SIZE"
+     },
+     {
+      "category": "cpu",
+      "id": "ember8",
+      "code": "NEED_BOARD"
+     },
+     {
+      "category": "cooler",
+      "id": "tarn360-lux",
+      "code": "NEED_CPU"
+     },
+     {
+      "category": "ram",
+      "id": "facet32",
+      "code": "NEED_BOARD"
+     },
+     {
+      "category": "gpu",
+      "id": "apex3x",
+      "code": "NEED_BOARD"
+     },
+     {
+      "category": "storage",
+      "id": "nvme",
+      "code": "NEED_BOARD",
+      "count": 1
+     },
+     {
+      "category": "storage",
+      "id": "hdd",
+      "code": "BAYS_35",
+      "count": 1
+     },
+     {
+      "category": "psu",
+      "id": "t850",
+      "code": "PSU_FORM"
+     },
+     {
+      "category": "fan",
+      "id": "gale-lux",
+      "code": "FAN_MOUNT_UNKNOWN",
+      "mount": "front-1"
+     },
+     {
+      "category": "fan",
+      "id": "gale-lux",
+      "code": "FAN_MOUNT_UNKNOWN",
+      "mount": "front-2"
+     },
+     {
+      "category": "fan",
+      "id": "gale-lux",
+      "code": "FAN_MOUNT_UNKNOWN",
+      "mount": "front-3"
+     }
+    ],
+    "sheet": {
+     "memoryGb": 0,
+     "ramSlotsUsed": 0,
+     "ramSlots": 0,
+     "storageTb": 0,
+     "m2Used": 0,
+     "m2Slots": 0,
+     "bays25Used": 0,
+     "bays25": 2,
+     "bays35Used": 0,
+     "bays35": 0,
+     "sataUsed": 0,
+     "sataPorts": 0,
+     "drawW": 5,
+     "psuCapacityW": 0,
+     "loadPercent": null,
+     "recommendedPsuW": 50,
+     "gpuLength": 0,
+     "gpuMaxLength": 310,
+     "coolerCapacityW": 0,
+     "cpuDrawW": 0,
+     "intakeFans": 0,
+     "exhaustFans": 1,
+     "pressure": "negative",
+     "missing": [
+      "board",
+      "cpu",
+      "cooler",
+      "ram",
+      "psu"
+     ],
+     "warnings": [],
+     "canPowerOn": false
+    },
+    "cooler": null
+   }
+  },
+  {
+   "name": "case swap keeps a compatible build and reseats the radiator",
+   "build": {
+    "v": 1,
+    "name": "Open Frame",
+    "case": {
+     "id": "gantry",
+     "finish": "raw"
+    },
+    "board": "z7",
+    "cpu": "ember8",
+    "cooler": {
+     "id": "tarn360",
+     "mount": "spine"
+    },
+    "ram": [
+     "facet64"
+    ],
+    "gpu": "crest",
+    "storage": {
+     "nvme": 1,
+     "ssd": 0,
+     "hdd": 0
+    },
+    "psu": "t1000",
+    "fans": {},
+    "cables": "citrine",
+    "glass": true,
+    "lighting": {
+     "effect": "starlight",
+     "speed": 60,
+     "brightness": 100,
+     "direction": 1,
+     "stops": [
+      "#ffffff",
+      "#8fb8ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "case",
+    "id": "bulwark"
+   },
+   "expect": {
+    "ok": true,
+    "code": null,
+    "removed": [],
+    "sheet": {
+     "memoryGb": 64,
+     "ramSlotsUsed": 2,
+     "ramSlots": 4,
+     "storageTb": 2,
+     "m2Used": 1,
+     "m2Slots": 3,
+     "bays25Used": 0,
+     "bays25": 4,
+     "bays35Used": 0,
+     "bays35": 4,
+     "sataUsed": 0,
+     "sataPorts": 6,
+     "drawW": 659,
+     "psuCapacityW": 1000,
+     "loadPercent": 66,
+     "recommendedPsuW": 900,
+     "gpuLength": 372,
+     "gpuMaxLength": 450,
+     "coolerCapacityW": 300,
+     "cpuDrawW": 125,
+     "intakeFans": 3,
+     "exhaustFans": 0,
+     "pressure": "positive",
+     "missing": [],
+     "warnings": [],
+     "canPowerOn": true
+    },
+    "cooler": {
+     "id": "tarn360",
+     "mount": "front"
+    }
+   }
+  },
+  {
+   "name": "case swap to vent moves a 360 radiator to the front",
+   "build": {
+    "v": 1,
+    "name": "Night Rig",
+    "case": {
+     "id": "vitrine",
+     "finish": "onyx"
+    },
+    "board": "z7",
+    "cpu": "ember8",
+    "cooler": {
+     "id": "tarn360-lux",
+     "mount": "top"
+    },
+    "ram": [
+     "facet32"
+    ],
+    "gpu": "apex3x",
+    "storage": {
+     "nvme": 1,
+     "ssd": 0,
+     "hdd": 1
+    },
+    "psu": "t850",
+    "fans": {
+     "front-1": "gale-lux",
+     "front-2": "gale-lux",
+     "front-3": "gale-lux",
+     "rear-1": "gale-lux"
+    },
+    "cables": "orchid",
+    "glass": true,
+    "lighting": {
+     "effect": "wave",
+     "speed": 60,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff2bd1",
+      "#7b3dff",
+      "#18e0ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "install",
+    "category": "case",
+    "id": "vent"
+   },
+   "expect": {
+    "ok": true,
+    "code": null,
+    "removed": [
+     {
+      "category": "fan",
+      "id": "gale-lux",
+      "code": "FAN_MOUNT_TAKEN",
+      "mount": "front-1"
+     },
+     {
+      "category": "fan",
+      "id": "gale-lux",
+      "code": "FAN_MOUNT_TAKEN",
+      "mount": "front-2"
+     },
+     {
+      "category": "fan",
+      "id": "gale-lux",
+      "code": "FAN_MOUNT_TAKEN",
+      "mount": "front-3"
+     }
+    ],
+    "sheet": {
+     "memoryGb": 32,
+     "ramSlotsUsed": 2,
+     "ramSlots": 4,
+     "storageTb": 6,
+     "m2Used": 1,
+     "m2Slots": 3,
+     "bays25Used": 0,
+     "bays25": 2,
+     "bays35Used": 1,
+     "bays35": 3,
+     "sataUsed": 1,
+     "sataPorts": 6,
+     "drawW": 543,
+     "psuCapacityW": 850,
+     "loadPercent": 64,
+     "recommendedPsuW": 750,
+     "gpuLength": 322,
+     "gpuMaxLength": 370,
+     "coolerCapacityW": 300,
+     "cpuDrawW": 125,
+     "intakeFans": 3,
+     "exhaustFans": 1,
+     "pressure": "positive",
+     "missing": [],
+     "warnings": [],
+     "canPowerOn": true
+    },
+    "cooler": {
+     "id": "tarn360-lux",
+     "mount": "front"
+    }
+   }
+  },
+  {
+   "name": "removing the cpu removes the cooler",
+   "build": {
+    "v": 1,
+    "name": "Night Rig",
+    "case": {
+     "id": "vitrine",
+     "finish": "onyx"
+    },
+    "board": "z7",
+    "cpu": "ember8",
+    "cooler": {
+     "id": "tarn360-lux",
+     "mount": "top"
+    },
+    "ram": [
+     "facet32"
+    ],
+    "gpu": "apex3x",
+    "storage": {
+     "nvme": 1,
+     "ssd": 0,
+     "hdd": 1
+    },
+    "psu": "t850",
+    "fans": {
+     "front-1": "gale-lux",
+     "front-2": "gale-lux",
+     "front-3": "gale-lux",
+     "rear-1": "gale-lux"
+    },
+    "cables": "orchid",
+    "glass": true,
+    "lighting": {
+     "effect": "wave",
+     "speed": 60,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff2bd1",
+      "#7b3dff",
+      "#18e0ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "remove",
+    "category": "cpu"
+   },
+   "expect": {
+    "ok": true,
+    "code": null,
+    "removed": [
+     {
+      "category": "cooler",
+      "id": "tarn360-lux",
+      "code": "NEED_CPU"
+     }
+    ],
+    "sheet": {
+     "memoryGb": 32,
+     "ramSlotsUsed": 2,
+     "ramSlots": 4,
+     "storageTb": 6,
+     "m2Used": 1,
+     "m2Slots": 3,
+     "bays25Used": 0,
+     "bays25": 2,
+     "bays35Used": 1,
+     "bays35": 2,
+     "sataUsed": 1,
+     "sataPorts": 6,
+     "drawW": 410,
+     "psuCapacityW": 850,
+     "loadPercent": 48,
+     "recommendedPsuW": 550,
+     "gpuLength": 322,
+     "gpuMaxLength": 400,
+     "coolerCapacityW": 0,
+     "cpuDrawW": 0,
+     "intakeFans": 3,
+     "exhaustFans": 1,
+     "pressure": "positive",
+     "missing": [
+      "cpu",
+      "cooler"
+     ],
+     "warnings": [],
+     "canPowerOn": false
+    },
+    "cooler": null
+   }
+  },
+  {
+   "name": "removing the board cascades",
+   "build": {
+    "v": 1,
+    "name": "Pocket",
+    "case": {
+     "id": "cub",
+     "finish": "frost"
+    },
+    "board": "x9i",
+    "cpu": "tidal16",
+    "cooler": {
+     "id": "tarn240-frost",
+     "mount": "top"
+    },
+    "ram": [
+     "facet32"
+    ],
+    "gpu": "halide",
+    "storage": {
+     "nvme": 2,
+     "ssd": 1,
+     "hdd": 0
+    },
+    "psu": "sf750",
+    "fans": {
+     "rear-1": "petal"
+    },
+    "cables": "tide",
+    "glass": true,
+    "lighting": {
+     "effect": "shift",
+     "speed": 45,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff6ad5",
+      "#2de2e6"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "remove",
+    "category": "board"
+   },
+   "expect": {
+    "ok": true,
+    "code": null,
+    "removed": [
+     {
+      "category": "cpu",
+      "id": "tidal16",
+      "code": "NEED_BOARD"
+     },
+     {
+      "category": "cooler",
+      "id": "tarn240-frost",
+      "code": "NEED_CPU"
+     },
+     {
+      "category": "ram",
+      "id": "facet32",
+      "code": "NEED_BOARD"
+     },
+     {
+      "category": "gpu",
+      "id": "halide",
+      "code": "NEED_BOARD"
+     },
+     {
+      "category": "storage",
+      "id": "nvme",
+      "code": "NEED_BOARD",
+      "count": 2
+     }
+    ],
+    "sheet": {
+     "memoryGb": 0,
+     "ramSlotsUsed": 0,
+     "ramSlots": 0,
+     "storageTb": 2,
+     "m2Used": 0,
+     "m2Slots": 0,
+     "bays25Used": 1,
+     "bays25": 2,
+     "bays35Used": 0,
+     "bays35": 0,
+     "sataUsed": 1,
+     "sataPorts": 0,
+     "drawW": 9,
+     "psuCapacityW": 750,
+     "loadPercent": 1,
+     "recommendedPsuW": 50,
+     "gpuLength": 0,
+     "gpuMaxLength": 310,
+     "coolerCapacityW": 0,
+     "cpuDrawW": 0,
+     "intakeFans": 0,
+     "exhaustFans": 1,
+     "pressure": "negative",
+     "missing": [
+      "board",
+      "cpu",
+      "cooler",
+      "ram"
+     ],
+     "warnings": [],
+     "canPowerOn": false
+    },
+    "cooler": null
+   }
+  },
+  {
+   "name": "removing the case removes everything",
+   "build": {
+    "v": 1,
+    "name": "Pocket",
+    "case": {
+     "id": "cub",
+     "finish": "frost"
+    },
+    "board": "x9i",
+    "cpu": "tidal16",
+    "cooler": {
+     "id": "tarn240-frost",
+     "mount": "top"
+    },
+    "ram": [
+     "facet32"
+    ],
+    "gpu": "halide",
+    "storage": {
+     "nvme": 2,
+     "ssd": 1,
+     "hdd": 0
+    },
+    "psu": "sf750",
+    "fans": {
+     "rear-1": "petal"
+    },
+    "cables": "tide",
+    "glass": true,
+    "lighting": {
+     "effect": "shift",
+     "speed": 45,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff6ad5",
+      "#2de2e6"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "remove",
+    "category": "case"
+   },
+   "expect": {
+    "ok": true,
+    "code": null,
+    "removed": [
+     {
+      "category": "board",
+      "id": "x9i",
+      "code": "NEED_CASE"
+     },
+     {
+      "category": "cpu",
+      "id": "tidal16",
+      "code": "NEED_BOARD"
+     },
+     {
+      "category": "cooler",
+      "id": "tarn240-frost",
+      "code": "NEED_CPU"
+     },
+     {
+      "category": "ram",
+      "id": "facet32",
+      "code": "NEED_BOARD"
+     },
+     {
+      "category": "gpu",
+      "id": "halide",
+      "code": "NEED_BOARD"
+     },
+     {
+      "category": "storage",
+      "id": "nvme",
+      "code": "NEED_BOARD",
+      "count": 2
+     },
+     {
+      "category": "storage",
+      "id": "ssd",
+      "code": "NEED_CASE",
+      "count": 1
+     },
+     {
+      "category": "psu",
+      "id": "sf750",
+      "code": "NEED_CASE"
+     },
+     {
+      "category": "fan",
+      "id": "petal",
+      "code": "NEED_CASE",
+      "mount": "rear-1"
+     }
+    ],
+    "sheet": {
+     "memoryGb": 0,
+     "ramSlotsUsed": 0,
+     "ramSlots": 0,
+     "storageTb": 0,
+     "m2Used": 0,
+     "m2Slots": 0,
+     "bays25Used": 0,
+     "bays25": 0,
+     "bays35Used": 0,
+     "bays35": 0,
+     "sataUsed": 0,
+     "sataPorts": 0,
+     "drawW": 0,
+     "psuCapacityW": 0,
+     "loadPercent": null,
+     "recommendedPsuW": 0,
+     "gpuLength": 0,
+     "gpuMaxLength": 0,
+     "coolerCapacityW": 0,
+     "cpuDrawW": 0,
+     "intakeFans": 0,
+     "exhaustFans": 0,
+     "pressure": "none",
+     "missing": [
+      "case",
+      "board",
+      "cpu",
+      "cooler",
+      "ram",
+      "psu"
+     ],
+     "warnings": [],
+     "canPowerOn": false
+    },
+    "cooler": null
+   }
+  },
+  {
+   "name": "removing one ram kit by index",
+   "build": {
+    "v": 1,
+    "name": "Night Rig",
+    "case": {
+     "id": "vitrine",
+     "finish": "onyx"
+    },
+    "board": "z7",
+    "cpu": "ember8",
+    "cooler": {
+     "id": "tarn360-lux",
+     "mount": "top"
+    },
+    "ram": [
+     "facet32",
+     "facet64"
+    ],
+    "gpu": "apex3x",
+    "storage": {
+     "nvme": 1,
+     "ssd": 0,
+     "hdd": 1
+    },
+    "psu": "t850",
+    "fans": {
+     "front-1": "gale-lux",
+     "front-2": "gale-lux",
+     "front-3": "gale-lux",
+     "rear-1": "gale-lux"
+    },
+    "cables": "orchid",
+    "glass": true,
+    "lighting": {
+     "effect": "wave",
+     "speed": 60,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff2bd1",
+      "#7b3dff",
+      "#18e0ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "remove",
+    "category": "ram",
+    "opts": {
+     "index": 0
+    }
+   },
+   "expect": {
+    "ok": true,
+    "code": null,
+    "removed": [],
+    "sheet": {
+     "memoryGb": 64,
+     "ramSlotsUsed": 2,
+     "ramSlots": 4,
+     "storageTb": 6,
+     "m2Used": 1,
+     "m2Slots": 3,
+     "bays25Used": 0,
+     "bays25": 2,
+     "bays35Used": 1,
+     "bays35": 2,
+     "sataUsed": 1,
+     "sataPorts": 6,
+     "drawW": 558,
+     "psuCapacityW": 850,
+     "loadPercent": 66,
+     "recommendedPsuW": 750,
+     "gpuLength": 322,
+     "gpuMaxLength": 400,
+     "coolerCapacityW": 300,
+     "cpuDrawW": 125,
+     "intakeFans": 3,
+     "exhaustFans": 4,
+     "pressure": "negative",
+     "missing": [],
+     "warnings": [],
+     "canPowerOn": true
+    },
+    "cooler": {
+     "id": "tarn360-lux",
+     "mount": "top"
+    }
+   }
+  },
+  {
+   "name": "removing a drive",
+   "build": {
+    "v": 1,
+    "name": "Night Rig",
+    "case": {
+     "id": "vitrine",
+     "finish": "onyx"
+    },
+    "board": "z7",
+    "cpu": "ember8",
+    "cooler": {
+     "id": "tarn360-lux",
+     "mount": "top"
+    },
+    "ram": [
+     "facet32"
+    ],
+    "gpu": "apex3x",
+    "storage": {
+     "nvme": 1,
+     "ssd": 0,
+     "hdd": 1
+    },
+    "psu": "t850",
+    "fans": {
+     "front-1": "gale-lux",
+     "front-2": "gale-lux",
+     "front-3": "gale-lux",
+     "rear-1": "gale-lux"
+    },
+    "cables": "orchid",
+    "glass": true,
+    "lighting": {
+     "effect": "wave",
+     "speed": 60,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff2bd1",
+      "#7b3dff",
+      "#18e0ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "remove",
+    "category": "storage",
+    "opts": {
+     "type": "hdd"
+    }
+   },
+   "expect": {
+    "ok": true,
+    "code": null,
+    "removed": [],
+    "sheet": {
+     "memoryGb": 32,
+     "ramSlotsUsed": 2,
+     "ramSlots": 4,
+     "storageTb": 2,
+     "m2Used": 1,
+     "m2Slots": 3,
+     "bays25Used": 0,
+     "bays25": 2,
+     "bays35Used": 0,
+     "bays35": 2,
+     "sataUsed": 0,
+     "sataPorts": 6,
+     "drawW": 550,
+     "psuCapacityW": 850,
+     "loadPercent": 65,
+     "recommendedPsuW": 750,
+     "gpuLength": 322,
+     "gpuMaxLength": 400,
+     "coolerCapacityW": 300,
+     "cpuDrawW": 125,
+     "intakeFans": 3,
+     "exhaustFans": 4,
+     "pressure": "negative",
+     "missing": [],
+     "warnings": [],
+     "canPowerOn": true
+    },
+    "cooler": {
+     "id": "tarn360-lux",
+     "mount": "top"
+    }
+   }
+  },
+  {
+   "name": "removing a fan",
+   "build": {
+    "v": 1,
+    "name": "Night Rig",
+    "case": {
+     "id": "vitrine",
+     "finish": "onyx"
+    },
+    "board": "z7",
+    "cpu": "ember8",
+    "cooler": {
+     "id": "tarn360-lux",
+     "mount": "top"
+    },
+    "ram": [
+     "facet32"
+    ],
+    "gpu": "apex3x",
+    "storage": {
+     "nvme": 1,
+     "ssd": 0,
+     "hdd": 1
+    },
+    "psu": "t850",
+    "fans": {
+     "front-1": "gale-lux",
+     "front-2": "gale-lux",
+     "front-3": "gale-lux",
+     "rear-1": "gale-lux"
+    },
+    "cables": "orchid",
+    "glass": true,
+    "lighting": {
+     "effect": "wave",
+     "speed": 60,
+     "brightness": 85,
+     "direction": 1,
+     "stops": [
+      "#ff2bd1",
+      "#7b3dff",
+      "#18e0ff"
+     ],
+     "overrides": {}
+    }
+   },
+   "action": {
+    "type": "remove",
+    "category": "fan",
+    "opts": {
+     "mount": "rear-1"
+    }
+   },
+   "expect": {
+    "ok": true,
+    "code": null,
+    "removed": [],
+    "sheet": {
+     "memoryGb": 32,
+     "ramSlotsUsed": 2,
+     "ramSlots": 4,
+     "storageTb": 6,
+     "m2Used": 1,
+     "m2Slots": 3,
+     "bays25Used": 0,
+     "bays25": 2,
+     "bays35Used": 1,
+     "bays35": 2,
+     "sataUsed": 1,
+     "sataPorts": 6,
+     "drawW": 553,
+     "psuCapacityW": 850,
+     "loadPercent": 65,
+     "recommendedPsuW": 750,
+     "gpuLength": 322,
+     "gpuMaxLength": 400,
+     "coolerCapacityW": 300,
+     "cpuDrawW": 125,
+     "intakeFans": 3,
+     "exhaustFans": 3,
+     "pressure": "balanced",
+     "missing": [],
+     "warnings": [],
+     "canPowerOn": true
+    },
+    "cooler": {
+     "id": "tarn360-lux",
+     "mount": "top"
+    }
+   }
+  }
+ ],
+ "decodes": [
+  {
+   "name": "garbage string",
+   "encoded": "!!!not-a-link",
+   "expect": {
+    "error": "BAD_LINK"
+   }
+  },
+  {
+   "name": "valid base64 that is not a payload",
+   "encoded": "eyJoZWxsbyI6MX0",
+   "expect": {
+    "error": "BAD_LINK"
+   }
+  },
+  {
+   "name": "newer version",
+   "encoded": "WzIsInZpdHJpbmUiLCJvbnl4Il0",
+   "expect": {
+    "error": "NEWER_LINK"
+   }
+  },
+  {
+   "name": "unknown ids are dropped",
+   "encoded": "WzEsInZpdHJpbmUiLCJuZW9uIiwiejciLCJub3BlIiwwLDAsWyJmYWNldDMyIiwiYm9ndXMiXSwiYXBleDN4IixbMSwwLDldLCJ0ODUwIixbWyJmcm9udC0xIiwiZ2FsZSJdLFsic2lkZS05IiwiZ2FsZSJdXSwicGxhaWQiLDEsWyJ3YXZlIiw5OTksLTUsMSxbImZmMmJkMSIsInp6eiIsIjE4ZTBmZiJdLFtbImdwdSIsMF0sWyJkZXNrIiwwXV1dLCJ4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHgiXQ",
+   "expect": {
+    "build": {
+     "v": 1,
+     "case": {
+      "id": "vitrine",
+      "finish": "onyx"
+     },
+     "board": "z7",
+     "cpu": null,
+     "cooler": null,
+     "ram": [
+      "facet32"
+     ],
+     "gpu": "apex3x",
+     "storage": {
+      "nvme": 1,
+      "ssd": 0,
+      "hdd": 2
+     },
+     "psu": "t850",
+     "fans": {
+      "front-1": "gale"
+     },
+     "cables": "onyx",
+     "glass": true,
+     "lighting": {
+      "effect": "wave",
+      "speed": 150,
+      "brightness": 0,
+      "direction": 1,
+      "stops": [
+       "#ff2bd1",
+       "#18e0ff"
+      ],
+      "overrides": {
+       "gpu": "off"
+      }
+     },
+     "name": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    },
+    "removed": [
+     {
+      "category": "cpu",
+      "id": "nope",
+      "code": "UNKNOWN_PART"
+     },
+     {
+      "category": "ram",
+      "id": "bogus",
+      "code": "UNKNOWN_PART"
+     },
+     {
+      "category": "storage",
+      "id": "hdd",
+      "code": "BAYS_35",
+      "count": 7
+     },
+     {
+      "category": "fan",
+      "id": "gale",
+      "code": "FAN_MOUNT_UNKNOWN",
+      "mount": "side-9"
+     }
+    ]
+   }
+  },
+  {
+   "name": "version below one",
+   "encoded": "Wy0xLCJ2aXRyaW5lIiwib255eCJd",
+   "expect": {
+    "error": "BAD_LINK"
+   }
+  },
+  {
+   "name": "ids that are object property names",
+   "encoded": "WzEsInZpdHJpbmUiLCJvbnl4IiwidG9TdHJpbmciLDAsMCwwLFsiX19wcm90b19fIiwiY29uc3RydWN0b3IiXSwwLFswLDAsMF0sImhhc093blByb3BlcnR5IixbWyJmcm9udC0xIiwidmFsdWVPZiJdXSwib255eCIsMSxbIndhdmUiLDYwLDg1LDEsWyJmZjJiZDEiLCIxOGUwZmYiXSxbXV0sIiJd",
+   "expect": {
+    "build": {
+     "v": 1,
+     "case": {
+      "id": "vitrine",
+      "finish": "onyx"
+     },
+     "board": null,
+     "cpu": null,
+     "cooler": null,
+     "ram": [],
+     "gpu": null,
+     "storage": {
+      "nvme": 0,
+      "ssd": 0,
+      "hdd": 0
+     },
+     "psu": null,
+     "fans": {},
+     "cables": "onyx",
+     "glass": true,
+     "lighting": {
+      "effect": "wave",
+      "speed": 60,
+      "brightness": 85,
+      "direction": 1,
+      "stops": [
+       "#ff2bd1",
+       "#18e0ff"
+      ],
+      "overrides": {}
+     },
+     "name": ""
+    },
+    "removed": [
+     {
+      "category": "board",
+      "id": "toString",
+      "code": "UNKNOWN_PART"
+     },
+     {
+      "category": "ram",
+      "id": "__proto__",
+      "code": "UNKNOWN_PART"
+     },
+     {
+      "category": "ram",
+      "id": "constructor",
+      "code": "UNKNOWN_PART"
+     },
+     {
+      "category": "psu",
+      "id": "hasOwnProperty",
+      "code": "UNKNOWN_PART"
+     },
+     {
+      "category": "fan",
+      "id": "valueOf",
+      "code": "UNKNOWN_PART",
+      "mount": "front-1"
+     }
+    ]
+   }
+  },
+  {
+   "name": "glass given as a non zero value stays on",
+   "encoded": "WzEsInZpdHJpbmUiLCJvbnl4IiwwLDAsMCwwLFtdLDAsWzAsMCwwXSwwLFtdLCJvbnl4Iiw3LFsid2F2ZSIsNjAsODUsMSxbImZmMmJkMSIsIjE4ZTBmZiJdLFtdXSwiIl0",
+   "expect": {
+    "build": {
+     "v": 1,
+     "case": {
+      "id": "vitrine",
+      "finish": "onyx"
+     },
+     "board": null,
+     "cpu": null,
+     "cooler": null,
+     "ram": [],
+     "gpu": null,
+     "storage": {
+      "nvme": 0,
+      "ssd": 0,
+      "hdd": 0
+     },
+     "psu": null,
+     "fans": {},
+     "cables": "onyx",
+     "glass": true,
+     "lighting": {
+      "effect": "wave",
+      "speed": 60,
+      "brightness": 85,
+      "direction": 1,
+      "stops": [
+       "#ff2bd1",
+       "#18e0ff"
+      ],
+      "overrides": {}
+     },
+     "name": ""
+    },
+    "removed": []
+   }
+  },
+  {
+   "name": "conflicting cooler and memory",
+   "encoded": "WzEsInZlbnQiLCJndW5tZXRhbCIsIno3IiwiZW1iZXI4IiwidHdpbiIsMCxbImNyb3duOTYiXSwibW9ub2xpdGgiLFsxLDAsMl0sInQ4NTAiLFtbImZyb250LTEiLCJnYWxlIl0sWyJmcm9udC0yIiwiZ2FsZSJdLFsiZnJvbnQtMyIsImdhbGUiXSxbInRvcC0xIiwiZ2FsZSJdLFsidG9wLTIiLCJnYWxlIl0sWyJyZWFyLTEiLCJnYWxlIl1dLCJvbnl4IiwxLFsic3RhdGljIiw2MCwwLDEsWyJmZmZmZmYiLCJmZmZmZmYiXSxbXV0sIldpbmRicmVhayJd",
+   "expect": {
+    "build": {
+     "v": 1,
+     "case": {
+      "id": "vent",
+      "finish": "gunmetal"
+     },
+     "board": "z7",
+     "cpu": "ember8",
+     "cooler": {
+      "id": "twin",
+      "mount": null
+     },
+     "ram": [],
+     "gpu": "monolith",
+     "storage": {
+      "nvme": 1,
+      "ssd": 0,
+      "hdd": 2
+     },
+     "psu": "t850",
+     "fans": {
+      "front-1": "gale",
+      "front-2": "gale",
+      "front-3": "gale",
+      "top-1": "gale",
+      "top-2": "gale",
+      "rear-1": "gale"
+     },
+     "cables": "onyx",
+     "glass": true,
+     "lighting": {
+      "effect": "static",
+      "speed": 60,
+      "brightness": 0,
+      "direction": 1,
+      "stops": [
+       "#ffffff",
+       "#ffffff"
+      ],
+      "overrides": {}
+     },
+     "name": "Windbreak"
+    },
+    "removed": [
+     {
+      "category": "ram",
+      "id": "crown96",
+      "code": "RAM_CLEARANCE"
+     }
+    ]
+   }
+  },
+  {
+   "name": "empty build",
+   "encoded": "WzEsMCwwLDAsMCwwLDAsW10sMCxbMCwwLDBdLDAsW10sIm9ueXgiLDEsWyJ3YXZlIiw2MCw4NSwxLFsiZmYyYmQxIiwiN2IzZGZmIiwiMThlMGZmIl0sW11dLCIiXQ",
+   "expect": {
+    "build": {
+     "v": 1,
+     "case": null,
+     "board": null,
+     "cpu": null,
+     "cooler": null,
+     "ram": [],
+     "gpu": null,
+     "storage": {
+      "nvme": 0,
+      "ssd": 0,
+      "hdd": 0
+     },
+     "psu": null,
+     "fans": {},
+     "cables": "onyx",
+     "glass": true,
+     "lighting": {
+      "effect": "wave",
+      "speed": 60,
+      "brightness": 85,
+      "direction": 1,
+      "stops": [
+       "#ff2bd1",
+       "#7b3dff",
+       "#18e0ff"
+      ],
+      "overrides": {}
+     },
+     "name": ""
+    },
+    "removed": []
+   }
+  },
+  {
+   "name": "overrides and a name with an interpunct",
+   "encoded": "WzEsInZpdHJpbmUiLCJvbnl4IiwiejciLCJlbWJlcjgiLCJ0YXJuMzYwLWx1eCIsInRvcCIsWyJmYWNldDMyIl0sImFwZXgzeCIsWzEsMCwxXSwidDg1MCIsW1siZnJvbnQtMSIsImdhbGUtbHV4Il0sWyJmcm9udC0yIiwiZ2FsZS1sdXgiXSxbImZyb250LTMiLCJnYWxlLWx1eCJdLFsicmVhci0xIiwiZ2FsZS1sdXgiXV0sIm9yY2hpZCIsMSxbIndhdmUiLDYwLDg1LDEsWyJmZjJiZDEiLCI3YjNkZmYiLCIxOGUwZmYiXSxbWyJyYW0iLFsic3RhdGljIiw2MCwxMDAsLTEsWyJmZmZmZmYiLCIxOGUwZmYiXV1dLFsiZ3B1IiwwXV1dLCJOaWdodCBSaWcgwrcgdjIiXQ",
+   "expect": {
+    "build": {
+     "v": 1,
+     "case": {
+      "id": "vitrine",
+      "finish": "onyx"
+     },
+     "board": "z7",
+     "cpu": "ember8",
+     "cooler": {
+      "id": "tarn360-lux",
+      "mount": "top"
+     },
+     "ram": [
+      "facet32"
+     ],
+     "gpu": "apex3x",
+     "storage": {
+      "nvme": 1,
+      "ssd": 0,
+      "hdd": 1
+     },
+     "psu": "t850",
+     "fans": {
+      "front-1": "gale-lux",
+      "front-2": "gale-lux",
+      "front-3": "gale-lux",
+      "rear-1": "gale-lux"
+     },
+     "cables": "orchid",
+     "glass": true,
+     "lighting": {
+      "effect": "wave",
+      "speed": 60,
+      "brightness": 85,
+      "direction": 1,
+      "stops": [
+       "#ff2bd1",
+       "#7b3dff",
+       "#18e0ff"
+      ],
+      "overrides": {
+       "ram": {
+        "effect": "static",
+        "speed": 60,
+        "brightness": 100,
+        "direction": -1,
+        "stops": [
+         "#ffffff",
+         "#18e0ff"
+        ]
+       },
+       "gpu": "off"
+      }
+     },
+     "name": "Night Rig · v2"
+    },
+    "removed": []
+   }
+  }
+ ]
+}

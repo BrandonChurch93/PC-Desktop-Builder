@@ -39,4 +39,9 @@ export type GenOpts = {
   key?: string;
   /** a crest card in the open frame carries an arm instead of a post */
   openFrame?: boolean;
+  /** shown alone in the Inspector: loose leads hang and end in their plugs */
+  loose?: boolean;
+  /** where the part sits in the case: the local axis that points up, and the local axis that points toward the glass */
+  localUp?: [number, number, number];
+  localView?: [number, number, number];
 };

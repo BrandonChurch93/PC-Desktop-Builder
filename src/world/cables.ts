@@ -13,7 +13,7 @@ type V = THREE.Vector3;
 const v = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
 
 /** A path through corners, each corner rounded to at least the given radius, so straight runs stay straight. */
-export function filletPath(points: V[], radius: number, step = 2.5, straight = 12): V[] {
+export function filletPath(points: V[], radius: number, step = 2.5, straight = 12, straightEnd = straight): V[] {
   const out: V[] = [points[0]!.clone()];
   for (let i = 1; i < points.length - 1; i++) {
     const p0 = points[i - 1]!; const p1 = points[i]!; const p2 = points[i + 1]!;
@@ -25,7 +25,7 @@ export function filletPath(points: V[], radius: number, step = 2.5, straight = 1
     const theta = Math.acos(cos);
     if (Math.PI - theta < 0.01) { out.push(p1.clone()); continue; }
     const limA = i - 1 === 0 ? la - straight : la * 0.5;
-    const limB = i + 1 === points.length - 1 ? lb - straight : lb * 0.5;
+    const limB = i + 1 === points.length - 1 ? lb - straightEnd : lb * 0.5;
     const t = Math.max(0.5, Math.min(radius / Math.tan(theta / 2), limA, limB));
     const s = p1.clone().addScaledVector(a, t); const e = p1.clone().addScaledVector(b, t);
     const r = t * Math.tan(theta / 2);
@@ -72,6 +72,8 @@ export type Run = {
   colors: string[];
   comb: string;
   plugAt: 'end' | 'start' | 'none';
+  /** sleeved runs carry combs; flat drive leads do not */
+  combs?: boolean;
 };
 
 function sweep(points: V[], r: number, radial: number): THREE.BufferGeometry {
@@ -103,9 +105,9 @@ export function buildRun(run: Run, group: THREE.Group, detail = 1) {
     mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.flexible = true; mesh.name = `run:${run.name}`;
     group.add(mesh);
   }
-  if (run.rows * run.cols < 2) return;
+  if (run.rows * run.cols < 2 && run.plugAt === 'none') return;
   const total = run.path.reduce((s, p, i) => (i ? s + p.distanceTo(run.path[i - 1]!) : 0), 0);
-  const combMat = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(run.comb), roughness: 0.32, clearcoat: 0.5 });
+  const combMat = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(run.comb), roughness: 0.55, clearcoat: 0.12, clearcoatRoughness: 0.45 });
   const cw = run.cols * run.pitch + 3; const ch = run.rows * run.pitch + 3;
   const combShape = new THREE.Shape(); rrectPath(combShape, -ch / 2, -cw / 2, ch, cw, 1.6);
   for (let r = 0; r < run.rows; r++) for (let c = 0; c < run.cols; c++) { const h = new THREE.Path(); h.absarc((r - (run.rows - 1) / 2) * run.pitch, (c - (run.cols - 1) / 2) * run.pitch, run.wire + 0.12, 0, Math.PI * 2, true); combShape.holes.push(h); }
@@ -114,7 +116,7 @@ export function buildRun(run: Run, group: THREE.Group, detail = 1) {
   const holes: THREE.BufferGeometry[] = [];
   const combs: THREE.Matrix4[] = [];
   let acc = 0; let next = 34;
-  for (let i = 1; i < run.path.length - 1; i++) {
+  for (let i = 1; run.combs !== false && i < run.path.length - 1; i++) {
     acc += run.path[i]!.distanceTo(run.path[i - 1]!);
     if (acc >= next && acc < total - 24) {
       const bend = T[i - 1]!.dot(T[Math.min(T.length - 1, i + 2)]!) < 0.995;
@@ -200,22 +202,37 @@ export function buildCables(build: Build, items: Map<string, RigItem>, detail = 
   const pump = items.get('cooler'); const rad = items.get('radiator');
   if (pump && rad && pump.part.anchors.fitting0 && rad.part.anchors.fitting0) {
     const frost = rad.placed.id.includes('frost');
+    // Two tubes run side by side: each keeps its own depth along the run and meets the fitting on its own side, so they never cross.
+    const from = [0, 1].map((i) => toCase(pump, pump.part.anchors[`fitting${i}`]!)).sort((p, q) => p.p.x - q.p.x);
+    const to = [0, 1].map((i) => toCase(rad, rad.part.anchors[`fitting${i}`]!)).sort((p, q) => p.p.z - q.p.z);
+    const zMid = (to[0]!.p.z + to[1]!.p.z) / 2;
     for (let i = 0; i < 2; i++) {
-      const a = toCase(pump, pump.part.anchors[`fitting${i}`]!); const b = toCase(rad, rad.part.anchors[`fitting${1 - i}`]!);
+      const a = from[i]!; const b = to[i]!;
+      const dz = i === 0 ? -9 : 9;
       const up = a.p.clone().addScaledVector(a.d, 14);
       const near = b.p.clone().addScaledVector(b.d, 28);
-      const side = near.clone().addScaledVector(b.d, 2); side.x -= 36 * Math.sign(b.p.x - a.p.x || 1);
-      const p1 = a.p.clone().addScaledVector(a.d, 30); p1.z += 14;
+      const side = near.clone().addScaledVector(b.d, 2); side.x -= 36 * Math.sign(b.p.x - a.p.x || 1); side.z = zMid + dz;
+      // Stepped in height as well as depth, so from the glass the two runs read as two tubes and not one thick hose.
+      if (i === 0) side.y -= 12;
+      const p1 = a.p.clone().addScaledVector(a.d, 30); p1.z = a.p.z + 14 + dz;
       const pts = [a.p, up, p1, side, near, b.p];
       const curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal', 0.5);
       const len = curve.getLength();
       const geo = new THREE.TubeGeometry(curve, Math.max(64, Math.round(len / 3)), 6.1, 18, false);
       const uv = geo.getAttribute('uv');
       for (let k = 0; k < uv.count; k++) uv.setXY(k, uv.getX(k) * len, uv.getY(k) * 6.1 * 2 * Math.PI);
-      const m = new THREE.Mesh(geo, sleeve(frost ? '#dcdee3' : '#1c1c21'));
+      const m = new THREE.Mesh(geo, sleeve(frost ? '#dcdee3' : '#2c2c34', 2.2));
       m.castShadow = true; m.receiveShadow = true; m.userData.flexible = true; m.name = 'tube';
       group.add(m);
     }
+  }
+  const pumpCable = pump?.part.anchors.cable; const header = board?.part.anchors.fan1;
+  if (pump && board && pumpCable && header) {
+    const e = toCase(pump, pumpCable); const h = toCase(board, header);
+    const p1 = e.p.clone().addScaledVector(e.d, 14);
+    const top = Math.max(p1.z, h.p.z + 32);
+    runs.push({ name: 'pump-lead', rows: 1, cols: 3, pitch: 1.6, wire: 0.75, rowAxis: v(0, 0, 1), colors: ['rubber'], comb, plugAt: 'end', combs: false,
+      path: filletPath([e.p, p1, v(p1.x, p1.y, top), v(h.p.x, h.p.y, top), h.p], 10, 2.5, 8, 12) });
   }
   for (const [key, item] of items) {
     if (item.placed.kind !== 'fan') continue;
@@ -229,10 +246,47 @@ export function buildCables(build: Build, items: Map<string, RigItem>, detail = 
     const mid = p.clone().lerp(target, 0.5); mid.z = Math.min(mid.z, -60);
     runs.push({ name: `lead-${key}`, rows: 1, cols: 1, pitch: 0, wire: 1.2, rowAxis: v(0, 1, 0), colors: ['rubber'], comb, plugAt: 'none', path: filletPath([p, mid, v(target.x, target.y, target.z + 8), v(target.x, target.y, target.z - 10)], 12) });
   }
+  if (board) {
+    const ports = Object.entries(board.part.anchors).filter(([k]) => /^sata\d+$/.test(k)).map(([, a]) => toCase(board, a));
+    ports.sort((a, b) => a.p.y - b.p.y || a.p.z - b.p.z);
+    const tray = L.grommets.filter((g) => g.normal[2] === 1);
+    const behind = (tray[0]?.center[2] ?? -75) - 24;
+    let used = 0; let socket = 1;
+    for (const [key, item] of items) {
+      if (item.placed.kind !== 'storage') continue;
+      const da = item.part.anchors.sataData; const pa = item.part.anchors.sataPower;
+      if (!da || !pa) continue;
+      if (toCase(item, da).p.z < (tray[0]?.center[2] ?? -75)) continue;
+      const thin = toCase(item, { pos: [0, 0, 0], dir: [0, 1, 0] }).d;
+      const lead = (name: string, cols: number, pitch: number, wire: number, rowAxis: V, path: V[]): Run => ({ name, rows: 1, cols, pitch, wire, rowAxis, colors: ['rubber'], comb, plugAt: 'start', combs: false, path });
+      const s = psu?.part.anchors[`sata${socket}`];
+      if (psu && s) {
+        socket++;
+        const pw = toCase(item, pa); const sk = toCase(psu, s);
+        const out = pw.p.clone().addScaledVector(pw.d, 40); const sOut = sk.p.clone().addScaledVector(sk.d, 40);
+        const mid = out.clone().lerp(sOut, 0.5);
+        runs.push(lead(`sata-power-${key}`, 4, 2.4, 1.0, thin, filletPath([pw.p, out, mid], 18, 2.5, 12, 0)));
+        runs.push(lead(`sata-power-psu-${key}`, 4, 2.4, 1.0, v(0, 1, 0), filletPath([sk.p, sOut, mid], 18, 2.5, 12, 0)));
+      }
+      const port = ports[used];
+      const g = port ? grommet('sata') ?? tray.filter((t) => Math.abs(t.center[1] - port.p.y) < t.size[1] / 2 - 8).sort((a, b) => Math.abs(a.center[0] - port.p.x) - Math.abs(b.center[0] - port.p.x))[0] : undefined;
+      if (port && g) {
+        used++;
+        const d = toCase(item, da);
+        const out = d.p.clone().addScaledVector(d.d, 32);
+        const j = v(out.x, out.y, behind);
+        runs.push(lead(`sata-data-${key}`, 2, 3.0, 1.4, thin, filletPath([d.p, out, j], 18, 2.5, 12, 0)));
+        const pOut = port.p.clone().addScaledVector(port.d, 16);
+        const onTray = g.center[2] + 2.2;
+        const gy = Math.min(Math.max(port.p.y, g.center[1] - g.size[1] / 2 + 6), g.center[1] + g.size[1] / 2 - 6);
+        runs.push(lead(`sata-data-board-${key}`, 2, 3.0, 1.4, v(0, 0, 1), filletPath([port.p, pOut, v(g.center[0] - 4, gy, onTray + 2), v(g.center[0], gy, behind + 10), v(g.center[0], gy, behind), j], 10, 2.5, 12, 0)));
+      }
+    }
+  }
   for (const r of runs) buildRun(r, group, detail);
   return group;
 }
 
 export function cableSignature(build: Build): string {
-  return JSON.stringify([build.case, build.board, build.gpu, build.psu, build.cooler, build.fans, build.cables]);
+  return JSON.stringify([build.case, build.board, build.gpu, build.psu, build.cooler, build.fans, build.cables, build.storage]);
 }

@@ -31,8 +31,9 @@ export function generate(kind: PlacedKind, id: string, opts: GenOpts = {}): Part
 /** The whole part as the Inspector shows it: a liquid cooler with its radiator, a memory kit as one stick. */
 export function inspectPart(category: Category, id: string, opts: GenOpts = {}): PartObject {
   switch (category) {
-    case 'cooler': return coolerPart(id, opts);
-    case 'fan': return fanPart(id, opts);
+    case 'cooler': return coolerPart(id, { ...opts, loose: true });
+    case 'fan': return fanPart(id, { ...opts, loose: true });
+    case 'storage': return generate('storage', id, { ...opts, loose: true });
     case 'cables': throw new Error('cables have no inspector part');
     default: return generate(category as PlacedKind, id, opts);
   }

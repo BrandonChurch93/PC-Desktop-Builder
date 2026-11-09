@@ -7,6 +7,42 @@ import type { Zone } from './zones';
 const MM = 0.001;
 
 type Lamp = { light: THREE.RectAreaLight; zones: Zone[]; gain: number };
+type Pool = { mesh: THREE.Mesh; weights: { zone: Zone; w: number }[]; share: number };
+
+/** The case faces light leaves through: the front, the rear and the glass side. The tray side is solid in every case. */
+const POOL_DIRS = [new THREE.Vector3(1, 0, 0), new THREE.Vector3(-1, 0, 0), new THREE.Vector3(0, 0, 1)];
+const POOL_DEPTH = 0.42;
+const POOL_HEIGHT = 0.22;
+const POOL_GAIN = 0.16;
+
+/** Strong at the case wall, falling off across the desk, soft at both ends. */
+function poolTexture(): THREE.Texture {
+  const W = 64; const H = 128;
+  const data = new Uint8Array(W * H * 4);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const v = (y + 0.5) / H; const u = (x + 0.5) / W;
+    const side = Math.min(1, Math.min(u, 1 - u) / 0.22);
+    const rise = Math.min(1, v / 0.14);
+    const a = rise * rise * (3 - 2 * rise) * Math.exp(-4.2 * v) * (1 - v) * side * side * (3 - 2 * side);
+    const i = (y * W + x) * 4; const k = Math.round(255 * a);
+    data[i] = k; data[i + 1] = k; data[i + 2] = k; data[i + 3] = 255;
+  }
+  const t = new THREE.DataTexture(data, W, H);
+  t.magFilter = THREE.LinearFilter; t.minFilter = THREE.LinearFilter; t.needsUpdate = true;
+  return t;
+}
+
+/**
+ * A lamp stands for several zones, and averaging different hues (pink, violet, cyan) gives a pale lavender that no LED shows.
+ * Push the average away from its grey by the same factor the mix lost, then normalize to its peak.
+ */
+const CHROMA = 1.6;
+function saturate(r: number, g: number, b: number, out: THREE.Color) {
+  const grey = (r + g + b) / 3;
+  const rr = Math.max(0, grey + (r - grey) * CHROMA); const gg = Math.max(0, grey + (g - grey) * CHROMA); const bb = Math.max(0, grey + (b - grey) * CHROMA);
+  const peak = Math.max(rr, gg, bb, 1e-5);
+  out.setRGB(rr / peak, gg / peak, bb / peak);
+}
 
 /** Computes every LED each frame from the pure color function, writes the zone textures, and drives the lamps. */
 export class RgbEngine {
@@ -27,11 +63,17 @@ export class RgbEngine {
   lampCount = 8;
   lampGain = 1;
 
-  constructor(private scene: THREE.Object3D, private wallWash = true) {
+  private pools: Pool[] = [];
+  private poolAlpha: THREE.Texture | null = null;
+  readonly poolGroup = new THREE.Group();
+
+  constructor(private scene: THREE.Object3D, private wallWash = true, private deskPools = false) {
     this.wall = new THREE.RectAreaLight(0xffffff, 0, 0.5, 0.46);
     this.wall.visible = wallWash;
     this.wall.name = 'lamp:wall';
     scene.add(this.wall);
+    this.poolGroup.name = 'led-pools';
+    if (deskPools) scene.add(this.poolGroup);
   }
 
   setZones(zones: Zone[], bounds: THREE.Box3) {
@@ -52,6 +94,53 @@ export class RgbEngine {
     this.wall.position.set(c.x, c.y + size.y * 0.1, bounds.isEmpty() ? -0.2 : bounds.min.z - 0.02);
     this.wall.width = Math.max(0.3, size.x * 1.1); this.wall.height = Math.max(0.3, size.y * 0.95);
     this.wall.lookAt(c.x, c.y + size.y * 0.1, -5);
+    if (this.deskPools) this.buildPools(bounds);
+  }
+
+  /**
+   * Light that leaves the case through the front mesh, the rear grille and the glass lands on the desk beside it. Each open
+   * face gets a soft pool on the desk, colored by the LEDs that face out through it, weighted toward the low ones.
+   */
+  private buildPools(bounds: THREE.Box3) {
+    for (const p of this.pools) { p.mesh.geometry.dispose(); (p.mesh.material as THREE.Material).dispose(); p.mesh.removeFromParent(); }
+    this.pools = [];
+    if (bounds.isEmpty() || !this.zones.length) return;
+    this.poolAlpha ??= poolTexture();
+    const up = new THREE.Vector3(0, 1, 0);
+    for (const dir of POOL_DIRS) {
+      const weights = new Map<Zone, number>();
+      for (const z of this.zones) {
+        if (!z.owner) continue;
+        const q = new THREE.Quaternion(); z.owner.getWorldQuaternion(q);
+        const s = new THREE.Vector3(); z.owner.getWorldScale(s);
+        for (const e of z.emitters) {
+          const n = e.normal.clone().applyQuaternion(q).normalize();
+          const facing = n.dot(dir);
+          if (facing < 0.5) continue;
+          const y = e.center.clone().applyMatrix4(z.owner.matrixWorld).y - bounds.min.y;
+          const w = facing * e.weight * e.w * e.h * s.x * s.x / (1 + (y / POOL_HEIGHT) ** 2);
+          weights.set(z, (weights.get(z) ?? 0) + w);
+        }
+      }
+      const total = [...weights.values()].reduce((a, b) => a + b, 0);
+      if (total <= 0) continue;
+      const along = dir.clone().cross(up);
+      const span = Math.abs(along.x) * (bounds.max.x - bounds.min.x) + Math.abs(along.z) * (bounds.max.z - bounds.min.z);
+      const edge = dir.x > 0 ? bounds.max.x : dir.x < 0 ? bounds.min.x : dir.z > 0 ? bounds.max.z : bounds.min.z;
+      const mat = new THREE.MeshBasicMaterial({ color: 0x000000, alphaMap: this.poolAlpha, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -4 });
+      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(span * 1.2, POOL_DEPTH), mat);
+      const center = new THREE.Vector3((bounds.min.x + bounds.max.x) / 2, bounds.min.y + 0.0009, (bounds.min.z + bounds.max.z) / 2);
+      if (dir.x !== 0) center.x = edge; else center.z = edge;
+      center.addScaledVector(dir, POOL_DEPTH / 2);
+      mesh.matrixAutoUpdate = false;
+      mesh.matrix.makeBasis(along, dir, up).setPosition(center);
+      mesh.renderOrder = 2;
+      mesh.name = 'pool';
+      this.poolGroup.add(mesh);
+      this.pools.push({ mesh, weights: [...weights.entries()].map(([zone, w]) => ({ zone, w: w / total })), share: total });
+    }
+    const most = Math.max(...this.pools.map((p) => p.share), 1e-9);
+    for (const p of this.pools) p.share = Math.min(1, p.share / most);
   }
 
   private buildLamps() {
@@ -71,39 +160,42 @@ export class RgbEngine {
       }
     }
     all.sort((a, b) => b.weight * b.w * b.h - a.weight * a.w * a.h);
-    type G = { members: E[]; c: THREE.Vector3; n: THREE.Vector3; r: THREE.Vector3 };
+    // Each lamp sits on the plane of its strongest emitter and only takes emitters facing the same way. A lamp placed between
+    // emitters puts its one sided plane through the parts around it, and they show a hard edge where the plane cuts them.
+    type G = { members: E[]; anchor: E };
     const groups: G[] = [];
     const limit = Math.max(1, this.lampCount - 1);
+    const NEAR = 0.3;
+    const onPlane = (g: G, m: E) => Math.abs(m.c.clone().sub(g.anchor.c).dot(g.anchor.n)) < 0.02;
     for (const e of all) {
       let best: G | null = null; let bestD = Infinity;
       for (const g of groups) {
-        const d = g.c.distanceTo(e.c) - (g.n.dot(e.n) > 0.6 ? 0.06 : -0.2);
+        if (g.anchor.n.dot(e.n) < 0.8) continue;
+        const d = g.anchor.c.distanceTo(e.c);
         if (d < bestD) { bestD = d; best = g; }
       }
-      if (best && (bestD < 0.09 || groups.length >= limit)) {
-        best.members.push(e);
-        best.c.set(0, 0, 0); best.n.set(0, 0, 0);
-        let wsum = 0;
-        for (const m of best.members) { best.c.addScaledVector(m.c, m.weight); best.n.addScaledVector(m.n, m.weight); wsum += m.weight; }
-        best.c.multiplyScalar(1 / wsum); best.n.normalize();
-      } else groups.push({ members: [e], c: e.c.clone(), n: e.n.clone(), r: e.r.clone() });
+      if (best && ((bestD < NEAR && onPlane(best, e)) || groups.length >= limit)) best.members.push(e);
+      else if (groups.length < limit) groups.push({ members: [e], anchor: e });
     }
     for (const g of groups) {
-      let w = 0.01; let h = 0.01;
-      const right = g.r.clone().addScaledVector(g.n, -g.r.dot(g.n)).normalize();
-      const up = new THREE.Vector3().crossVectors(g.n, right).normalize();
+      const n = g.anchor.n;
+      const right = g.anchor.r.clone().addScaledVector(n, -g.anchor.r.dot(n)).normalize();
+      const up = new THREE.Vector3().crossVectors(n, right).normalize();
+      let u0 = Infinity; let u1 = -Infinity; let v0 = Infinity; let v1 = -Infinity;
       for (const m of g.members) {
-        const d = m.c.clone().sub(g.c);
+        if (m !== g.anchor && (m.c.distanceTo(g.anchor.c) > NEAR || !onPlane(g, m))) continue;
+        const d = m.c.clone().sub(g.anchor.c);
         const mu = new THREE.Vector3().crossVectors(m.n, m.r).normalize();
-        const ew = Math.abs(m.r.dot(right)) * m.w + Math.abs(mu.dot(right)) * m.h;
-        const eh = Math.abs(m.r.dot(up)) * m.w + Math.abs(mu.dot(up)) * m.h;
-        w = Math.max(w, Math.abs(d.dot(right)) * 2 + ew * 0.85);
-        h = Math.max(h, Math.abs(d.dot(up)) * 2 + eh * 0.85);
+        const ew = (Math.abs(m.r.dot(right)) * m.w + Math.abs(mu.dot(right)) * m.h) * 0.85;
+        const eh = (Math.abs(m.r.dot(up)) * m.w + Math.abs(mu.dot(up)) * m.h) * 0.85;
+        u0 = Math.min(u0, d.dot(right) - ew / 2); u1 = Math.max(u1, d.dot(right) + ew / 2);
+        v0 = Math.min(v0, d.dot(up) - eh / 2); v1 = Math.max(v1, d.dot(up) + eh / 2);
       }
-      const light = new THREE.RectAreaLight(0xffffff, 0, Math.min(w, 0.5), Math.min(h, 0.5));
-      light.position.copy(g.c).addScaledVector(g.n, 0.004);
+      const center = g.anchor.c.clone().addScaledVector(right, (u0 + u1) / 2).addScaledVector(up, (v0 + v1) / 2);
+      const light = new THREE.RectAreaLight(0xffffff, 0, Math.min(Math.max(u1 - u0, 0.01), 0.45), Math.min(Math.max(v1 - v0, 0.01), 0.45));
+      light.position.copy(center).addScaledVector(n, 0.004);
       light.up.copy(up);
-      light.lookAt(g.c.clone().add(g.n));
+      light.lookAt(center.clone().add(n));
       light.name = `lamp:${g.members[0]!.zone.key}`;
       this.scene.add(light);
       const zones = [...new Set(g.members.map((m) => m.zone))];
@@ -136,13 +228,20 @@ export class RgbEngine {
       let r = 0; let g = 0; let b = 0;
       for (const z of l.zones) { r += z.avg.r; g += z.avg.g; b += z.avg.b; }
       const n = Math.max(1, l.zones.length);
+      saturate(r / n, g / n, b / n, l.light.color);
       const peak = Math.max(r, g, b, 1e-5) / n;
-      l.light.color.setRGB(r / n / peak, g / n / peak, b / n / peak);
-      l.light.intensity = 3.2 * l.gain * this.lampGain * peak;
+      l.light.intensity = 4.5 * l.gain * this.lampGain * peak;
     }
     const peak = Math.max(this.average.r, this.average.g, this.average.b, 1e-5);
-    this.wall.color.setRGB(this.average.r / peak, this.average.g / peak, this.average.b / peak);
-    this.wall.intensity = this.wallWash ? 9 * this.lampGain * peak : 0;
+    saturate(this.average.r, this.average.g, this.average.b, this.wall.color);
+    this.wall.intensity = this.wallWash ? 14 * this.lampGain * peak : 0;
+    for (const p of this.pools) {
+      let r = 0; let g = 0; let b = 0;
+      for (const { zone, w } of p.weights) { r += zone.avg.r * w; g += zone.avg.g * w; b += zone.avg.b * w; }
+      const m = p.mesh.material as THREE.MeshBasicMaterial;
+      saturate(r, g, b, m.color);
+      m.color.multiplyScalar(Math.max(r, g, b) * POOL_GAIN * Math.sqrt(p.share));
+    }
   }
 
   get lampObjects(): THREE.RectAreaLight[] { return [...this.lamps.map((l) => l.light), this.wall]; }
@@ -155,6 +254,9 @@ export class RgbEngine {
   dispose() {
     for (const l of this.lamps) { l.light.removeFromParent(); l.light.dispose(); }
     this.wall.removeFromParent(); this.wall.dispose();
+    for (const p of this.pools) { p.mesh.geometry.dispose(); (p.mesh.material as THREE.Material).dispose(); }
+    this.poolGroup.removeFromParent();
+    this.poolAlpha?.dispose();
   }
 }
 

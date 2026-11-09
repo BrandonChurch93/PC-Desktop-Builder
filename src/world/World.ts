@@ -7,9 +7,10 @@ import { getCase } from '../data/catalog';
 import { temps } from '../engine/sheet';
 import type { Build } from '../engine/types';
 import type { State, Store, Tier } from '../state/store';
-import { studioEnvironment } from './env';
+import { glassEnvironment, studioEnvironment } from './env';
 import { forEachVertex } from './kit/geometry';
-import { setPerfAspect } from './kit/materials';
+import { setGlassCards, setGlassEnvironment, setGlassStage, setPerfAspect, type GlassCard } from './kit/materials';
+import GLASS_CARDS from './glass-cards.json';
 import { setMaxAnisotropy, textures } from './kit/textures';
 import { loadFonts } from './kit/type';
 import { CASE_LAYOUTS } from './layout/cases';
@@ -23,6 +24,7 @@ import { Room } from './room';
 
 const FOV = 30;
 const EXPOSURE = 1.15;
+const ROOM_GLASS_CLAMP = 0.1;
 const MM = 0.001;
 const SPIN_IDLE = 9;
 const SPIN_FULL = 42;
@@ -78,10 +80,13 @@ export class World {
     this.controls.maxDistance = 3.2;
     this.controls.maxPolarAngle = Math.PI * 0.495;
     this.controls.addEventListener('change', () => { this.dirty = true; this.viewName = null; });
-    this.rgb = new RgbEngine(this.scene);
+    this.rgb = new RgbEngine(this.scene, true, true);
     const roomEnv = studioEnvironment(this.renderer, 'room');
     this.scene.environment = roomEnv;
-    this.scene.environmentIntensity = 0.5;
+    this.scene.environmentIntensity = 1.0;
+    setGlassEnvironment(glassEnvironment(this.renderer));
+    setGlassCards(GLASS_CARDS as GlassCard[]);
+    setGlassStage('room', ROOM_GLASS_CLAMP);
     this.inspector = new Inspector(studioEnvironment(this.renderer, 'inspector'));
     this.scene.add(this.rig.group);
   }
@@ -108,8 +113,10 @@ export class World {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, s.pixelRatio));
     if (this.room) { this.room.group.removeFromParent(); }
     this.room = new Room(this.scene, s.mirror);
-    this.room.hideInMirror = () => this.rig.glassSpecular();
+    this.room.hideInMirror = () => [...this.rig.glassSpecular(), this.rgb.poolGroup];
     this.room.lights.shadow.shadow.mapSize.set(s.shadow, s.shadow);
+    this.room.setFootprint(this.rig.itemBounds('case'));
+    this.room.setRearFlag(this.rig.itemBounds('case'), this.rig.itemBounds('psu'));
     this.post?.dispose();
     this.post = new Post(this.renderer, this.scene, this.camera, tier);
     this.post.hideForAO = () => [...this.rig.glassObjects(), ...(this.room.mirror ? [this.room.mirror] : [])];
@@ -123,7 +130,7 @@ export class World {
 
   private syncFromStore(s: State, prev: State | null) {
     if (!prev || s.build !== prev.build) this.setBuild(s.build);
-    if (!prev || s.mode !== prev.mode) this.room.setLevel(s.mode === 'showcase' ? 0.42 : s.mode === 'build' ? 1.12 : 0.9);
+    if (!prev || s.mode !== prev.mode) this.room.setLevel(s.mode === 'showcase' ? 0.62 : s.mode === 'build' ? 1.12 : 0.9);
     if (!prev || s.power !== prev.power) this.setPower(s.power, s.instant || s.frozen !== null);
     if (!prev || s.load !== prev.load || s.build !== prev.build) this.rgb.temps = temps(s.build, s.load);
     if (!prev || s.inspect !== prev.inspect) this.setInspect(s);
@@ -143,6 +150,8 @@ export class World {
     this.computeViews(box);
     if (this.viewName && this.views[this.viewName]) this.jump(this.viewName);
     this.room?.updateShadow();
+    this.room?.setFootprint(this.rig.itemBounds('case'));
+    this.room?.setRearFlag(this.rig.itemBounds('case'), this.rig.itemBounds('psu'));
     this.dirty = true;
   }
 
@@ -158,7 +167,7 @@ export class World {
 
   private setInspect(s: State) {
     const i = s.inspect;
-    if (!i) { this.showingInspector = false; this.post.setScene(this.scene, this.camera); this.dirty = true; return; }
+    if (!i) { this.showingInspector = false; setGlassStage('room', ROOM_GLASS_CLAMP); this.post.setScene(this.scene, this.camera); this.dirty = true; return; }
     const opts: GenOpts = { detail: TIER_SETTINGS[this.tier].detail };
     if (i.finish) opts.finish = i.finish;
     else if (i.category === 'case') opts.finish = getCase(i.id)?.finishes[0] ?? 'onyx';
@@ -168,6 +177,7 @@ export class World {
     this.inspector.zoom = i.zoom;
     this.inspector.focus = (i as { focus?: [number, number, number] }).focus ?? null;
     this.showingInspector = true;
+    setGlassStage('studio');
     this.post.setScene(this.inspector.scene, this.inspector.camera);
     this.dirty = true;
   }
@@ -214,16 +224,18 @@ export class World {
     set('gpu', g ? new THREE.Vector3(g.min.x + (g.max.x - g.min.x) * 0.58, g.max.y - 0.012, g.max.z - 0.02) : null, [0.17, 0.1, 0.45]);
     set('cooler', center('cooler'), [0.1, 0.05, 0.36]);
     const r = box('ram:0:A2');
-    set('ram', r ? new THREE.Vector3((r.min.x + r.max.x) / 2 - 0.004, (r.min.y + r.max.y) / 2, r.max.z - 0.005) : null, [0.22, 0.09, 0.33]);
+    set('ram', r ? new THREE.Vector3((r.min.x + r.max.x) / 2 - 0.004, (r.min.y + r.max.y) / 2, r.max.z - 0.005) : null, [0.29, 0.08, 0.25]);
     const bd = box('board');
     set('board', bd ? new THREE.Vector3(bd.min.x + 0.15, bd.min.y + 0.06, bd.max.z - 0.02) : null, [0.11, 0.03, 0.44]);
-    set('fan', center('fan:front-2'), [0.27, 0.12, 0.3]);
+    set('fan', center('fan:front-2'), [0.36, 0.05, 0.16]);
     const c = anchor('board', 'atx24');
     set('cable', c ? c.clone().add(new THREE.Vector3(0.0, 0.0, 0.03)) : null, [0.22, 0.02, 0.33]);
     const p = box('psu');
     set('psu', p ? new THREE.Vector3(p.min.x + 0.01, (p.min.y + p.max.y) / 2, (p.min.z + p.max.z) / 2 + 0.03) : null, [-0.3, 0.07, 0.22]);
+    const label = anchor('storage:hdd:0', 'label');
     const hd = box('storage:hdd:0') ?? box('storage:ssd:0') ?? box('storage:nvme:0');
-    set('storage', hd ? new THREE.Vector3((hd.min.x + hd.max.x) / 2, (hd.min.y + hd.max.y) / 2 + 0.012, hd.max.z + 0.02) : null, [0.14, 0.11, 0.34]);
+    if (label) set('storage', label, [-0.015, 0.21, 0.13]);
+    else set('storage', hd ? new THREE.Vector3((hd.min.x + hd.max.x) / 2, (hd.min.y + hd.max.y) / 2, hd.max.z) : null, [0.06, 0.07, 0.26]);
     const k = box('case');
     set('case-detail', k ? new THREE.Vector3(k.max.x - 0.03, k.max.y - 0.06, k.max.z - 0.03) : null, [0.3, 0.14, 0.24]);
   }
@@ -283,6 +295,9 @@ export class World {
     if (frozen !== null) this.time = frozen; else this.time += dt;
     const speed = SPIN_IDLE + (SPIN_FULL - SPIN_IDLE) * s.load;
     if (frozen !== null) this.spinAngle = frozen * speed * this.level.spin; else this.spinAngle += dt * speed * this.level.spin;
+    // Fan blades cast shadows: on a frozen frame the maps follow the blades' frozen angle, or they keep whatever angle
+    // they had when the map last rendered and the same frame differs from run to run.
+    if (frozen !== null) this.room?.updateShadow();
     const omega = speed * this.level.spin;
     const blur = THREE.MathUtils.smoothstep(omega, BLUR_FROM, BLUR_TO);
     const rotors = this.showingInspector ? this.inspector.part?.rotors ?? [] : this.rig.rotors;
@@ -297,7 +312,7 @@ export class World {
     }
     this.rgb.power = this.level.power;
     this.rgb.update(this.time);
-    if (this.showingInspector) this.inspector.rgb.update(this.time);
+    if (this.showingInspector) { this.inspector.rgb.update(this.time); this.inspector.updateGlow(); }
     this.renderer.toneMappingExposure = EXPOSURE * (1 + 0.06 * this.level.power) * this.level.exposure;
   }
 
@@ -386,7 +401,7 @@ export class World {
 
   cameraInfo() {
     if (this.showingInspector) return { distance: this.inspector.distance, target: [0, 0, 0], view: 'inspector' };
-    return { distance: this.camera.position.distanceTo(this.controls.target), target: this.controls.target.toArray(), view: this.viewName };
+    return { distance: this.camera.position.distanceTo(this.controls.target), target: this.controls.target.toArray(), view: this.viewName, position: this.camera.position.toArray() };
   }
 
   markDirty() { this.dirty = true; }

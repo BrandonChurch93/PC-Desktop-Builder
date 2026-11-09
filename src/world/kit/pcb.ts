@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { seededFor } from './rng';
 import { canvas, wrap } from './textures';
 
 const cache = new Map<string, THREE.MeshPhysicalMaterial>();
@@ -16,14 +17,13 @@ export function fingerMaterial(key: string, lengthMm: number, heightMm: number, 
   const pad = pitch * 0.7;
   for (let x = pitch / 2; x < lengthMm; x += pitch) {
     if (notches.some(([a, b]) => x > a - pad && x < b + pad)) continue;
-    const short = Math.floor(x / pitch) % 2 === 0;
-    const top = short ? heightMm * 0.22 : heightMm * 0.12;
+    const top = heightMm * 0.16;
     col.g.fillStyle = 'rgba(222,178,96,1)';
     col.g.fillRect((x - pad / 2) * ppm, top * ppm, pad * ppm, (heightMm - top - 0.25) * ppm);
     met.g.fillStyle = 'rgba(255,255,255,1)';
     met.g.fillRect((x - pad / 2) * ppm, top * ppm, pad * ppm, (heightMm - top - 0.25) * ppm);
   }
-  const m = new THREE.MeshPhysicalMaterial({ map: wrap(col.canvas, { srgb: true, repeat: false }), metalnessMap: wrap(met.canvas, { repeat: false }), metalness: 1, roughness: 0.3, clearcoat: 0.4, clearcoatRoughness: 0.2 });
+  const m = new THREE.MeshPhysicalMaterial({ map: wrap(col.canvas, { srgb: true, repeat: false }), metalnessMap: wrap(met.canvas, { repeat: false }), metalness: 1, roughness: 0.42 });
   m.name = `fingers:${key}`;
   cache.set(k, m);
   return m;
@@ -34,4 +34,50 @@ export function stripPlane(w: number, h: number): THREE.PlaneGeometry {
   const g = new THREE.PlaneGeometry(w, h);
   g.translate(0, h / 2, 0);
   return g;
+}
+
+const boardCache = new Map<string, THREE.MeshPhysicalMaterial>();
+
+/** Solder mask for a small board (drive, card edge): traces, vias and tidy clusters of passives, drawn in mm with uv in mm. */
+export function smallBoardMaterial(key: string, wMm: number, hMm: number, look: { mask: string; trace: string; pad: string; body: string }, origin: [number, number] = [0, 0]): THREE.MeshPhysicalMaterial {
+  const hit = boardCache.get(key);
+  if (hit) return hit;
+  const ppm = 10;
+  const W = Math.round(wMm * ppm); const H = Math.round(hMm * ppm);
+  const { canvas: c, g } = canvas(W, H);
+  const r = seededFor(`small-board-${key}`);
+  g.fillStyle = look.mask; g.fillRect(0, 0, W, H);
+  g.strokeStyle = look.trace; g.lineWidth = 0.3 * ppm; g.lineCap = 'round'; g.lineJoin = 'round';
+  const step = 1.27;
+  for (let i = 0; i < Math.round((wMm * hMm) / 90); i++) {
+    let x = Math.round((r() * wMm) / step) * step; let y = Math.round((r() * hMm) / step) * step;
+    g.beginPath(); g.moveTo(x * ppm, y * ppm);
+    let dir = Math.floor(r() * 4);
+    for (let k = 0; k < 2 + Math.floor(r() * 3); k++) {
+      const len = (3 + Math.floor(r() * 12)) * step; const diag = r() > 0.55;
+      const d = diag ? [[1, 1], [1, -1], [-1, 1], [-1, -1]][dir]! : [[1, 0], [0, 1], [-1, 0], [0, -1]][dir]!;
+      x += d[0]! * len; y += d[1]! * len; g.lineTo(x * ppm, y * ppm);
+      dir = (dir + (r() > 0.5 ? 1 : 3)) % 4;
+    }
+    g.stroke();
+    if (i % 3 === 0) { g.fillStyle = look.pad; g.beginPath(); g.arc(x * ppm, y * ppm, 0.34 * ppm, 0, Math.PI * 2); g.fill(); g.fillStyle = look.mask; g.beginPath(); g.arc(x * ppm, y * ppm, 0.14 * ppm, 0, Math.PI * 2); g.fill(); }
+  }
+  for (let i = 0; i < Math.round((wMm * hMm) / 400); i++) {
+    const x0 = 3 + r() * (wMm - 12); const y0 = 3 + r() * (hMm - 12); const along = r() > 0.5; const n = 3 + Math.floor(r() * 5);
+    for (let k = 0; k < n; k++) {
+      const x = along ? x0 + k * 1.8 : x0; const y = along ? y0 : y0 + k * 1.8;
+      const bw = along ? 0.6 : 1.1; const bh = along ? 1.1 : 0.6;
+      g.fillStyle = look.body; g.fillRect(x * ppm, y * ppm, bw * ppm, bh * ppm);
+      g.fillStyle = look.pad;
+      if (along) { g.fillRect(x * ppm, y * ppm, bw * ppm, 0.24 * ppm); g.fillRect(x * ppm, (y + bh - 0.24) * ppm, bw * ppm, 0.24 * ppm); }
+      else { g.fillRect(x * ppm, y * ppm, 0.24 * ppm, bh * ppm); g.fillRect((x + bw - 0.24) * ppm, y * ppm, 0.24 * ppm, bh * ppm); }
+    }
+  }
+  const map = wrap(c, { srgb: true, repeat: false });
+  map.repeat.set(1 / wMm, 1 / hMm);
+  map.offset.set(-origin[0] / wMm, -origin[1] / hMm);
+  const m = new THREE.MeshPhysicalMaterial({ map, metalness: 0.05, roughness: 0.48, clearcoat: 0.3, clearcoatRoughness: 0.35 });
+  m.name = `small-board:${key}`;
+  boardCache.set(key, m);
+  return m;
 }

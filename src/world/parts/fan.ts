@@ -3,7 +3,7 @@ import { brandName, getFan } from '../../data/catalog';
 import { DIMS } from '../layout/dims';
 import { fanBoxes } from '../layout/partBoxes';
 import { bladeGeometry, blurDiscTexture } from '../kit/blades';
-import { at, circleHole, cyl, extrude, lathe, PartBuilder, rbox, rrect, screwGeometry, torus, tube, xf, type Vec } from '../kit/geometry';
+import { at, circleHole, cyl, extrude, lathe, PartBuilder, rbox, rrect, rrectShape, screwGeometry, torus, tube, xf, type Vec } from '../kit/geometry';
 import { Labels } from '../kit/labels';
 import { mat, type MatName } from '../kit/materials';
 import { BRAND_TYPE, SPEC_TYPE } from '../kit/type';
@@ -24,10 +24,10 @@ export function fanLook(id: string): FanLook {
   const f = getFan(id);
   const base = { key: id, brand: f?.brand ?? 'kestrane', name: f?.name ?? 'Gale', blades: f?.blades ?? 9, lit: f?.lit ?? false };
   switch (id) {
-    case 'gale-lux': return { ...base, frame: 'plasticMatte', blade: 'smoke', hub: 'plasticGloss', pads: false, light: 'ring' };
-    case 'aureole': return { ...base, frame: 'plasticMatte', blade: 'smoke', hub: 'plasticGloss', pads: true, light: 'ring+hub' };
-    case 'petal': return { ...base, frame: 'plasticWhite', blade: 'frost', hub: 'plasticWhite', pads: false, light: 'hub' };
-    case 'frame': return { ...base, frame: 'plasticMatte', blade: 'bladeBlack', hub: 'plasticMatte', pads: false, light: 'edge' };
+    case 'gale-lux': return { ...base, frame: 'plasticMatte', blade: 'smoke', hub: 'plasticMatte', pads: true, light: 'ring' };
+    case 'aureole': return { ...base, frame: 'plasticMatte', blade: 'smoke', hub: 'plasticMatte', pads: true, light: 'ring+hub' };
+    case 'petal': return { ...base, frame: 'plasticWhite', blade: 'frost', hub: 'plasticWhite', pads: true, light: 'hub' };
+    case 'frame': return { ...base, frame: 'plasticMatte', blade: 'bladeBlack', hub: 'plasticMatte', pads: true, light: 'edge' };
     default: return { ...base, frame: 'plasticMatte', blade: 'bladeBlack', hub: 'plasticMatte', pads: true, light: 'none' };
   }
 }
@@ -35,7 +35,28 @@ export function fanLook(id: string): FanLook {
 type FanBuild = { zones: Zone[]; rotors: Rotor[]; movers: Record<string, THREE.Object3D> };
 
 /** Builds one fan into a part builder at a transform. Used for case fans and the fans on radiators and coolers. */
-export function buildFan(pb: PartBuilder, labels: Labels, look: FanLook, size: 120 | 140, m: THREE.Matrix4, zoneKey: string, opts: { mountSide?: -1 | 0 | 1; detail?: number; thick?: number } = {}): FanBuild {
+/** Spill on the frame face around a ring: the corners outside the ring, u around the ring, v out toward each corner. */
+function cornerSpill(r: number, half: number, n: number): THREE.BufferGeometry {
+  const pos: number[] = []; const uv: number[] = [];
+  const cut = r > half ? Math.acos(half / r) : 0;
+  for (let k = 0; k < 4; k++) {
+    const base = (k * PI) / 2;
+    const a0 = base + cut; const a1 = base + PI / 2 - cut;
+    const cx = Math.cos(base + PI / 4) * half * Math.SQRT2; const cy = Math.sin(base + PI / 4) * half * Math.SQRT2;
+    for (let i = 0; i < n; i++) {
+      const p = a0 + ((a1 - a0) * i) / n; const q = a0 + ((a1 - a0) * (i + 1)) / n;
+      pos.push(cx, cy, 0, Math.cos(p) * r, Math.sin(p) * r, 0, Math.cos(q) * r, Math.sin(q) * r, 0);
+      uv.push((base + PI / 4) / (2 * PI), 1, p / (2 * PI), 0, q / (2 * PI), 0);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.computeVertexNormals();
+  return g;
+}
+
+export function buildFan(pb: PartBuilder, labels: Labels, look: FanLook, size: 120 | 140, m: THREE.Matrix4, zoneKey: string, opts: { mountSide?: -1 | 0 | 1; detail?: number; thick?: number; tucked?: boolean; loose?: boolean } = {}): FanBuild {
   const D = DIMS.fan[size];
   const t = opts.thick ?? look.thick ?? D.thick;
   const half = D.size / 2; const hole = half - 2.6; const hp = D.holes / 2;
@@ -63,7 +84,8 @@ export function buildFan(pb: PartBuilder, labels: Labels, look: FanLook, size: 1
     pb.add(extrude(corner, t - 2 * fl - 0.2, 0, 'xy', 16), look.frame, at(0, 0, -face + fl + 0.1), { to: holder });
     pb.add(cyl(2.3, t - 1.2, 'z', 12, 2.3, true), 'darkVoid', at(sx * hp, sy * hp, 0), { to: holder, uv: 'keep' });
     if (look.pads) {
-      for (const z of [-face - 0.25, face + 0.25]) pb.add(rbox(10.5 * k, 10.5 * k, 1.1, 0.45, 2), look.frame === 'plasticWhite' ? 'rubberWhite' : 'rubber', at(sx * (half - 6.6 * k), sy * (half - 6.6 * k), z), { to: holder });
+      const pad = rrectShape(10.5 * k, 10.5 * k, 1.6); pad.holes.push(circleHole(sx * (hp - (half - 6.6 * k)), sy * (hp - (half - 6.6 * k)), 2.4));
+      for (const z of [-face - 0.8, face - 0.3]) pb.add(extrude(pad, 1.1, 0.4, 'xy', 16, 1), look.frame === 'plasticWhite' ? 'rubberWhite' : 'rubber', at(sx * (half - 6.6 * k), sy * (half - 6.6 * k), z), { to: holder });
     }
   }
 
@@ -81,7 +103,7 @@ export function buildFan(pb: PartBuilder, labels: Labels, look: FanLook, size: 1
   const blades = pb.group(`blades:${zoneKey}`, rotorGroup);
   const hubR = 19;
   pb.add(lathe([[0, -face + 0.6], [13.2, -face + 0.6], [16.8, -face + 1.8], [hubR, -face + 4.4], [hubR, back - 7], [0, back - 7]], 56), look.hub, undefined, { to: rotorGroup });
-  const bladeSpec = { r0: hubR - 0.4, r1: hole - 1.6, c0: 15 * k, c1: (look.blades === 7 ? 50 : 40) * k, pitch0: 0.86, pitch1: 0.42, sweep: look.blades === 7 ? 0.42 : 0.56, thick: 1.7, z: -0.8, nu: Math.round(14 * detail), nv: Math.round(9 * detail) };
+  const bladeSpec = { r0: hubR - 0.4, r1: hole - 1.6, c0: 15 * k, c1: (look.blades === 7 ? 50 : 40) * k, pitch0: 0.86, pitch1: 0.42, sweep: look.blades === 7 ? 0.42 : 0.56, thick: 1.7, z: -0.8, nu: Math.round(26 * detail), nv: Math.round(16 * detail) };
   const bg = bladeGeometry(bladeSpec);
   let bladeMat: THREE.MeshPhysicalMaterial;
   if (look.blade === 'smoke') bladeMat = pb.own((mat('bladeSmoke') as THREE.MeshPhysicalMaterial).clone());
@@ -99,17 +121,28 @@ export function buildFan(pb: PartBuilder, labels: Labels, look: FanLook, size: 1
   labels.text(look.name, SPEC_TYPE, 1.1, xf({ p: [0, -3.4, -face + 0.3], r: [0, PI, 0] }), { color: look.frame === 'plasticWhite' ? '#80848d' : '#7c808a', to: rotorGroup });
   out.rotors.push({ obj: rotorGroup, axis: 'z', speed: 1, blades, disc });
 
-  const cablePts: Vec[] = [[12, 15, back - 2], [hp - 12, hp - 12, back - 2], [hp - 4, hp + 4, back - 4], [half + 2, half + 6, back - 8], [half + 6, half + 22, back - 10]];
+  const cablePts: Vec[] = opts.loose
+    ? [[12, 15, back - 2], [hp - 12, hp - 12, back - 2], [hp - 4, hp + 2, back - 4], [half + 3, half - 2, back - 6], [half + 6, half - 22, back - 8], [half + 6.5, half - 46, back - 8]]
+    : opts.tucked
+    ? [[12, 15, back - 2], [hp - 12, hp - 12, back - 2], [hp - 4, hp + 2, back - 4], [hp - 8, half + 1.6, back - 6], [hp - 34, half + 1.6, back - 6]]
+    : [[12, 15, back - 2], [hp - 12, hp - 12, back - 2], [hp - 4, hp + 4, back - 4], [half + 2, half + 6, back - 8], [half + 6, half + 22, back - 10]];
   const lead = pb.mesh(tube(cablePts, 1.4, 24, 6), mat('rubber'), undefined, { to: holder });
+  if (opts.tucked) pb.add(rbox(10.6, 5.4, 7.4, 0.6, 2), 'plasticDark', at(hp - 39, half + 1.6, back - 6), { to: holder });
+  if (opts.loose) {
+    pb.add(rbox(5.4, 10.6, 7.4, 0.6, 2), 'plasticDark', at(half + 6.5, half - 51.5, back - 8), { to: holder });
+    pb.add(new THREE.BoxGeometry(3.6, 0.4, 5.8), 'darkVoid', at(half + 6.5, half - 56.9, back - 8), { to: holder, uv: 'keep' });
+  }
   lead.userData.flexible = true;
 
   const ring = (key: string, radius: number, count: number, faces: number[], intensity: number) => {
     const leds = Array.from({ length: count }, (_, i) => { const a = (i / count) * PI * 2; return new THREE.Vector3(Math.cos(a) * radius, Math.sin(a) * radius, 0); });
     const z = new Zone(key, 'fans', true, leds, hashPhase(key));
-    const dm = z.diffuser(intensity, 0x26272c, 0.3);
+    const dm = z.diffuser(intensity, 0x121316, 0.85);
     for (const fz of faces) {
       pb.mesh(torus(radius, 1.55, 10, Math.round(96 * detail)), dm, at(0, 0, fz), { to: holder, uv: 'keep' });
-      z.emit(new THREE.Vector3(0, 0, fz), new THREE.Vector3(0, 0, Math.sign(fz) || -1), D.size * 0.8, D.size * 0.8, 0.8);
+      // The face against the mount sends its light out of the case, so it ranks last for a lamp.
+      const outward = opts.mountSide !== undefined && opts.mountSide !== 0 && Math.sign(fz) === opts.mountSide;
+      z.emit(new THREE.Vector3(0, 0, fz), new THREE.Vector3(0, 0, Math.sign(fz) || -1), D.size * 0.8, D.size * 0.8, outward ? 0.3 : 0.8);
     }
     z.owner = holder;
     out.zones.push(z);
@@ -117,19 +150,21 @@ export function buildFan(pb: PartBuilder, labels: Labels, look: FanLook, size: 1
   };
 
   if (look.light === 'ring' || look.light === 'ring+hub') {
-    const z = ring(`${zoneKey}`, hole + 1.3, 18, [-face - 0.2, face + 0.2], 1.9);
+    const z = ring(`${zoneKey}`, hole + 1.3, 18, [-face - 0.2, face + 0.2], 0.9);
     const inner = cyl(hole + 0.15, t - 2 * fl - 0.6, 'z', Math.round(96 * detail), hole + 0.15, true);
     inner.rotateZ(PI / 2);
-    const im = z.diffuser(0.55, 0x1a1b20, 0.4).clone(); im.side = THREE.BackSide; pb.own(im);
+    // The duct lining only glows; a lit material here mirrors the fan's own lamp, which sits in the same plane, as a white hot spot.
+    const im = pb.own(new THREE.MeshBasicMaterial({ map: z.tex, color: new THREE.Color(0.3, 0.3, 0.3), side: THREE.BackSide }));
     pb.mesh(inner, im, undefined, { to: holder, uv: 'keep' });
-    z.listeners.push((c) => bladeMat.emissive.copy(c).multiplyScalar(0.06));
+    z.listeners.push((c) => bladeMat.emissive.copy(c).multiplyScalar(0.05));
+    for (const sd of [1, -1]) pb.mesh(cornerSpill(hole + 2.9, half - 0.4, 10), z.spill(look.frame === 'plasticWhite' ? 0.16 : sd === opts.mountSide ? 0.45 : 0.24), at(0, 0, sd * (t / 2 + 0.06)), { to: holder, uv: 'keep' }).userData.spill = true;
   }
   if (look.light === 'ring+hub') {
-    const hz = ring(`${zoneKey}:hub`, hubR + 1.6, 12, [-face + 4.2], 2.2);
+    const hz = ring(`${zoneKey}:hub`, hubR + 1.6, 12, [-face + 4.2], 1.3);
     hz.listeners.push(() => undefined);
   }
   if (look.light === 'hub') {
-    const hz = ring(`${zoneKey}`, hubR + 1.4, 12, [-face + 4.6], 2.4);
+    const hz = ring(`${zoneKey}`, hubR + 1.4, 12, [-face + 4.6], 1.4);
     hz.listeners.push((c) => bladeMat.emissive.copy(c).multiplyScalar(0.95));
   }
   if (look.light === 'edge') {
@@ -139,7 +174,7 @@ export function buildFan(pb: PartBuilder, labels: Labels, look: FanLook, size: 1
     const leds = loop.getSpacedPoints(64).slice(0, 64);
     const z = new Zone(zoneKey, 'fans', true, leds, hashPhase(zoneKey));
     z.owner = holder;
-    const dm = z.diffuser(2.4, 0x26272c, 0.3);
+    const dm = z.diffuser(1.4, 0x26272c, 0.3);
     for (const fz of [-face - 0.1, face + 0.1]) {
       const g = new THREE.TubeGeometry(loop, 160, 1.2, 6, true);
       g.translate(0, 0, fz);
@@ -171,7 +206,7 @@ export function fanPart(id: string, opts: GenOpts = {}): PartObject {
   const size = opts.size ?? 120;
   const pb = new PartBuilder(`fan-${id}-${size}`);
   const labels = new Labels(pb);
-  const fb = buildFan(pb, labels, look, size, new THREE.Matrix4(), opts.key ?? `fan:${id}`, { mountSide: opts.mountSide ?? 0, detail: opts.detail });
+  const fb = buildFan(pb, labels, look, size, new THREE.Matrix4(), opts.key ?? `fan:${id}`, { mountSide: opts.mountSide ?? 0, detail: opts.detail, loose: opts.loose });
   labels.finish();
   const done = pb.finish();
   return {

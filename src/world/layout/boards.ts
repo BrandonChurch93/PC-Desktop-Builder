@@ -37,8 +37,8 @@ export const BOARD_LAYOUTS: Record<BoardSize, BoardLayout> = {
     ],
     sata: [-212, -228, -244].flatMap((y) => [{ x: 237.5, y, level: 0 as const }, { x: 237.5, y, level: 1 as const }]),
     holes: [[10.2, -10.2], [157, -10.2], [234, -10.2], [10.2, -165], [157, -165], [234, -165], [10.2, -292], [157, -292], [234, -292]],
-    chipset: { x0: 142, x1: 212, y0: -172, y1: -248, h: 10 },
-    coin: { x: 215, y: -282 },
+    chipset: { x0: 142, x1: 212, y0: -206, y1: -282, h: 10 },
+    coin: { x: 122, y: -290 },
     headers: [
       { x: 150, y: -6, w: 10.5, h: 6, pins: [4, 1], kind: 'fan' },
       { x: 163, y: -6, w: 10.5, h: 6, pins: [4, 1], kind: 'fan' },

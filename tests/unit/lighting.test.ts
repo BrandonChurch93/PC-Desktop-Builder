@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { catalog } from '../../src/data/catalog';
-import { ledColor, ledHash, zoneTemp, type Led } from '../../src/engine/lighting';
+import { gradient, hexToLinear, ledColor, ledHash, zoneTemp, type Led, type RGB } from '../../src/engine/lighting';
 import type { Profile } from '../../src/engine/types';
 import { rng } from './rng';
 
@@ -104,5 +104,20 @@ describe('lighting math', () => {
     expect(Math.min(...values)).toBeGreaterThanOrEqual(0);
     expect(Math.max(...values)).toBeLessThan(1);
     expect(new Set(values).size).toBe(400);
+  });
+});
+
+describe('gradient', () => {
+  const sat = (c: RGB) => { const hi = Math.max(c.r, c.g, c.b); return hi > 0 ? 1 - Math.min(c.r, c.g, c.b) / hi : 0; };
+  it('hits every stop exactly', () => {
+    const stops = ['#ff2bd1', '#7b3dff', '#18e0ff'];
+    stops.forEach((s, i) => expect(gradient(stops, i / stops.length, { r: 0, g: 0, b: 0 })).toEqual(hexToLinear(s)));
+  });
+  it('stays saturated between saturated stops', () => {
+    for (const p of catalog.lighting.presets) {
+      const ends = p.stops.map((s) => sat(hexToLinear(s)));
+      if (Math.min(...ends) < 0.9) continue;
+      for (let x = 0; x < 1; x += 0.01) expect(sat(gradient(p.stops, x, { r: 0, g: 0, b: 0 }))).toBeGreaterThan(0.9);
+    }
   });
 });

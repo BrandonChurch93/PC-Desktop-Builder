@@ -41,7 +41,13 @@ export class Rig {
         o.mountSide = z[0] * out[0] + z[1] * out[1] + z[2] * out[2] > 0 ? 1 : -1;
       }
     }
-    if (p.kind === 'radiator') { o.order = p.meta.order as GenOpts['order']; o.pitch = Number(p.meta.pitch); o.airInward = Boolean(p.meta.airInward); }
+    if (p.kind === 'radiator') {
+      o.order = p.meta.order as GenOpts['order']; o.pitch = Number(p.meta.pitch); o.airInward = Boolean(p.meta.airInward);
+      const cols = ([[1, 0, 0], [0, 1, 0], [0, 0, 1]] as V3[]).map((e) => rotate(p.pose.rot, e));
+      const r = (n: number) => Math.round(n * 1000) / 1000;
+      o.localUp = [r(cols[0]![1]), r(cols[1]![1]), r(cols[2]![1])];
+      o.localView = [r(cols[0]![2]), r(cols[1]![2]), r(cols[2]![2])];
+    }
     if (p.kind === 'gpu-support') o.openFrame = false;
     return o;
   }
@@ -104,7 +110,7 @@ export class Rig {
   /** Objects the occlusion pass and the mirror must not see. */
   glassObjects(): THREE.Object3D[] {
     const out: THREE.Object3D[] = [];
-    this.group.traverse((o) => { if (o.userData.glass) out.push(o); });
+    this.group.traverse((o) => { if (o.userData.glass || o.userData.spill || o.userData.noAO) out.push(o); });
     return out;
   }
 

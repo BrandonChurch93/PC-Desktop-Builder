@@ -27,14 +27,14 @@ export class Labels {
     const px = 100;
     const wPx = measure(scratch(), text, style, px);
     const planeH = hMm * 1.45;
-    const wMm = (wPx / px) * hMm * 1.38 + hMm * 0.4;
+    const wMm = (wPx / px) * hMm * 1.38 + hMm * 0.9;
     const shift = opts.align === 'left' ? wMm / 2 : opts.align === 'right' ? -wMm / 2 : 0;
     const mm = shift ? m.clone().multiply(new THREE.Matrix4().makeTranslation(shift, 0, 0)) : m;
     this.items.push({
       wMm, hMm: planeH,
       draw: (g, w, h) => {
         const fpx = (h / planeH) * hMm * 1.38;
-        drawText(g, text, style, (hMm * 0.2 * w) / wMm, h / 2, fpx, opts.lit ? 'rgba(250,250,250,1)' : opts.color ?? '#d8dade');
+        drawText(g, text, style, (hMm * 0.45 * w) / wMm, h / 2, fpx, opts.lit ? 'rgba(250,250,250,1)' : opts.color ?? '#d8dade');
       },
       m: mm, target: opts.to ?? null, lit: opts.lit ? { ...opts.lit, uAxis: 'x' } : null, rough: opts.rough ?? 0.45,
     });
@@ -60,14 +60,16 @@ export class Labels {
 
   private bake(list: Item[]) {
     const pad = 4;
-    const W = 2048;
-    let scale = 1;
+    const W = Math.max(...list.map((it) => it.wMm * this.ppm)) > 2040 ? 4096 : 2048;
+    // A label wider than the atlas would have its cell clamped while its text keeps its size, and the text would be cut off.
+    const widest = Math.max(...list.map((it) => it.wMm * this.ppm));
+    let scale = Math.min(1, (W - pad * 2) / widest);
     let rects: { x: number; y: number; w: number; h: number }[] = [];
     let H = 0;
     for (let attempt = 0; attempt < 6; attempt++) {
       rects = []; let x = pad; let y = pad; let row = 0;
       for (const it of list) {
-        const w = Math.min(W - pad * 2, Math.ceil(it.wMm * this.ppm * scale));
+        const w = Math.min(W - pad * 2, Math.floor(it.wMm * this.ppm * scale));
         const h = Math.ceil(it.hMm * this.ppm * scale);
         if (x + w + pad > W) { x = pad; y += row + pad; row = 0; }
         rects.push({ x, y, w, h });

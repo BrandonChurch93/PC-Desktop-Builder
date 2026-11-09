@@ -3,10 +3,10 @@ import { brandName, getPsu } from '../../data/catalog';
 import { DIMS } from '../layout/dims';
 import { psuBoxes } from '../layout/partBoxes';
 import { bladeGeometry } from '../kit/blades';
-import { circleHole, cyl, extrude, lathe, PartBuilder, rbox, rrect, rrectHole, screwGeometry, xf } from '../kit/geometry';
+import { at, circleHole, cyl, extrude, lathe, PartBuilder, polyHole, rbox, rrect, rrectHole, rrectShape, screwGeometry, torus, xf } from '../kit/geometry';
 import { Labels } from '../kit/labels';
 import { BRAND_TYPE, SPEC_TYPE, TINY_TYPE, type TextStyle } from '../kit/type';
-import type { MatName } from '../kit/materials';
+import { mat, type MatName } from '../kit/materials';
 import type { Anchor, GenOpts, PartObject } from './types';
 
 const PI = Math.PI;
@@ -39,7 +39,7 @@ export function psuPart(id: string, opts: GenOpts = {}): PartObject {
   const { w: W, h: H } = DIMS.psu[sfx ? 'sfx' : 'atx'];
   const L = spec?.length ?? 160;
   const frost = spec?.finish === 'frost';
-  const shell: MatName = frost ? 'powderWhite' : 'powderBlack';
+  const shell: MatName = frost ? 'powderWhite' : 'powderPanel';
   const grilleMat: MatName = frost ? 'aluSilver' : 'powderBlack';
   const pb = new PartBuilder(`psu-${id}`);
   const labels = new Labels(pb, 18);
@@ -66,10 +66,11 @@ export function psuPart(id: string, opts: GenOpts = {}): PartObject {
   pb.add(rbox(L - 4, 0.6, W - 4, 0.2, 1), 'darkVoid', xf({ p: [0, 3, 0] }), { uv: 'keep' });
   pb.add(cyl(fanR + 2.6, 0.6, 'y', 64, fanR + 2.6, true), 'plasticMatte', xf({ p: [fx, H - 8, 0] }));
 
-  const rotor = pb.group('psu-rotor', pb.root, xf({ p: [fx, H - 9, 0], r: [-PI / 2, 0, 0] }));
+  const rotor = pb.group('psu-rotor', pb.root, xf({ p: [fx, H - 6.5, 0], r: [-PI / 2, 0, 0] }));
   const blades = pb.group('psu-blades', rotor);
   const bg = bladeGeometry({ r0: 19, r1: fanR - 2.5, c0: 18, c1: 36, pitch0: 0.8, pitch1: 0.42, sweep: 0.5, thick: 1.6, z: 0, nu: 12, nv: 8 });
-  for (let i = 0; i < 9; i++) pb.add(bg.clone(), 'bladeBlack', xf({ r: [0, 0, (i / 9) * PI * 2] }), { to: blades, uv: 'keep' });
+  const bladeMat = pb.own((mat('plasticGrey') as THREE.MeshPhysicalMaterial).clone()); bladeMat.side = THREE.DoubleSide; bladeMat.color.setHex(0x6b6f77);
+  for (let i = 0; i < 9; i++) pb.add(bg.clone(), bladeMat, xf({ r: [0, 0, (i / 9) * PI * 2] }), { to: blades, uv: 'keep' });
   bg.dispose();
   pb.add(lathe([[0, 3.6], [15, 3.6], [18.5, 2.2], [19.2, 0], [19.2, -6], [0, -6]], 48), 'plasticMatte', undefined, { to: rotor });
   labels.text(brandName(spec?.brand ?? 'thessic'), BRAND_TYPE.thessic ?? SPEC_TYPE, 3.2, xf({ p: [0, 0, 3.7] }), { color: '#9a9ea8', to: rotor });
@@ -78,7 +79,8 @@ export function psuPart(id: string, opts: GenOpts = {}): PartObject {
   const endPlate = (sign: 1 | -1) => {
     const s = new THREE.Shape(); rrect(s, -W / 2 + t, t, W - 2 * t, H - 2 * t - 0.2, 1);
     if (sign < 0) {
-      s.holes.push(...honeycombHoles((x, y) => x > -W / 2 + 46 && x < W / 2 - 6 && y > 6 && y < H - 6, -W / 2 + 46, W / 2 - 6, 6, H - 6, 6.2, 1.1));
+      const boss = (x: number, y: number) => [H / 2 + 36, H / 2 - 36].some((by) => Math.hypot(x - 66, y - by) < 8);
+      s.holes.push(...honeycombHoles((x, y) => x > -W / 2 + 46 && x < W / 2 - 6 && y > 6 && y < H - 6 && !boss(x, y), -W / 2 + 46, W / 2 - 6, 6, H - 6, 6.2, 1.1));
       s.holes.push(rrectHole(28, 22, 2, -W / 2 + 22, H * 0.58));
       s.holes.push(rrectHole(13.5, 19, 1.5, -W / 2 + 22, H * 0.2 + 1));
     } else {
@@ -89,10 +91,17 @@ export function psuPart(id: string, opts: GenOpts = {}): PartObject {
   };
   endPlate(-1); endPlate(1);
   const rear = -L / 2;
-  pb.add(rbox(2, 18, 26, 1.2, 2), 'plasticDark', xf({ p: [rear - 0.2, H * 0.58, -W / 2 + 22] }));
-  pb.add(rbox(1.8, 13, 21, 0.6, 1), 'darkVoid', xf({ p: [rear - 0.6, H * 0.58, -W / 2 + 22] }), { uv: 'keep' });
-  for (const dz of [-6, 0, 6]) pb.add(rbox(4.2, dz === 0 ? 4 : 2.2, dz === 0 ? 2.2 : 4, 0.3, 1), 'nickel', xf({ p: [rear - 0.4, H * 0.58 + (dz === 0 ? 3 : -1.5), -W / 2 + 22 + dz] }));
-  pb.add(rbox(1.6, 18, 12, 0.5, 1), 'plasticDark', xf({ p: [rear - 0.2, H * 0.2 + 1, -W / 2 + 22] }));
+  {
+    const iy = H * 0.58; const iz = -W / 2 + 22;
+    const housing = rrectShape(30, 24, 1.6);
+    housing.holes.push(polyHole([[-11.5, -7.5], [11.5, -7.5], [11.5, 4.6], [8.6, 7.5], [-8.6, 7.5], [-11.5, 4.6]]));
+    pb.add(extrude(housing, 2.4, 0.4, 'zy', 6, 1), 'plasticDark', at(rear - 1.4, iy, iz));
+    pb.add(rbox(1.2, 22, 28, 0.3, 1), 'plasticGrey', xf({ p: [rear + 4.4, iy, iz] }));
+    // Three solid flat blades as an IEC inlet has them: line and neutral low, earth high in the middle, nickel plated.
+    const blade = pb.own(new THREE.MeshPhysicalMaterial({ color: 0xb4b7bc, metalness: 1, roughness: 0.58 }));
+    for (const [dy, dz] of [[-2.6, -7], [-2.6, 7], [3.6, 0]] as [number, number][]) pb.add(rbox(5.0, 4.0, 1.6, 0.35, 2), blade, xf({ p: [rear + 1.6, iy + dy, iz + dz] }));
+  }
+  pb.add(rbox(1.6, 21, 15.5, 0.5, 1), 'plasticDark', xf({ p: [rear - 0.2, H * 0.2 + 1, -W / 2 + 22] }));
   const rocker = pb.group('rocker', pb.root, xf({ p: [rear - 1.4, H * 0.2 + 1, -W / 2 + 22], r: [0, 0, 0.18] }));
   pb.add(rbox(3.4, 15, 9.4, 1.2, 2), 'plasticGloss', undefined, { to: rocker });
   labels.text('I', SPEC_TYPE, 2.2, xf({ p: [-1.75, 4, 0], r: [0, -PI / 2, 0] }), { color: '#c6c9d0', to: rocker });
@@ -101,14 +110,29 @@ export function psuPart(id: string, opts: GenOpts = {}): PartObject {
   pb.own(led.material as THREE.Material);
   const sg = screwGeometry(2.6, 1.2, 'pan');
   const sm = pb.own(new THREE.MeshPhysicalMaterial({ color: frost ? 0xd6d8dc : 0x1e1f23, metalness: 1, roughness: 0.4, vertexColors: true }));
-  for (const [y, z] of [[H - 6, -W / 2 + 6], [H - 6, W / 2 - 6], [6, -W / 2 + 6], [6, W / 2 - 6]] as [number, number][]) pb.add(sg.clone(), sm, xf({ p: [rear - 0.1, y, z], r: [0, -PI / 2, 0] }), { uv: 'keep' });
+  // Threaded holes on the standard ATX pattern; the case's screws go into them.
+  for (const [y, z] of [[H / 2 + 36, 66], [H / 2 + 36, -66], [H / 2 - 36, 66], [H / 2 - 36, -66]] as [number, number][]) {
+    pb.add(cyl(1.7, 0.4, 'x', 16), 'darkVoid', xf({ p: [rear - 0.05, y, z] }), { uv: 'keep' });
+    pb.add(torus(1.95, 0.25, 6, 20), 'steelZinc', xf({ p: [rear - 0.02, y, z], r: [0, PI / 2, 0] }));
+  }
   for (const [sx, sz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]] as [number, number][]) pb.add(sg.clone(), sm, xf({ p: [sx * (L / 2 - 6), H - 0.1, sz * (W / 2 - 6)], r: [-PI / 2, 0, 0] }), { uv: 'keep' });
   sg.dispose();
-  labels.text('100-240 V ~ 50/60 Hz', TINY_TYPE, 1.3, xf({ p: [rear - 1.1, H * 0.86, -W / 2 + 22], r: [0, -PI / 2, 0] }), { color: frost ? '#4c5058' : '#9aa0a8' });
+  labels.text('100-240 V ~ 50/60 Hz', TINY_TYPE, 2.0, xf({ p: [rear - 1.1, H * 0.86, -W / 2 + 22], r: [0, -PI / 2, 0] }), { color: frost ? '#4c5058' : '#9aa0a8' });
 
   const anchors: Record<string, Anchor> = {};
   const front = L / 2;
-  pb.add(rbox(1.0, H - 12, W - 12, 0.6, 1), 'pcbBlack', xf({ p: [front - 3, H / 2, 0] }));
+  pb.add(rbox(1.0, H - 12, W - 12, 0.6, 1), frost ? 'aluWhite' : 'panelPowder', xf({ p: [front - 3, H / 2, 0] }));
+  {
+    const psg = screwGeometry(2.0, 1.0, 'pan');
+    const psm = pb.own(new THREE.MeshPhysicalMaterial({ color: frost ? 0xd6d8dc : 0x2a2b30, metalness: 1, roughness: 0.4, vertexColors: true }));
+    for (const [y, z] of [[10, -W / 2 + 10], [10, W / 2 - 10], [H - 10, -W / 2 + 10], [H - 10, W / 2 - 10]] as [number, number][]) pb.add(psg.clone(), psm, xf({ p: [front - 2.4, y, z], r: [0, PI / 2, 0] }), { uv: 'keep' });
+    psg.dispose();
+  }
+  {
+    const fins: THREE.Matrix4[] = [];
+    for (let z = -W / 2 + 50; z < W / 2 - 8; z += 8) fins.push(xf({ p: [rear + 15, H / 2, z] }));
+    pb.instanced(new THREE.BoxGeometry(24, H - 16, 2.4), 'finGrey', fins);
+  }
   const sockets: Socket[] = sfx
     ? [
       { name: 'atx24', label: 'MB 24', cols: 12, rows: 2, pitch: 4.2, y: H * 0.66, z: -W / 2 + 37 },
@@ -119,7 +143,8 @@ export function psuPart(id: string, opts: GenOpts = {}): PartObject {
       { name: 'sata', label: 'SATA', cols: 3, rows: 2, pitch: 4.2, y: H * 0.3, z: W / 2 - 18 },
     ]
     : [
-      { name: 'atx24', label: 'MB 18+10', cols: 12, rows: 2, pitch: 4.2, y: H * 0.72, z: -W / 2 + 40 },
+      { name: 'atx24', label: 'MB 18', cols: 9, rows: 2, pitch: 4.2, y: H * 0.72, z: -W / 2 + 33 },
+      { name: 'atx10', label: 'MB 10', cols: 5, rows: 2, pitch: 4.2, y: H * 0.72, z: -W / 2 + 66 },
       { name: 'eps', label: 'CPU 1', cols: 4, rows: 2, pitch: 4.2, y: H * 0.42, z: -W / 2 + 20 },
       { name: 'eps2', label: 'CPU 2', cols: 4, rows: 2, pitch: 4.2, y: H * 0.42, z: -W / 2 + 46 },
       { name: 'pcie1', label: 'PCIE 1', cols: 4, rows: 2, pitch: 4.2, y: H * 0.16, z: -W / 2 + 20 },
@@ -131,11 +156,17 @@ export function psuPart(id: string, opts: GenOpts = {}): PartObject {
       { name: 'sata3', label: 'SATA 3', cols: 3, rows: 2, pitch: 4.2, y: H * 0.16, z: W / 2 - 18 },
     ];
   for (const s of sockets) {
-    const sw = s.cols * s.pitch + 2.4; const sh = s.rows * s.pitch + 2.4;
+    const sense = s.name === 'hpwr';
+    const sw = s.cols * s.pitch + 2.4; const sh = s.rows * s.pitch + 2.4 + (sense ? 2.8 : 0);
+    const gy = s.y - (sense ? 1.4 : 0);
     pb.add(rbox(6, sh, sw, 0.5, 1), 'plasticDark', xf({ p: [front - 4.2, s.y, s.z] }));
     for (let r = 0; r < s.rows; r++) for (let c = 0; c < s.cols; c++) {
-      pb.add(new THREE.BoxGeometry(1, s.pitch * 0.62, s.pitch * 0.62), 'darkVoid', xf({ p: [front - 1.6, s.y + (r - (s.rows - 1) / 2) * s.pitch, s.z + (c - (s.cols - 1) / 2) * s.pitch] }), { uv: 'keep' });
+      const cy = gy + (r - (s.rows - 1) / 2) * s.pitch; const cz = s.z + (c - (s.cols - 1) / 2) * s.pitch;
+      const keyed = (r + c) % 3 === 0;
+      pb.add(keyed ? rbox(1, s.pitch * 0.62, s.pitch * 0.62, s.pitch * 0.18, 2) : new THREE.BoxGeometry(1, s.pitch * 0.62, s.pitch * 0.62), 'darkVoid', xf({ p: [front - 1.6, cy, cz] }), { uv: 'keep' });
+      pb.add(new THREE.BoxGeometry(0.3, s.pitch * 0.2, s.pitch * 0.2), 'nickel', xf({ p: [front - 1.0, cy, cz] }));
     }
+    if (sense) for (let c = 0; c < 4; c++) pb.add(new THREE.BoxGeometry(1, 1.1, 1.1), 'darkVoid', xf({ p: [front - 1.6, s.y + sh / 2 - 1.5, s.z + (c - 1.5) * s.pitch] }), { uv: 'keep' });
     labels.text(s.label, TINY_TYPE, 1.5, xf({ p: [front - 0.48, s.y + sh / 2 + 1.6, s.z], r: [0, PI / 2, 0] }), { color: frost ? '#4c5058' : '#b5b9c2' });
     anchors[s.name] = { pos: [front - 1, s.y, s.z], dir: [1, 0, 0] };
   }
@@ -150,8 +181,8 @@ export function psuPart(id: string, opts: GenOpts = {}): PartObject {
       const big: TextStyle = { ...(BRAND_TYPE.thessic ?? SPEC_TYPE), weight: 800 };
       g.fillStyle = ink;
       g.save(); g.font = `800 ${lh * 0.62 * s}px "DM Sans Variable"`; g.textBaseline = 'alphabetic';
-      g.translate(4 * s, lh * 0.7 * s); g.scale(0.78, 1); g.fillText(cap, 0, 0); g.restore();
-      g.font = `800 ${lh * 0.13 * s}px "DM Sans Variable"`; g.fillText('W', (4 + cap.length * lh * 0.36) * s, lh * 0.7 * s);
+      g.translate(4 * s, lh * 0.7 * s); g.scale(0.78, 1); g.fillText(cap, 0, 0); const capW = g.measureText(cap).width * 0.78; g.restore();
+      g.font = `800 ${lh * 0.2 * s}px "DM Sans Variable"`; g.fillText('W', 4 * s + capW + 1.6 * s, lh * 0.7 * s);
       g.save(); g.translate(4 * s, lh * 0.86 * s); g.scale(big.scaleX, 1); g.font = `800 ${lh * 0.13 * s}px "DM Sans Variable"`; g.fillText(brandName(spec?.brand ?? 'thessic').toUpperCase(), 0, 0); g.restore();
       const colX = lw * 0.62 * s;
       g.strokeStyle = frost ? 'rgba(120,122,128,1)' : 'rgba(110,114,122,1)'; g.lineWidth = Math.max(1, 0.15 * s);

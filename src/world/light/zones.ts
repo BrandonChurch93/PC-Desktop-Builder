@@ -19,6 +19,7 @@ export class Zone {
   readonly pn: Float32Array;
   temp = 30;
   private mats = new Map<string, THREE.MeshStandardMaterial>();
+  private spills = new Map<number, THREE.MeshBasicMaterial>();
   private second: THREE.Texture | null = null;
   readonly listeners: ((c: THREE.Color, z: Zone) => void)[] = [];
 
@@ -37,13 +38,27 @@ export class Zone {
   u(i: number) { return this.ring ? i / this.count : this.count > 1 ? i / (this.count - 1) : 0; }
 
   /** A diffuser that samples this zone along its uv x. */
-  diffuser(intensity: number, base = 0x1d1e23, rough = 0.32): THREE.MeshStandardMaterial {
+  diffuser(intensity: number, base = 0x1d1e23, rough = 0.7): THREE.MeshStandardMaterial {
     const key = `${intensity}|${base}|${rough}`;
     let m = this.mats.get(key);
     if (!m) {
       m = new THREE.MeshStandardMaterial({ color: base, roughness: rough, metalness: 0, emissive: 0xffffff, emissiveMap: this.tex, emissiveIntensity: intensity });
       m.name = `diffuser:${this.key}`;
       this.mats.set(key, m);
+    }
+    return m;
+  }
+
+  /**
+   * Light a diffuser throws on the surface right beside it: the zone's live colors along u, fading out along v.
+   * The lamps are few and broad, so they cannot tint a spreader lip or a fan frame a few millimeters from the LEDs.
+   */
+  spill(gain: number): THREE.MeshBasicMaterial {
+    let m = this.spills.get(gain);
+    if (!m) {
+      m = new THREE.MeshBasicMaterial({ map: this.tex, alphaMap: falloff(), color: new THREE.Color(gain, gain, gain), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -0.5, polygonOffsetUnits: -2 });
+      m.name = `spill:${this.key}`;
+      this.spills.set(gain, m);
     }
     return m;
   }
@@ -68,9 +83,10 @@ export class Zone {
     for (let i = 0; i < this.count; i++) {
       const cr = this.colors[i * 3]!; const cg = this.colors[i * 3 + 1]!; const cb = this.colors[i * 3 + 2]!;
       r += cr; g += cg; b += cb;
-      d[i * 4] = Math.round(Math.min(1, toSrgb(cr)) * 255);
-      d[i * 4 + 1] = Math.round(Math.min(1, toSrgb(cg)) * 255);
-      d[i * 4 + 2] = Math.round(Math.min(1, toSrgb(cb)) * 255);
+      const k = diffuserScale(cr, cg, cb);
+      d[i * 4] = Math.round(Math.min(1, toSrgb(cr * k)) * 255);
+      d[i * 4 + 1] = Math.round(Math.min(1, toSrgb(cg * k)) * 255);
+      d[i * 4 + 2] = Math.round(Math.min(1, toSrgb(cb * k)) * 255);
     }
     this.tex.needsUpdate = true;
     if (this.second) this.second.needsUpdate = true;
@@ -84,7 +100,19 @@ export class Zone {
     this.second?.dispose();
     for (const m of this.mats.values()) m.dispose();
     this.mats.clear();
+    for (const m of this.spills.values()) m.dispose();
+    this.spills.clear();
   }
+}
+
+/**
+ * Light colors with a high luminance (lime, cyan, yellow) clip to white on an emissive diffuser long before pink or blue do.
+ * The diffuser texture gets a soft luminance ceiling so every hue stays saturated at the same brightness setting.
+ */
+const LUMA_CEILING = 0.4;
+function diffuserScale(r: number, g: number, b: number): number {
+  const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return luma > LUMA_CEILING ? LUMA_CEILING / luma : 1;
 }
 
 const toSrgb = (c: number) => (c <= 0.0031308 ? c * 12.92 : 1.055 * c ** (1 / 2.4) - 0.055);
@@ -116,5 +144,61 @@ export function uvAround(g: THREE.BufferGeometry): THREE.BufferGeometry {
   const uv = new Float32Array(p.count * 2);
   for (let i = 0; i < p.count; i++) { const a = Math.atan2(p.getY(i), p.getX(i)); uv[i * 2] = (a / (Math.PI * 2) + 1) % 1; uv[i * 2 + 1] = 0.5; }
   g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  return g;
+}
+
+let falloffTex: THREE.DataTexture | null = null;
+function falloff(): THREE.DataTexture {
+  if (falloffTex) return falloffTex;
+  const n = 64;
+  const d = new Uint8Array(n * 4);
+  for (let i = 0; i < n; i++) { const a = Math.round(255 * Math.pow(1 - i / (n - 1), 2.2)); d[i * 4] = a; d[i * 4 + 1] = a; d[i * 4 + 2] = a; d[i * 4 + 3] = 255; }
+  falloffTex = new THREE.DataTexture(d, 1, n);
+  falloffTex.magFilter = THREE.LinearFilter; falloffTex.minFilter = THREE.LinearFilter;
+  falloffTex.needsUpdate = true;
+  return falloffTex;
+}
+
+/** A spill strip in the xy plane: u runs along x over its length, v from its top edge (y = 0) down to y = -depth. */
+/**
+ * Surfaces that mark themselves in the stencil buffer, and spills that only land on them. A spill plane laid over fins also
+ * lit the dark gaps between them; limited to its receivers it lights the fin tops and faces only.
+ */
+const SPILL_STENCIL = 1;
+export function spillReceiver<M extends THREE.Material>(m: M): M {
+  m.stencilWrite = true; m.stencilRef = SPILL_STENCIL; m.stencilFunc = THREE.AlwaysStencilFunc; m.stencilZPass = THREE.ReplaceStencilOp;
+  return m;
+}
+export function onReceivers<M extends THREE.Material>(m: M): M {
+  m.stencilWrite = true; m.stencilWriteMask = 0; m.stencilRef = SPILL_STENCIL; m.stencilFunc = THREE.EqualStencilFunc; m.stencilZPass = THREE.KeepStencilOp;
+  return m;
+}
+
+export function spillStrip(length: number, depth: number, segments = 1): THREE.BufferGeometry {
+  const g = new THREE.PlaneGeometry(length, depth, segments, 1);
+  g.translate(0, -depth / 2, 0);
+  const p = g.getAttribute('position'); const uv = g.getAttribute('uv');
+  for (let i = 0; i < p.count; i++) uv.setXY(i, p.getX(i) / length + 0.5, -p.getY(i) / depth);
+  return g;
+}
+
+/** Part of a spill strip: the piece from 'from' to 'to' along a strip of length 'total' centered on x = 0, so u still matches the LEDs. */
+export function spillStripRange(total: number, from: number, to: number, depth: number, segments = 1): THREE.BufferGeometry {
+  const g = new THREE.PlaneGeometry(to - from, depth, segments, 1);
+  g.translate((from + to) / 2, -depth / 2, 0);
+  const p = g.getAttribute('position'); const uv = g.getAttribute('uv');
+  for (let i = 0; i < p.count; i++) uv.setXY(i, p.getX(i) / total + 0.5, -p.getY(i) / depth);
+  return g;
+}
+
+/** A spill ring in the xy plane: u around the ring as the LEDs run, v from the edge at radius 'from' to radius 'to'. */
+export function spillRing(from: number, to: number, segments = 96): THREE.BufferGeometry {
+  const inner = Math.min(from, to); const outer = Math.max(from, to);
+  const g = new THREE.RingGeometry(inner, outer, segments, 1);
+  const uv = g.getAttribute('uv');
+  for (let j = 0; j <= 1; j++) for (let i = 0; i <= segments; i++) {
+    const r = j === 0 ? inner : outer;
+    uv.setXY(j * (segments + 1) + i, i / segments, Math.abs(r - from) / Math.abs(to - from));
+  }
   return g;
 }

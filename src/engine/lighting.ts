@@ -33,6 +33,29 @@ export function hexToLinear(hex: string): RGB {
   return c;
 }
 
+type Hsv = { h: number; s: number; v: number };
+const hsvCache = new Map<string, Hsv>();
+function toHsv(hex: string): Hsv {
+  const hit = hsvCache.get(hex);
+  if (hit) return hit;
+  const n = Number.parseInt(hex.slice(1), 16);
+  const x = Number.isFinite(n) ? n : 0;
+  const r = ((x >> 16) & 255) / 255; const g = ((x >> 8) & 255) / 255; const b = (x & 255) / 255;
+  const hi = Math.max(r, g, b); const lo = Math.min(r, g, b); const d = hi - lo;
+  let h = 0;
+  if (d > 0) h = hi === r ? ((g - b) / d + 6) % 6 : hi === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  const out = { h: h / 6, s: hi > 0 ? d / hi : 0, v: hi };
+  hsvCache.set(hex, out);
+  return out;
+}
+
+const GREY = 0.04;
+
+/**
+ * Stops blend in HSV on their sRGB values, hue along the shorter arc, as RGB controllers do.
+ * A straight RGB blend between complementary stops (cyan into pink) passes through a pale lavender
+ * that reads as a white diffuser. Between saturated stops this keeps every LED saturated.
+ */
 export function gradient(stops: string[], x: number, out: RGB): RGB {
   const n = stops.length;
   if (n === 0) { out.r = 0; out.g = 0; out.b = 0; return out; }
@@ -40,11 +63,24 @@ export function gradient(stops: string[], x: number, out: RGB): RGB {
   const i = Math.min(n - 1, Math.floor(f));
   const k = smooth(f - i);
   const sa = stops[i]; const sb = stops[(i + 1) % n];
-  const a = sa ? hexToLinear(sa) : DARK;
-  const b = sb ? hexToLinear(sb) : DARK;
-  out.r = a.r + (b.r - a.r) * k;
-  out.g = a.g + (b.g - a.g) * k;
-  out.b = a.b + (b.b - a.b) * k;
+  const one = !sa || !sb || sa === sb || k <= 0 || k >= 1;
+  if (one) {
+    const d = (k >= 1 ? sb ?? sa : sa ?? sb);
+    const c = d ? hexToLinear(d) : DARK;
+    out.r = c.r; out.g = c.g; out.b = c.b;
+    return out;
+  }
+  const a = toHsv(sa); const b = toHsv(sb);
+  const ha = a.s < GREY ? b.h : a.h;
+  const hb = b.s < GREY ? a.h : b.h;
+  let dh = hb - ha;
+  if (dh > 0.5) dh -= 1;
+  else if (dh < -0.5) dh += 1;
+  const h = fract(ha + dh * k) * 6;
+  const sat = a.s + (b.s - a.s) * k; const v = a.v + (b.v - a.v) * k;
+  const c = v * sat; const xx = c * (1 - Math.abs((h % 2) - 1)); const m = v - c;
+  const [r, g, bl] = h < 1 ? [c, xx, 0] : h < 2 ? [xx, c, 0] : h < 3 ? [0, c, xx] : h < 4 ? [0, xx, c] : h < 5 ? [xx, 0, c] : [c, 0, xx];
+  out.r = srgbToLinear(clamp01(r + m)); out.g = srgbToLinear(clamp01(g + m)); out.b = srgbToLinear(clamp01(bl + m));
   return out;
 }
 
@@ -52,7 +88,8 @@ function hslFull(h: number, out: RGB): RGB {
   const hue = fract(h) * 6;
   const x = 1 - Math.abs((hue % 2) - 1);
   const [r, g, b] = hue < 1 ? [1, x, 0] : hue < 2 ? [x, 1, 0] : hue < 3 ? [0, 1, x] : hue < 4 ? [0, x, 1] : hue < 5 ? [x, 0, 1] : [1, 0, x];
-  out.r = r; out.g = g; out.b = b;
+  // Hue is picked on the display, as RGB software does: full saturation in sRGB, then linear for the frame.
+  out.r = srgbToLinear(r); out.g = srgbToLinear(g); out.b = srgbToLinear(b);
   return out;
 }
 

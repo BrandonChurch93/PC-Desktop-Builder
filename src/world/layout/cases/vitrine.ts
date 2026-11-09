@@ -30,9 +30,10 @@ export const VITRINE: CaseLayout = {
   boardAnchor: anchor,
   bracketX: REAR_IN,
   supply: { rearFace: [REAR_IN, 21, -30], rot: R0, dir: [1, 0, 0], obstacleX: -2, insert: [1, 0, 0] },
+  // The upper bay fills first so a single drive sits in the middle of the shroud window.
   bays35: [
-    { pose: { pos: [82, 22, 46], rot: [0, Q, 0] }, insert: [0, 0, 1] },
     { pose: { pos: [82, 60, 46], rot: [0, Q, 0] }, insert: [0, 0, 1] },
+    { pose: { pos: [82, 22, 46], rot: [0, Q, 0] }, insert: [0, 0, 1] },
   ],
   bays25: [
     { pose: { pos: [110, 190, TRAY_BACK], rot: [-Q, 0, 0] }, insert: [0, 0, 1] },
@@ -70,10 +71,11 @@ export const VITRINE: CaseLayout = {
   grommets: [
     { id: 'atx24', center: [62, 330, TRAY_FRONT], normal: [0, 0, 1], size: [22, 96] },
     { id: 'eps', center: [-190, 466, TRAY_FRONT], normal: [0, 0, 1], size: [56, 20] },
-    { id: 'gpu', center: [-30, SHROUD, 82], normal: [0, 1, 0], size: [120, 30] },
+    { id: 'gpu', center: [-46, SHROUD, 82], normal: [0, 1, 0], size: [120, 30] },
     { id: 'front', center: [184, 250, TRAY_FRONT], normal: [0, 0, 1], size: [14, 150] },
     { id: 'top', center: [40, 466, TRAY_FRONT], normal: [0, 0, 1], size: [80, 20] },
     { id: 'rear', center: [-205, 300, TRAY_FRONT], normal: [0, 0, 1], size: [16, 60] },
+    { id: 'sata', center: [52, 216, TRAY_FRONT], normal: [0, 0, 1], size: [18, 40] },
   ],
   views: {},
 };

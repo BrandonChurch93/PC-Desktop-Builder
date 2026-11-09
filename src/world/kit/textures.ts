@@ -94,19 +94,44 @@ function perforation(tile: number, hole: number): HTMLCanvasElement {
   return c;
 }
 
-function braid(size: number): HTMLCanvasElement {
+/** Fine cross hatched lapping marks at low contrast, for a lapped heat spreader. */
+function lapping(size: number): HTMLCanvasElement {
+  const { canvas: c, g } = canvas(size, size);
+  g.fillStyle = 'rgba(128,128,128,1)'; g.fillRect(0, 0, size, size);
+  const r = seeded(91);
+  g.lineWidth = Math.max(1, size / 512);
+  for (let i = 0; i < 900; i++) {
+    const a = (r() > 0.5 ? 1 : -1) * (Math.PI / 4 + (r() - 0.5) * 0.12);
+    const x = r() * size; const y = r() * size; const len = size * (0.2 + r() * 0.6);
+    const k = Math.round(128 + (r() - 0.5) * 34);
+    g.strokeStyle = `rgba(${k},${k},${k},0.55)`;
+    g.beginPath(); g.moveTo(x - Math.cos(a) * len, y - Math.sin(a) * len); g.lineTo(x + Math.cos(a) * len, y + Math.sin(a) * len); g.stroke();
+  }
+  return c;
+}
+
+/**
+ * Two over two braided sleeve: two families of diagonal carriers, each running over two crossings and under two,
+ * with filament lines along every carrier. lo and hi set the value range: a height map, or a tone for the albedo.
+ */
+function braid(size: number, lo = 0.25, hi = 1): HTMLCanvasElement {
   const { canvas: c, g } = canvas(size, size);
   const img = g.createImageData(size, size);
-  const n = 8;
+  const n = 2;
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
     const u = x / size; const v = y / size;
-    const a = (u * n + v * n) % 1; const b = (u * n - v * n + n) % 1;
-    const strandA = Math.sin(a * Math.PI); const strandB = Math.sin(b * Math.PI);
-    const cell = (Math.floor(u * n * 2) + Math.floor(v * n * 2)) % 2;
-    const over = cell === 0 ? strandA : strandB;
-    const fiber = 0.5 + 0.5 * Math.sin((cell === 0 ? a : b) * Math.PI * 14);
-    const val = 0.25 + 0.6 * over + 0.15 * fiber * over;
-    const k = Math.round(Math.min(1, val) * 255);
+    const sa = (u - v) * n; const sb = (u + v) * n;
+    const ia = Math.floor(sa); const ib = Math.floor(sb);
+    const fa = sa - ia; const fb = sb - ib;
+    const phase = (((ib - ia) % 4) + 4) % 4;
+    const aOver = phase < 2;
+    const run = aOver ? (phase + fb) / 2 : (3 - phase + fa) / 2;
+    const across = aOver ? fa : fb;
+    const h = Math.sin(across * Math.PI);
+    const dip = Math.pow(Math.sin(run * Math.PI), 0.35);
+    const fiber = 0.78 + 0.22 * Math.abs(Math.sin(across * Math.PI * 6));
+    const val = h * dip * fiber;
+    const k = Math.round(Math.min(1, lo + (hi - lo) * val) * 255);
     const i = (y * size + x) * 4;
     img.data[i] = k; img.data[i + 1] = k; img.data[i + 2] = k; img.data[i + 3] = 255;
   }
@@ -116,11 +141,11 @@ function braid(size: number): HTMLCanvasElement {
 
 export type TextureSet = {
   grain: THREE.Texture; grainFine: THREE.Texture; peel: THREE.Texture; brushed: THREE.Texture; bead: THREE.Texture;
-  perf: THREE.Texture; braid: THREE.Texture; mottle: THREE.Texture; soft: THREE.Texture;
+  perf: THREE.Texture; braid: THREE.Texture; braidTone: THREE.Texture; braidToneHi: THREE.Texture; brushedCoarse: THREE.Texture; lap: THREE.Texture; mottle: THREE.Texture; soft: THREE.Texture;
 };
 
 /** Every texture is mapped in millimeters: a repeat of 1/tile makes one tile cover that many mm. */
-export const TILE_MM = { grain: 24, grainFine: 9, peel: 18, brushed: 48, bead: 10, perf: 3.2, braid: 2.2, mottle: 160, soft: 60 } as const;
+export const TILE_MM = { grain: 24, grainFine: 9, peel: 18, brushed: 48, bead: 10, perf: 3.2, braid: 2.2, lap: 14, mottle: 160, soft: 60 } as const;
 
 let cached: TextureSet | null = null;
 let cachedScale = 0;
@@ -135,8 +160,12 @@ export function textures(scale = 1): TextureSet {
     peel: tile(wrap(fromValues(s(512), fbm(s(512), 22, 4, seeded(21), 0.55), 40, 215)), TILE_MM.peel),
     brushed: tile(wrap(brushed(s(1024), 7)), TILE_MM.brushed),
     bead: tile(wrap(grain(s(512), 31, 60, 196)), TILE_MM.bead),
-    perf: tile(wrap(perforation(64, 0.62)), TILE_MM.perf),
+    perf: tile(wrap(perforation(64, 0.8)), TILE_MM.perf),
     braid: tile(wrap(braid(s(256))), TILE_MM.braid),
+    braidTone: tile(wrap(braid(s(256), 0.5, 1), { srgb: true }), TILE_MM.braid),
+    braidToneHi: tile(wrap(braid(s(256), 0.22, 1), { srgb: true }), TILE_MM.braid),
+    brushedCoarse: tile(wrap(brushed(s(1024), 13)), TILE_MM.brushed * 3),
+    lap: tile(wrap(lapping(s(512))), TILE_MM.lap),
     mottle: tile(wrap(fromValues(s(512), fbm(s(512), 6, 5, seeded(55), 0.6), 90, 165)), TILE_MM.mottle),
     soft: tile(wrap(fromValues(s(256), fbm(s(256), 8, 3, seeded(77), 0.5), 100, 156)), TILE_MM.soft),
   };

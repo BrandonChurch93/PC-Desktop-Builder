@@ -7,7 +7,7 @@ import { at, cyl, extrude, lathe, PartBuilder, puck, rbox, roundedPoly, rrectSha
 import { Labels } from '../kit/labels';
 import { mat, sleeve, type MatName } from '../kit/materials';
 import { BRAND_TYPE, MODEL_TYPE, SPEC_TYPE, TINY_TYPE } from '../kit/type';
-import { Zone } from '../light/zones';
+import { spillRing, Zone } from '../light/zones';
 import { buildFan, fanLook, type FanLook } from './fan';
 import { boxesPart } from './stub';
 import type { Anchor, GenOpts, PartObject, Rotor } from './types';
@@ -26,16 +26,16 @@ function radFanLook(k: CoolerSpec): FanLook {
 }
 
 /** Pump head: copper cold plate, cross bracket with captive screws, cylindrical body, gloss cap with a lit ring. */
-function buildPump(pb: PartBuilder, labels: Labels, k: CoolerSpec, key: string, m?: THREE.Matrix4) {
+function buildPump(pb: PartBuilder, labels: Labels, k: CoolerSpec, key: string, m?: THREE.Matrix4, loose = false) {
   const frost = isFrost(k);
   const root = pb.group(`pump:${key}`, pb.root, m);
   const body: MatName = frost ? 'aluWhite' : 'aluBlack';
   pb.add(puck(27, 2.4, 0.4, 64), 'copper', undefined, { to: root });
-  const arm = roundedPoly([[-38, -6], [-14, -6], [-6, -14], [-6, -38], [6, -38], [6, -14], [14, -6], [38, -6], [38, 6], [14, 6], [6, 14], [6, 38], [-6, 38], [-6, 14], [-14, 6], [-38, 6]], 2.2);
-  pb.add(extrude(arm, 2.4, 0.5, 'xy', 8), frost ? 'powderWhite' : 'powderBlack', at(0, 0, 2.4), { to: root });
+  const arm = roundedPoly([[-42, -6], [-14, -6], [-6, -14], [-6, -42], [6, -42], [6, -14], [14, -6], [42, -6], [42, 6], [14, 6], [6, 14], [6, 42], [-6, 42], [-6, 14], [-14, 6], [-42, 6]], 2.2);
+  pb.add(extrude(arm, 2.4, 0.5, 'xy', 8), frost ? 'powderWhite' : 'aluGunmetal', at(0, 0, 2.4), { to: root });
   const screws = pb.group('pump-screws', root);
   for (const [sx, sy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as [number, number][]) {
-    const s = pb.group('thumb', screws, at(sx * 32, sy * 32, 4.8));
+    const s = pb.group('thumb', screws, at(sx * 38, sy * 38, 4.8));
     pb.add(lathe([[0, 0], [4.6, 0], [4.8, 0.6], [4.8, 3.2], [4.3, 4.0], [0, 4.0]], 24), 'nickel', undefined, { to: s });
     for (let i = 0; i < 12; i++) { const a = (i / 12) * PI * 2; pb.add(rbox(0.6, 0.9, 2.6, 0.2, 1), 'nickel', xf({ p: [Math.cos(a) * 4.85, Math.sin(a) * 4.85, 1.9], r: [0, 0, a] }), { to: s }); }
     pb.add(new THREE.BoxGeometry(4.4, 0.8, 0.4), 'darkVoid', at(0, 0, 4.05), { to: s, uv: 'keep' });
@@ -45,9 +45,11 @@ function buildPump(pb: PartBuilder, labels: Labels, k: CoolerSpec, key: string, 
   const cap = new THREE.Shape(); cap.absarc(0, 0, 29.4, 0, PI * 2, false);
   pb.add(extrude(cap, 1.4, 0.5, 'xy', 96), frost ? 'plasticWhiteGloss' : 'plasticGloss', at(0, 0, 46.2), { to: root });
   const zone = new Zone(`${key}:pump`, 'cooler', true, Array.from({ length: 24 }, (_, i) => { const a = (i / 24) * PI * 2; return new THREE.Vector3(Math.cos(a) * 31.5, Math.sin(a) * 31.5, 47); }), 0.3);
-  pb.mesh(torus(31.6, 1.35, 10, 128), zone.diffuser(2.2, frost ? 0xd8dadf : 0x26272c), at(0, 0, 46.9), { to: root, uv: 'keep' });
-  pb.mesh(torus(23, 0.6, 8, 128), zone.diffuser(1.6, frost ? 0xd8dadf : 0x26272c), at(0, 0, 47.6), { to: root, uv: 'keep' });
+  pb.mesh(torus(31.6, 1.35, 10, 128), zone.diffuser(1.0, frost ? 0xd8dadf : 0x1c1d21), at(0, 0, 46.9), { to: root, uv: 'keep' });
+  pb.mesh(torus(23, 0.6, 8, 128), zone.diffuser(0.8, frost ? 0xd8dadf : 0x1c1d21), at(0, 0, 47.6), { to: root, uv: 'keep' });
+  pb.mesh(spillRing(30.3, 12, 96), zone.spill(frost ? 0.18 : 0.3), at(0, 0, 47.66), { to: root, uv: 'keep' }).userData.spill = true;
   zone.emit(new THREE.Vector3(0, 0, 48.5), new THREE.Vector3(0, 0, 1), 70, 70, 0.9);
+  zone.emit(new THREE.Vector3(0, 0, 30), new THREE.Vector3(0, 0, -1), 90, 90, 0.5);
   zone.owner = root;
   labels.text(brandName(k.brand), BRAND_TYPE[k.brand] ?? SPEC_TYPE, 3.6, at(0, 1.4, 47.66, [0, 0, 0]), { color: frost ? '#555a63' : '#c9ccd4', to: root });
   labels.text(k.name.toUpperCase(), MODEL_TYPE, 1.5, at(0, -4.4, 47.66), { color: frost ? '#7a7e87' : '#7d818a', to: root });
@@ -60,13 +62,18 @@ function buildPump(pb: PartBuilder, labels: Labels, k: CoolerSpec, key: string, 
     for (let r = 0; r < 3; r++) pb.add(torus(6.5, 0.35, 6, 32), 'nickel', xf({ p: [0, 6.2 + r * 2.4, 0], r: [PI / 2, 0, 0] }), { to: f });
     fittings.push({ pos: [x, 33.5 + 12.5, 38], dir: [0, 1, 0] });
   }
-  const cable = pb.mesh(tube([[0, -34.6, 12], [-10, -38, 10], [-20, -44, 8], [-28, -52, 6]], 1.6, 24, 6), mat('rubber'), undefined, { to: root });
-  cable.userData.flexible = true;
-  return { root, zone, screws, fittings };
+  const cableAt: Anchor = { pos: [28.5, 28.5, 34], dir: [Math.SQRT1_2, Math.SQRT1_2, 0] };
+  pb.add(cyl(2.6, 6, 'y', 16, 1.9), 'rubber', xf({ p: [26.5, 26.5, 34], r: [0, 0, -PI / 4] }), { to: root });
+  if (loose) {
+    const cable = pb.mesh(tube([[24.5, 24.5, 34], [36, 36, 34], [48, 40, 28], [60, 38, 18], [72, 30, 12]], 1.6, 32, 6), mat('rubber'), undefined, { to: root });
+    cable.userData.flexible = true;
+    pb.add(rbox(10.2, 5.2, 7.2, 0.6, 2), 'plasticDark', xf({ p: [77, 27.5, 10], r: [0, 0, -0.45] }), { to: root });
+  }
+  return { root, zone, screws, fittings, cableAt };
 }
 
 /** A radiator: corrugated fin core between flat tubes, end tanks, side plates, fittings and its fans. */
-function buildRadiator(pb: PartBuilder, labels: Labels, k: CoolerSpec, key: string, o: { order: 'fans-first' | 'rad-first'; airInward: boolean }, m?: THREE.Matrix4, detail = 1) {
+function buildRadiator(pb: PartBuilder, labels: Labels, k: CoolerSpec, key: string, o: { order: 'fans-first' | 'rad-first'; airInward: boolean; localUp?: [number, number, number]; localView?: [number, number, number] }, m?: THREE.Matrix4, detail = 1) {
   const frost = isFrost(k);
   const size = k.radSize ?? 360;
   const L = DIMS.radLength[size] ?? 397;
@@ -94,6 +101,7 @@ function buildRadiator(pb: PartBuilder, labels: Labels, k: CoolerSpec, key: stri
   for (let g = 0; g < tubes; g++) for (let i = 0; i < folds; i++) mats.push(xf({ p: [-coreL / 2 + pitch / 2 + i * pitch, -W / 2 + (g + 0.5) * gap, (coreZ0 + coreZ1) / 2] }));
   const finMat = (mat(frost ? 'finSilver' : 'finDark') as THREE.MeshPhysicalMaterial).clone();
   finMat.side = THREE.DoubleSide; pb.own(finMat);
+  if (!frost) finMat.color.setHex(0x4a4d55);
   const inst = pb.instanced(fold, finMat, mats, { shadow: false, to: root });
   fold.dispose();
   void inst;
@@ -112,9 +120,20 @@ function buildRadiator(pb: PartBuilder, labels: Labels, k: CoolerSpec, key: stri
       pb.add(cyl(1.7, 0.3, 'y', 12), 'darkVoid', at(fx, sgn * (W / 2 + 1.45), (rz0 + rz1) / 2), { to: root, uv: 'keep' });
     }
   }
-  const sidePlusY = new THREE.Matrix4().makeBasis(new THREE.Vector3(-1, 0, 0), new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 1, 0));
-  labels.text(`${brandName(k.brand).toUpperCase()} ${k.name.toUpperCase()}`, MODEL_TYPE, 3.2, new THREE.Matrix4().makeTranslation(coreL / 2 - 30, W / 2 + 1.46, (rz0 + rz1) / 2 + 3).multiply(sidePlusY), { color: frost ? '#5e626b' : '#aeb2bb', to: root, align: 'left' });
-  labels.text(`${size} MM · ALUMINUM CORE · 27 MM`, TINY_TYPE, 1.4, new THREE.Matrix4().makeTranslation(coreL / 2 - 30, W / 2 + 1.46, (rz0 + rz1) / 2 - 4).multiply(sidePlusY), { color: frost ? '#7a7e87' : '#7c808a', to: root, align: 'left' });
+  // The print goes on the side plate that faces the glass, upright for the way the radiator is mounted.
+  const view = new THREE.Vector3(...(o.localView ?? [0, 0, 1]));
+  const sy = view.y >= 0 ? 1 : -1;
+  const normal = new THREE.Vector3(0, sy, 0);
+  const up = new THREE.Vector3(...(o.localUp ?? [0, 1, 0])); up.y = 0;
+  if (up.lengthSq() < 0.01) up.set(-view.x, 0, -view.z);
+  if (up.lengthSq() < 0.01) up.set(0, 0, -1);
+  up.normalize();
+  const along = new THREE.Vector3().crossVectors(up, normal).normalize();
+  const printAt = (u: number, v: number) => new THREE.Vector3().addScaledVector(along, u).addScaledVector(up, v).add(new THREE.Vector3(0, sy * (W / 2 + 1.46), (rz0 + rz1) / 2));
+  const basis = new THREE.Matrix4().makeBasis(along, up, normal);
+  const startU = -coreL / 2 + 40;
+  labels.text(`${brandName(k.brand).toUpperCase()} ${k.name.toUpperCase()}`, MODEL_TYPE, 4.4, basis.clone().setPosition(printAt(startU, 4)), { color: frost ? '#5e626b' : '#aeb2bb', to: root, align: 'left' });
+  labels.text(`${size} MM · ALUMINUM CORE · 27 MM`, TINY_TYPE, 2.4, basis.clone().setPosition(printAt(startU, -4.5)), { color: frost ? '#7a7e87' : '#7c808a', to: root, align: 'left' });
   pb.add(cyl(5.5, 2.2, 'x', 24), frost ? 'aluSilver' : 'aluSatinDark', at(-L / 2 - 0.6, 30, (rz0 + rz1) / 2), { to: root });
   const fittings: Anchor[] = [];
   const fz = o.order === 'rad-first' ? rz1 : rz1;
@@ -129,14 +148,27 @@ function buildRadiator(pb: PartBuilder, labels: Labels, k: CoolerSpec, key: stri
   const zones: Zone[] = []; const rotors: Rotor[] = [];
   const fz0 = o.order === 'rad-first' ? rz1 : 0;
   const flip = o.airInward ? 0 : PI;
+  const toCore = new THREE.Vector3(0, 0, o.order === 'rad-first' ? -1 : 1);
   const sg = screwGeometry(2.6, 1.6, 'pan');
   const sm = pb.own(new THREE.MeshPhysicalMaterial({ color: frost ? 0xd9dbe0 : 0x24252a, metalness: 1, roughness: 0.35, vertexColors: true }));
   for (let i = 0; i < n; i++) {
     const cx = (i - (n - 1) / 2) * DIMS.radFanPitch;
     const fm = new THREE.Matrix4().makeTranslation(cx, 0, fz0 + fanT / 2).multiply(new THREE.Matrix4().makeRotationX(flip));
     const g = pb.group(`radfan:${i}`, root);
-    const fb = buildFan(pb, labels, look, 120, fm, `${key}:fan${i}`, { detail });
-    for (const z of fb.zones) zones.push(retarget(z));
+    const fb = buildFan(pb, labels, look, 120, fm, `${key}:fan${i}`, { detail, tucked: true });
+    // The core blocks the ring's light on the face that touches it, so that face casts none.
+    const q = new THREE.Quaternion().setFromRotationMatrix(fm);
+    for (const z of fb.zones) {
+      for (let j = z.emitters.length - 1; j >= 0; j--) if (z.emitters[j]!.normal.clone().applyQuaternion(q).dot(toCore) > 0.5) z.emitters.splice(j, 1);
+      zones.push(retarget(z));
+    }
+    // The ring's light leaks through the thin fins and shows on the far face of the core, strongest under the ring.
+    const ring = fb.zones[0];
+    if (ring) {
+      const backZ = o.order === 'rad-first' ? coreZ0 - 0.25 : coreZ1 + 0.25;
+      const lm = new THREE.Matrix4().makeTranslation(cx, 0, backZ).multiply(new THREE.Matrix4().makeRotationX(flip));
+      pb.mesh(spillRing(57, 36, 64), ring.spill(frost ? 0.08 : 0.15), lm, { uv: 'keep', to: root }).userData.spill = true;
+    }
     rotors.push(...fb.rotors);
     void g;
     const far = o.order === 'rad-first' ? fz0 + fanT + 0.1 : fz0 - 0.1;
@@ -161,7 +193,7 @@ export function pumpPart(id: string, opts: GenOpts = {}): PartObject {
   const pump = buildPump(pb, labels, k, key);
   labels.finish();
   const done = pb.finish();
-  const anchors: Record<string, Anchor> = { fitting0: pump.fittings[0]!, fitting1: pump.fittings[1]! };
+  const anchors: Record<string, Anchor> = { fitting0: pump.fittings[0]!, fitting1: pump.fittings[1]!, cable: pump.cableAt };
   return { root: done.root, boxes: pumpBoxes(), anchors, zones: [pump.zone], rotors: [], movers: { screws: pump.screws }, dispose: () => { done.dispose(); pump.zone.dispose(); } };
 }
 
@@ -172,7 +204,7 @@ export function radiatorPart(id: string, opts: GenOpts = {}): PartObject {
   const order = opts.order ?? 'rad-first';
   const pb = new PartBuilder(`radiator-${id}`);
   const labels = new Labels(pb, 18);
-  const rad = buildRadiator(pb, labels, k, key, { order, airInward: opts.airInward ?? false }, undefined, opts.detail ?? 1);
+  const rad = buildRadiator(pb, labels, k, key, { order, airInward: opts.airInward ?? false, localUp: opts.localUp, localView: opts.localView }, undefined, opts.detail ?? 1);
   labels.finish();
   const done = pb.finish();
   const anchors: Record<string, Anchor> = { fitting0: rad.fittings[0]!, fitting1: rad.fittings[1]! };
@@ -189,7 +221,7 @@ export function tubePath(points: Vec[], frost: boolean, radius = 6.1): { geo: TH
   const uv = geo.getAttribute('uv');
   const len = curve.getLength();
   for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * len, uv.getY(i) * radius * 2 * PI);
-  return { geo, material: sleeve(frost ? '#dfe1e6' : '#1b1b20') };
+  return { geo, material: sleeve(frost ? '#dfe1e6' : '#2c2c34', 2.2) };
 }
 
 /** The whole liquid cooler for the Inspector: radiator standing behind, pump in front, tubes between them. */
@@ -204,12 +236,13 @@ export function coolerPart(id: string, opts: GenOpts = {}): PartObject {
   const radM = new THREE.Matrix4().makeTranslation(0, 0, 0).multiply(new THREE.Matrix4().makeRotationX(0));
   const rad = buildRadiator(pb, labels, k, `${key}:rad`, { order: 'fans-first', airInward: true }, radM, opts.detail ?? 1);
   const pumpM = new THREE.Matrix4().makeTranslation(-L / 2 + 90, -40, -120).multiply(new THREE.Matrix4().makeRotationY(PI));
-  const pump = buildPump(pb, labels, k, key, pumpM);
+  const pump = buildPump(pb, labels, k, key, pumpM, true);
   pb.root.updateMatrixWorld(true);
   const w = (o: THREE.Object3D, a: Anchor) => new THREE.Vector3(...a.pos).applyMatrix4(o.matrixWorld);
   for (let i = 0; i < 2; i++) {
     const a = w(pump.root, pump.fittings[i]!); const b = w(rad.root, rad.fittings[i]!);
-    const pts: Vec[] = [[a.x, a.y, a.z], [a.x, a.y + 16, a.z], [a.x + 10 + i * 8, 84 + i * 6, a.z + 26], [L / 2 - 70 + i * 10, 92 + i * 6, -50], [b.x + 4, b.y + 30, b.z + 42], [b.x, b.y, b.z + 16], [b.x, b.y, b.z]];
+    // One easy loop up over the radiator's top edge and down behind it, with no tight corner anywhere.
+    const pts: Vec[] = [[a.x, a.y, a.z], [a.x, a.y + 18, a.z], [a.x + 70, 92 + i * 9, a.z + 40], [b.x - 50 - i * 12, 104 + i * 9, -16], [b.x - 8, 86 + i * 6, b.z + 40], [b.x, b.y + 16, b.z + 26], [b.x, b.y, b.z + 14], [b.x, b.y, b.z]];
     const t = tubePath(pts, isFrost(k));
     const mesh = pb.mesh(t.geo, t.material, undefined, { uv: 'keep' });
     mesh.userData.flexible = true; mesh.castShadow = true;

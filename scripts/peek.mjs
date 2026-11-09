@@ -18,7 +18,7 @@ const preview = await startPreview();
 const errors = [];
 try {
   for (const job of jobs) {
-    const page = await browser.newPage({ viewport: { width: job.width || 1440, height: job.height || 900 }, deviceScaleFactor: 1 });
+    const page = await browser.newPage({ viewport: { width: job.width || 1440, height: job.height || 900 }, deviceScaleFactor: job.scale || 1 });
     watch(page, errors);
     await page.goto(`http://127.0.0.1:${preview.port}/?hook=1`, { waitUntil: 'load' });
     await page.waitForFunction('window.__pcb && window.__pcb.ready === true', null, { timeout: 300000 });
@@ -27,7 +27,7 @@ try {
     await page.evaluate(() => window.__pcb.settle());
     if (job.eval) console.log(JSON.stringify(await page.evaluate(job.eval)));
     fs.mkdirSync(path.dirname(job.out), { recursive: true });
-    fs.writeFileSync(job.out, await page.screenshot({ type: 'jpeg', quality: 90 }));
+    fs.writeFileSync(job.out, await page.screenshot({ type: 'jpeg', quality: 90, ...(job.clip ? { clip: job.clip } : {}) }));
     console.log(`peek: ${job.out}`);
     await page.close();
   }

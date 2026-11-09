@@ -63,7 +63,7 @@ export class Post {
   constructor(private renderer: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.PerspectiveCamera, tier: Tier) {
     this.tier = tier;
     const s = TIER_SETTINGS[tier];
-    const rt = new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, samples: s.msaa });
+    const rt = new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, samples: s.msaa, stencilBuffer: true });
     this.composer = new EffectComposer(renderer, rt);
     this.render = new RenderPass(scene, camera);
     this.composer.addPass(this.render);

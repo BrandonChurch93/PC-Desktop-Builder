@@ -7,7 +7,7 @@ import { Labels } from '../kit/labels';
 import { fingerMaterial, stripPlane } from '../kit/pcb';
 import { seededFor } from '../kit/rng';
 import { BRAND_TYPE, MODEL_TYPE, SPEC_TYPE, TINY_TYPE } from '../kit/type';
-import { stripLeds, uvAlong, Zone } from '../light/zones';
+import { spillStripRange, stripLeds, uvAlong, Zone } from '../light/zones';
 import type { GenOpts, PartObject } from './types';
 
 const HALF = DIMS.dimmLength / 2;
@@ -57,19 +57,22 @@ export function ramPart(id: string, opts: GenOpts = {}): PartObject {
   const plateTop = line === 'mono' ? height : height - barH + 1.2;
   const plateT = 1.55;
   const gap = PCB_T / 2 + 0.75;
-  const plateMat = frost ? 'aluWhite' : line === 'mono' ? 'aluBlack' : 'aluSatinDark';
+  const plateMat = frost ? 'aluWhite' : line === 'mono' ? 'aluBlack' : 'aluBrushedDark';
+  // The latch cutouts in the board ends stay open: the spreader is notched to match.
+  const rN: [number, number][] = [[HALF - 0.3, 13.0], [HALF - 3.4, 14.2], [HALF - 3.4, 18.2], [HALF - 0.3, 19.4]];
+  const lN: [number, number][] = [[-HALF + 0.3, 19.4], [-HALF + 3.4, 18.2], [-HALF + 3.4, 14.2], [-HALF + 0.3, 13.0]];
   const prof: [number, number][] = line === 'mono'
-    ? [[-HALF + 0.3, spreaderBottom], [HALF - 0.3, spreaderBottom], [HALF - 0.3, plateTop - 3], [HALF - 3.3, plateTop], [-HALF + 3.3, plateTop], [-HALF + 0.3, plateTop - 3]]
-    : [[-HALF + 0.3, spreaderBottom], [HALF - 0.3, spreaderBottom], [HALF - 0.3, plateTop - 5.5], [HALF - 6.5, plateTop], [9.5, plateTop], [5.5, plateTop - 2.6], [-5.5, plateTop - 2.6], [-9.5, plateTop], [-HALF + 6.5, plateTop], [-HALF + 0.3, plateTop - 5.5]];
+    ? [[-HALF + 0.3, spreaderBottom], [HALF - 0.3, spreaderBottom], ...rN, [HALF - 0.3, plateTop - 3], [HALF - 3.3, plateTop], [-HALF + 3.3, plateTop], [-HALF + 0.3, plateTop - 3], ...lN]
+    : [[-HALF + 0.3, spreaderBottom], [HALF - 0.3, spreaderBottom], ...rN, [HALF - 0.3, plateTop - 5.5], [HALF - 6.5, plateTop], [9.5, plateTop], [5.5, plateTop - 2.6], [-5.5, plateTop - 2.6], [-9.5, plateTop], [-HALF + 6.5, plateTop], [-HALF + 0.3, plateTop - 5.5], ...lN];
   for (const side of [1, -1]) {
     const g = extrude(roundedPoly(prof, 0.6), plateT, 0.55, 'xy', 6, 1);
     g.translate(0, 0, side > 0 ? gap : -gap - plateT);
     pb.add(g, plateMat, TO_STICK);
     if (line !== 'mono') {
       const facet = (pts: [number, number][]) => {
-        const f = extrude(polyShape(pts), 0.9, 0.42, 'xy', 2, 1);
+        const f = extrude(polyShape(pts), 1.3, 0.6, 'xy', 2, 2);
         f.translate(0, 0, side > 0 ? gap + plateT - 0.3 : -gap - plateT - 0.6);
-        pb.add(f, plateMat, TO_STICK);
+        pb.add(f, frost ? plateMat : 'aluGunmetal', TO_STICK);
       };
       const top = plateTop - 6; const low = spreaderBottom + 6;
       facet([[-HALF + 8, low], [-14, low], [-4, top - 4], [-HALF + 14, top - 4]]);
@@ -80,10 +83,12 @@ export function ramPart(id: string, opts: GenOpts = {}): PartObject {
   const face = gap + plateT + (line === 'mono' ? 0 : 0.62);
   const brand = brandName(spec?.brand ?? 'calyra');
   const printColor = frost ? '#6a6e78' : '#c3c7cf';
-  for (const side of [1, -1]) {
+  {
+    const side = 1;
     const m = (y: number, z: number) => onSide(side, side * (face + 0.04), y, z);
     labels.text(brand, BRAND_TYPE[spec?.brand ?? 'calyra'] ?? SPEC_TYPE, 3.4, m(side * -30, line === 'mono' ? height * 0.58 : height * 0.5), { color: printColor });
     labels.text(line === 'facet' ? 'FACET' : line === 'crown' ? 'CROWN' : 'MONO', MODEL_TYPE, 2.0, m(side * -30, (line === 'mono' ? height * 0.58 : height * 0.5) - 4.6), { color: frost ? '#8c909a' : '#8a8e98' });
+    labels.text(`DDR5 · ${spec?.gbPerStick ?? 16} GB`, MODEL_TYPE, 2.0, m(side * 30, (line === 'mono' ? height * 0.58 : height * 0.5) - 2.3), { color: frost ? '#8c909a' : '#8a8e98' });
   }
   const capacity = `${spec?.gbPerStick ?? 16} GB DDR5`;
   const labelW = 46; const labelH = 13;
@@ -112,10 +117,24 @@ export function ramPart(id: string, opts: GenOpts = {}): PartObject {
     const barW = 2 * (gap + plateT) - 0.6;
     const z0 = plateTop - 1.6; const z1 = height;
     const zone = new Zone(key, 'ram', false, stripLeds(new THREE.Vector3(0, -HALF + 3, z1 - 2), new THREE.Vector3(0, HALF - 3, z1 - 2), 7.4), 0.2 + (key.length % 7) * 0.09);
-    const diff = zone.diffuser(line === 'crown' ? 0.75 : 0.85, frost ? 0xd9dbe0 : 0x2a2b31, 0.42);
-    const bar = rbox(barW, DIMS.dimmLength - 2, z1 - z0, 1.8, 3);
+    const diff = zone.diffuser(line === 'crown' ? 0.42 : 0.48, frost ? 0xd9dbe0 : 0x2a2b31, 0.42);
+    // The bar follows the notch in the spreader's top line, so the notch reads with the light on.
+    const half = (DIMS.dimmLength - 2) / 2;
+    const barProfile: [number, number][] = line === 'facet'
+      ? [[-half, z0], [half, z0], [half, z1 - 1.2], [half - 1.2, z1], [9.5, z1], [5.5, z1 - 2.6], [-5.5, z1 - 2.6], [-9.5, z1], [-half + 1.2, z1], [-half, z1 - 1.2]]
+      : [[-half, z0], [half, z0], [half, z1 - 1.2], [half - 1.2, z1], [-half + 1.2, z1], [-half, z1 - 1.2]];
+    const bar = extrude(roundedPoly(barProfile, 0.8), barW, 0.6, 'xy', 4, 2);
+    bar.applyMatrix4(new THREE.Matrix4().makeBasis(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1), new THREE.Vector3(1, 0, 0)));
+    bar.translate(-barW / 2, 0, -(z0 + z1) / 2);
     uvAlong(bar, 'y');
     pb.mesh(bar, diff, xf({ p: [0, 0, (z0 + z1) / 2] }), { uv: 'keep' });
+    const spill = zone.spill(frost ? 0.25 : 0.5);
+    for (const sd of [1, -1]) {
+      const sm = new THREE.Matrix4().makeBasis(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1), new THREE.Vector3(sd, 0, 0)).setPosition(sd * (gap + plateT + 0.8), 0, plateTop - 2.9);
+      // One strip below the bar and below the notch in the top line, so the bar never shows a seam.
+      const len = DIMS.dimmLength - 14;
+      pb.mesh(spillStripRange(DIMS.dimmLength - 3, -len / 2, len / 2, 18, 12), spill, sm, { uv: 'keep' }).userData.spill = true;
+    }
     if (line === 'crown') {
       for (let i = 0; i < 9; i++) pb.add(rbox(barW + 0.4, 0.8, 1.2, 0.3, 1), 'aluWhite', xf({ p: [0, -HALF + 10 + i * 14.2, z0 + 0.6] }));
     } else {

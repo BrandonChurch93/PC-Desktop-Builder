@@ -4,6 +4,7 @@ import { DIMS } from '../layout/dims';
 import { cpuBoxes } from '../layout/partBoxes';
 import { at, extrude, PartBuilder, polyShape, rbox, roundedPoly } from '../kit/geometry';
 import { Labels } from '../kit/labels';
+import { smallBoardMaterial } from '../kit/pcb';
 import { canvas, wrap } from '../kit/textures';
 import { BRAND_TYPE, MODEL_TYPE, SPEC_TYPE, TINY_TYPE } from '../kit/type';
 import { seededFor } from '../kit/rng';
@@ -45,12 +46,13 @@ export function cpuPart(id: string, opts: GenOpts = {}): PartObject {
   const hb = spec?.platform === 'hb';
   const [w, h] = hb ? [40, 58] : [45, 45];
   const pb = new PartBuilder(`cpu-${id}`);
-  const labels = new Labels(pb, 34);
+  const labels = new Labels(pb, 64);
   void opts;
   const sub = hb
     ? roundedPoly([[-w / 2, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2 + 4.2, h / 2], [-w / 2, h / 2 - 4.2]], 0.6)
     : roundedPoly([[-w / 2, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]], 0.7);
-  pb.add(extrude(sub, SUB_T, 0.2, 'xy', 8), hb ? 'pcbBlack' : 'pcbGreen');
+  const subLook = hb ? { mask: 'rgba(20,24,30,1)', trace: 'rgba(36,44,56,1)', pad: 'rgba(170,150,104,1)', body: 'rgba(48,44,38,1)' } : { mask: 'rgba(16,60,40,1)', trace: 'rgba(30,86,58,1)', pad: 'rgba(176,154,104,1)', body: 'rgba(48,44,38,1)' };
+  pb.add(extrude(sub, SUB_T, 0.2, 'xy', 8), smallBoardMaterial(`cpu-${id}`, w, h, subLook, [-w / 2, -h / 2]));
   const pads = padTexture(w, h, hb, id);
   const under = new THREE.ShapeGeometry(sub, 8);
   under.rotateX(Math.PI);
@@ -62,16 +64,16 @@ export function cpuPart(id: string, opts: GenOpts = {}): PartObject {
 
   const skirt = hb ? [w - 4.5, h - 5] : [w - 4.2, w - 4.2];
   const top = hb ? [w - 9, h - 9] : [w - 10, w - 10];
-  const ihsMat = hb ? 'nickel' : 'nickel';
+  const ihsMat = 'nickelLapped';
   const skirtShape = hb
     ? roundedPoly([[-skirt[0]! / 2, -skirt[1]! / 2], [skirt[0]! / 2, -skirt[1]! / 2], [skirt[0]! / 2, skirt[1]! / 2], [-skirt[0]! / 2 + 3, skirt[1]! / 2], [-skirt[0]! / 2, skirt[1]! / 2 - 3]], 1.6)
     : roundedPoly([[-skirt[0]! / 2, -skirt[1]! / 2], [skirt[0]! / 2, -skirt[1]! / 2], [skirt[0]! / 2, skirt[1]! / 2], [-skirt[0]! / 2, skirt[1]! / 2]], 2.2);
-  pb.add(extrude(skirtShape, 1.1, 0.35, 'xy', 10), ihsMat, at(0, 0, SUB_T));
+  pb.add(extrude(skirtShape, 1.1, 0.5, 'xy', 12, 3), ihsMat, at(0, 0, SUB_T));
   const plate = hb
     ? roundedPoly([[-top[0]! / 2, -top[1]! / 2], [top[0]! / 2, -top[1]! / 2], [top[0]! / 2, top[1]! / 2], [-top[0]! / 2 + 2.4, top[1]! / 2], [-top[0]! / 2, top[1]! / 2 - 2.4]], 1.5)
     : roundedPoly([[-top[0]! / 2, -top[1]! / 2], [top[0]! / 2, -top[1]! / 2], [top[0]! / 2, top[1]! / 2], [-top[0]! / 2, top[1]! / 2]], 2.4);
   const total = DIMS.cpuTop - 2;
-  pb.add(extrude(plate, total - SUB_T - 1.1 + 0.02, 0.5, 'xy', 10), ihsMat, at(0, 0, SUB_T + 1.08));
+  pb.add(extrude(plate, total - SUB_T - 1.1 + 0.02, 0.7, 'xy', 12, 3), ihsMat, at(0, 0, SUB_T + 1.08));
   if (!hb) {
     for (const [sx, sy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as [number, number][]) {
       pb.add(rbox(sx ? 1.2 : 8, sy ? 1.2 : 8, 0.6, 0.2, 1), 'nickel', at(sx * (skirt[0]! / 2 + 0.4), sy * (skirt[1]! / 2 + 0.4), SUB_T + 0.3));

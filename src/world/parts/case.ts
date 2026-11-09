@@ -128,8 +128,8 @@ function vitrine(pb: PartBuilder, labels: Labels, spec: CaseSpec, L: CaseLayout,
     const cover = pb.group(`slot-cover-${k + 1}`, pb.root, at(x0 + 1.5, slotTop - sp * (k + 0.5), 0));
     const sh = new THREE.Shape(); rrect(sh, -66, -sp / 2 + 0.6, 118, sp - 1.2, 1);
     for (let v = 0; v < 6; v++) sh.holes.push(rrectHole(10, 2.6, 1.2, -50 + v * 15, 0));
-    pb.add(extrude(sh, 0.8, 0.15, 'xy', 4, 1), light ? 'steelBare' : 'aluBlack', new THREE.Matrix4().multiply(ZY).multiply(at(0, 0, -0.8)), { to: cover });
-    pb.add(rbox(8, sp - 1.6, 0.8, 0.3, 1), light ? 'steelBare' : 'aluBlack', at(-4.2, 0, 50.5), { to: cover });
+    pb.add(extrude(sh, 0.8, 0.15, 'xy', 4, 1), light ? 'steelBare' : 'powderBlack', new THREE.Matrix4().multiply(ZY).multiply(at(0, 0, -0.8)), { to: cover });
+    pb.add(rbox(8, sp - 1.6, 0.8, 0.3, 1), light ? 'steelBare' : 'powderBlack', at(-4.2, 0, 50.5), { to: cover });
     movers[`slot-cover-${k + 1}`] = cover;
   }
   screwsAt(pb, Array.from({ length: 7 }, (_, k) => xf({ p: [x0 - 6.2, slotTop - sp * (k + 0.5), 48], r: [0, -PI / 2, 0] })), 'pan', screwColor, 2.6);
@@ -146,7 +146,7 @@ function vitrine(pb: PartBuilder, labels: Labels, spec: CaseSpec, L: CaseLayout,
     br.holes.push(circleHole(0, fy, 57.5));
     for (const [dy, dz] of HOLES4) br.holes.push(circleHole(dz, fy + dy, 2.2));
   }
-  pb.add(extrude(br, 1.5, 0.4, 'xy', 24), F.inner, new THREE.Matrix4().makeTranslation(224.5, 0, 0).multiply(ZY));
+  pb.add(extrude(br, 1.5, 0.2, 'xy', 24, 1), F.inner, new THREE.Matrix4().makeTranslation(224.5, 0, 0).multiply(ZY));
   labels.text(brandName(spec.brand), BRAND_TYPE[spec.brand] ?? SPEC_TYPE, 3.2, xf({ p: [x1 + 0.05, y0 + 8.5, 0], r: [0, PI / 2, 0] }), { color: light ? '#7b7f88' : '#8d919a' });
 
   // board tray: cutouts with rubber grommets, standoffs for every board size
@@ -180,24 +180,41 @@ function vitrine(pb: PartBuilder, labels: Labels, spec: CaseSpec, L: CaseLayout,
   for (let rr = 0; rr < 4; rr++) for (let c = 0; c < 10; c++) st.holes.push(rrectHole(15, 4.6, 2.3, -200 + c * 19, -(-10 - rr * 12)));
   const gc = L.grommets.find((g) => g.id === 'gpu');
   if (gc) st.holes.push(rrectHole(gc.size[0], gc.size[1], 8, gc.center[0], -gc.center[2]));
+  // A smoked window over the drive cage, so a drive in the upper bay shows its label from above.
+  const shw = { x: 71, z: 54, w: 98, d: 96 };
+  st.holes.push(rrectHole(shw.w, shw.d, 6, shw.x, -shw.z));
   pb.add(extrude(st, 1.5, 0.45, 'xy', 12), F.shell, new THREE.Matrix4().makeTranslation(0, 116.5, 0).multiply(new THREE.Matrix4().makeRotationX(-PI / 2)).multiply(new THREE.Matrix4().makeTranslation(0, 0, 0)));
   if (gc) {
     const ring = rrectShape(gc.size[0] + 6, gc.size[1] + 6, 10, gc.center[0], -gc.center[2]);
     ring.holes.push(rrectHole(gc.size[0] - 2, gc.size[1] - 2, 7, gc.center[0], -gc.center[2]));
     pb.add(extrude(ring, 2.8, 0.9, 'xy', 12, 2), F.foot, new THREE.Matrix4().makeTranslation(0, 117.2, 0).multiply(new THREE.Matrix4().makeRotationX(-PI / 2)));
   }
+  {
+    const gasket = rrectShape(shw.w + 5, shw.d + 5, 8.5, shw.x, -shw.z);
+    gasket.holes.push(rrectHole(shw.w - 3, shw.d - 3, 4.5, shw.x, -shw.z));
+    pb.add(extrude(gasket, 2.2, 0.7, 'xy', 12, 2), F.foot, new THREE.Matrix4().makeTranslation(0, 117.0, 0).multiply(new THREE.Matrix4().makeRotationX(-PI / 2)));
+    const top = pb.mesh(rbox(shw.w - 1, 2, shw.d - 1, 0.6, 2), pb.own(Object.assign((mat('glassTint') as THREE.MeshPhysicalMaterial).clone(), { opacity: 0.5 })), at(shw.x, 117.0, shw.z), { shadow: true });
+    top.renderOrder = 10; top.userData.glass = true;
+    const topSpec = pb.mesh(new THREE.PlaneGeometry(shw.w - 2, shw.d - 2), mat('glassSpec'), xf({ p: [shw.x, 118.05, shw.z], r: [-PI / 2, 0, 0] }));
+    topSpec.renderOrder = 11; topSpec.userData.glass = true; topSpec.userData.glassSpec = true;
+  }
   pb.add(rbox(sz1 - sz0, 98, 1.5, 0.5, 2), F.shell, xf({ p: [164.25, 67.5, (sz0 + sz1) / 2], r: [0, PI / 2, 0] }));
   const sideW = new THREE.Shape(); rrect(sideW, sx0, y0 + 2, 163.5 - sx0, 96.5, 2);
   sideW.holes.push(rrectHole(150, 72, 5, 82, 64));
   pb.add(extrude(sideW, 1.5, 0.45, 'xy', 8), F.shell, at(0, 0, 110));
-  perforated(pb, F, 154, 76, at(82, 64, 110.2), 2);
+  const win = pb.mesh(rbox(152, 74, 1.6, 0.6, 2), pb.own(Object.assign((mat('glassTint') as THREE.MeshPhysicalMaterial).clone(), { opacity: 0.42 })), at(82, 64, 110.75));
+  win.renderOrder = 10; win.userData.glass = true;
+  const winSpec = pb.mesh(new THREE.PlaneGeometry(150, 72), mat('glassSpec'), at(82, 64, 111.6));
+  winSpec.renderOrder = 11; winSpec.userData.glass = true; winSpec.userData.glassSpec = true;
   pb.add(rbox(76, 20, 0.8, 0.35, 2), F.accent, at(-150, 66, 111.9));
   labels.text(brandName(spec.brand), BRAND_TYPE[spec.brand] ?? SPEC_TYPE, 3.6, at(-150, 66, 112.34), { color: light ? '#5d616a' : '#d2d5dc' });
   pb.add(rbox(400, 0.8, 3.0, 0.3, 1), F.inner, at(-30, 117.6, 108));
 
   // 3.5 inch cage with two sleds, drives lying lengthwise behind the shroud window
   pb.add(rbox(162, 84, 2, 0.6, 2), F.inner, at(81, 62, -7));
-  pb.add(rbox(2, 84, 112, 0.6, 2), F.inner, at(-1, 62, 48));
+  const cageEnd = rrectShape(112, 84, 0.6, -48, 62);
+  for (const bay of L.bays35) cageEnd.holes.push(rrectHole(52, 14.4, 3, -60, bay.pose.pos[1] + 7.8));
+  pb.add(extrude(cageEnd, 2, 0.5, 'zy', 8), F.inner, at(-2, 0, 0));
   pb.add(rbox(162, 2, 110, 0.6, 2), F.inner, at(81, 59, 49));
   for (const y of [22, 60]) {
     for (const s of [-1, 1]) pb.add(rbox(150, 6, 4, 0.8, 2), light ? 'plasticWhite' : 'plasticMatte', at(82, y + 3, 46 + s * 53));
@@ -207,7 +224,8 @@ function vitrine(pb: PartBuilder, labels: Labels, spec: CaseSpec, L: CaseLayout,
   for (const bay of L.bays25) pb.add(rbox(74, 104, 1.0, 0.6, 2), F.inner, at(bay.pose.pos[0], bay.pose.pos[1] + 50, trayZ - 0.5));
 
   // feet
-  for (const fx of [-175, 175]) {
+  // Feet near the corners, flush with the end panels, so they stand where the case's weight is and catch the light.
+  for (const fx of [-198, 198]) {
     pb.add(rbox(60, 14, 210, 4, 3), F.trim, at(fx, 11, 0));
     pb.add(rbox(52, 4, 200, 1.6, 2), F.foot, at(fx, 2, 0));
   }

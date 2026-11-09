@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { textures, TILE_MM, type TextureSet } from './textures';
 
 export type MatName =
-  | 'powderBlack' | 'powderBlackInner' | 'powderWhite' | 'powderWhiteInner' | 'powderGunmetal' | 'powderGunmetalInner' | 'powderPanel' | 'panelPowder' | 'finAnodized' | 'capTop' | 'capBody' | 'plasticMolded' | 'finGraphite' | 'aluLid' | 'aluStamp'
+  | 'powderBlack' | 'powderBlackInner' | 'powderWhite' | 'powderWhiteInner' | 'powderGunmetal' | 'powderGunmetalInner' | 'powderPanel' | 'panelPowder' | 'finAnodized' | 'capTop' | 'capBody' | 'pcbCore' | 'plasticMolded' | 'finGraphite' | 'aluLid' | 'aluStamp'
   | 'steelBare' | 'steelZinc'
   | 'aluBlack' | 'aluSilver' | 'aluWhite' | 'aluRaw' | 'aluBrushed' | 'aluBrushedDark' | 'aluBrushedPlate' | 'aluAnodized' | 'aluCast' | 'aluSatin' | 'aluSatinDark' | 'aluGunmetal'
   | 'nickel' | 'nickelLapped' | 'pipeNickel' | 'copper' | 'gold' | 'solder'
@@ -120,6 +120,7 @@ function makeMat(name: MatName): THREE.Material {
     case 'pcbWhite': return physical({ color: 0xe6e7ea, metalness: 0.05, roughness: 0.38, clearcoat: 0.6, clearcoatRoughness: 0.2, roughnessMap: t.grainFine });
     case 'pcbGreen': return physical({ color: 0x0f3a24, metalness: 0.05, roughness: 0.48, clearcoat: 0.3, clearcoatRoughness: 0.35 });
     case 'pcbEdge': return physical({ color: 0x8b7f5c, metalness: 0, roughness: 0.75 });
+    case 'pcbCore': return physical({ color: 0x4a4538, metalness: 0, roughness: 0.86, specularIntensity: 0.4 });
     case 'chip': return physical({ color: 0x1e1f23, metalness: 0, roughness: 0.55, roughnessMap: t.grainFine });
     case 'chipWhite': return physical({ color: 0xcfd0d4, metalness: 0, roughness: 0.5 });
     // Ceramic chip capacitors a millimeter long: a duller tan, as a brighter one read as a lone sparkle a pixel wide.

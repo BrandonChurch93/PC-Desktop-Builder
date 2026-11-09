@@ -137,6 +137,14 @@ export function ramPart(id: string, opts: GenOpts = {}): PartObject {
       const m = new THREE.Matrix4().makeBasis(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1), new THREE.Vector3(sd, 0, 0)).setPosition(sd * (gap + plateT + 1.06), 0, z0 + 1.1);
       pb.mesh(spillStripRange(total, -outer, outer, 20, 16), spill, m, { uv: 'keep' }).userData.spill = true;
     }
+    // The white kit label on the back takes the bar's light as well, fading down from its top edge.
+    if (line !== 'mono') {
+      const lt = spreaderBottom + 3 + 13;
+      const lm = new THREE.Matrix4().makeBasis(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1), new THREE.Vector3(1, 0, 0)).setPosition(-(gap + plateT + 0.62 + 0.24), 0, lt);
+      const ls = pb.mesh(spillStripRange(total, 28 - 23, 28 + 23, 13, 12), zone.spill(frost ? 0.18 : 0.32), lm, { uv: 'keep' });
+      // Drawn after the label's print, which is blended and was covering it.
+      ls.userData.spill = true; ls.renderOrder = 6;
+    }
     if (line === 'crown') {
       for (let i = 0; i < 9; i++) pb.add(rbox(barW + 0.4, 0.8, 1.2, 0.3, 1), 'aluWhite', xf({ p: [0, -HALF + 10 + i * 14.2, z0 + 0.6] }));
     } else {

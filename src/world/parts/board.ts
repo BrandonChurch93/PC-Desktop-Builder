@@ -297,7 +297,8 @@ export function boardPart(id: string, opts: GenOpts = {}): PartObject {
 
   const outline = new THREE.Shape(); rrect(outline, 0, -L.h, L.w, L.h, 1.2);
   for (const [x, y] of L.holes) outline.holes.push(circleHole(x, y, 1.9));
-  pb.add(extrude(outline, T, 0.2, 'xy', 12, 1), look.frost ? 'pcbWhite' : 'pcbBlack');
+  // The body shows only at its edges, where a board shows its matte fiberglass core: a clearcoated edge broke into dashes.
+  pb.add(extrude(outline, T, 0.35, 'xy', 12, 2), 'pcbCore');
   const ppm = Math.max(4, Math.round(9 * detail));
   const surf = surface(b, L, look, ppm);
   const topMat = pb.own(new THREE.MeshPhysicalMaterial({ map: pb.own(surf.map), bumpMap: pb.own(surf.bump), bumpScale: 0.6, roughness: look.frost ? 0.42 : 0.38, metalness: 0.05, clearcoat: 0.55, clearcoatRoughness: 0.22, alphaTest: 0.5 }));

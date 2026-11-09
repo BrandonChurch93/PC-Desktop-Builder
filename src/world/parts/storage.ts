@@ -63,7 +63,8 @@ function nvme(pb: PartBuilder, labels: Labels) {
   s.lineTo(L, W / 2 - 0.6); s.quadraticCurveTo(L, W / 2, L - 0.6, W / 2); s.lineTo(0, W / 2);
   s.lineTo(0, -W / 2 + 4.3); s.lineTo(3.8, -W / 2 + 4.3); s.lineTo(3.8, -W / 2 + 3.1); s.lineTo(0, -W / 2 + 3.1); s.closePath();
   pb.add(extrude(s, T, 0.12, 'xy', 18), 'pcbEdge');
-  const boardMat = smallBoardMaterial('nvme', L, W, { mask: 'rgba(18,20,24,1)', trace: 'rgba(36,42,52,1)', pad: 'rgba(150,140,112,1)', body: 'rgba(46,42,36,1)' }, [0, -W / 2]);
+  // A dense board: an M.2 stick is routed edge to edge around its controller.
+  const boardMat = smallBoardMaterial('nvme', L, W, { mask: 'rgba(18,20,24,1)', trace: 'rgba(50,58,72,1)', pad: 'rgba(150,140,112,1)', body: 'rgba(46,42,36,1)' }, [0, -W / 2], 3);
   pb.mesh(new THREE.ShapeGeometry(s, 18), boardMat, at(0, 0, T + 0.025), { uv: 'keep' });
   pb.mesh(new THREE.ShapeGeometry(s, 18), boardMat, xf({ p: [0, 0, -0.025], r: [Math.PI, 0, 0] }), { uv: 'keep' });
   // The M key gap has to land over the notch in the board on both faces: the top face plane runs the other way.
@@ -79,13 +80,20 @@ function nvme(pb: PartBuilder, labels: Labels) {
   pb.add(rbox(14, 17, 1.25, 0.3, 1), 'chip', xf({ p: [50, 0, T + 0.62] }));
   pb.add(rbox(6, 5, 0.9, 0.2, 1), 'chip', xf({ p: [66, -5, T + 0.45] }));
   const r = seededFor('nvme');
-  for (let i = 0; i < 26; i++) pb.add(rbox(1.0, 0.5, 0.45, 0.1, 1), r() > 0.5 ? 'ceramic' : 'chip', xf({ p: [6 + r() * 66, (r() - 0.5) * 18, T + 0.22] }));
-  pb.add(new THREE.BoxGeometry(38, 18.6, 0.12), 'labelPaper', xf({ p: [41, 0, T + 1.36] }), { uv: 'box' });
+  // Passives where the label does not cover the board: around the controller and toward the screw end.
+  for (let i = 0; i < 48; i++) {
+    const x = r() > 0.5 ? 5 + r() * 14 : 62 + r() * 12; const y = (r() - 0.5) * 18;
+    if (x > 9 && x < 16 && Math.abs(y) < 7) continue;
+    if (x > 62.5 && x < 69.5 && y > -8 && y < -2) continue;
+    pb.add(rbox(1.0, 0.5, 0.45, 0.1, 1), r() > 0.5 ? 'ceramic' : 'chip', xf({ p: [x, y, T + 0.22], r: [0, 0, r() > 0.5 ? Math.PI / 2 : 0] }));
+  }
+  // The label is a thin sticker laid over the two flash packages: it stands at their height and rolls down to the board at its edges.
+  pb.add(extrude(rrectShape(39.4, 20, 1.6), 1.36, 0.66, 'xy', 8, 3), 'sticker', at(41, 0, T));
   const spec = getStorage('nvme');
   labels.text('PELLAM', TINY_TYPE, 1.2, xf({ p: [12.5, 2.6, T + 1.22] }), { color: '#9a9ea7' });
   labels.text('PL-C2 2611', TINY_TYPE, 0.9, xf({ p: [12.5, 0.4, T + 1.22] }), { color: '#80848d' });
   labels.text('E2 · 4R7', TINY_TYPE, 0.7, xf({ p: [66, -5, T + 0.92] }), { color: '#80848d' });
-  gridLabel(labels, 38, 18.6, xf({ p: [41, 0, T + 1.44] }), ['NVMe PCIe 4.0', '2280 M KEY', '3.3 V 2.5 A', 'PN PL-AR2T', 'SN 26118407', 'MADE FOR BENCH'], brandName(spec?.brand ?? 'pellam').toUpperCase(), spec?.name ?? 'Arrow 2 TB', TAB_COLOR.nvme, true);
+  gridLabel(labels, 38, 18.6, xf({ p: [41, 0, T + 1.39] }), ['NVMe PCIe 4.0', '2280 M KEY', '3.3 V 2.5 A', 'PN PL-AR2T', 'SN 26118407', 'MADE FOR BENCH'], brandName(spec?.brand ?? 'pellam').toUpperCase(), spec?.name ?? 'Arrow 2 TB', TAB_COLOR.nvme, true);
   labels.text('M.2 2280', TINY_TYPE, 0.8, xf({ p: [76.5, 7.8, T + 0.02] }), { color: '#8f949c' });
   for (let i = 0; i < 5; i++) pb.add(rbox(1.0, 1.5, 0.6, 0.1, 1), 'chip', xf({ p: [5.5 + i * 1.6, 9.2, -0.3] }));
   labels.text('PELLAM · ARROW · REV B', TINY_TYPE, 0.9, xf({ p: [40, 0, -0.02], r: [Math.PI, 0, 0] }), { color: '#8f949c' });

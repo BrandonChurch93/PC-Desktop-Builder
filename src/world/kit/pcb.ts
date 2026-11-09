@@ -39,7 +39,7 @@ export function stripPlane(w: number, h: number): THREE.PlaneGeometry {
 const boardCache = new Map<string, THREE.MeshPhysicalMaterial>();
 
 /** Solder mask for a small board (drive, card edge): traces, vias and tidy clusters of passives, drawn in mm with uv in mm. */
-export function smallBoardMaterial(key: string, wMm: number, hMm: number, look: { mask: string; trace: string; pad: string; body: string }, origin: [number, number] = [0, 0]): THREE.MeshPhysicalMaterial {
+export function smallBoardMaterial(key: string, wMm: number, hMm: number, look: { mask: string; trace: string; pad: string; body: string }, origin: [number, number] = [0, 0], density = 1): THREE.MeshPhysicalMaterial {
   const hit = boardCache.get(key);
   if (hit) return hit;
   const ppm = 10;
@@ -49,7 +49,7 @@ export function smallBoardMaterial(key: string, wMm: number, hMm: number, look: 
   g.fillStyle = look.mask; g.fillRect(0, 0, W, H);
   g.strokeStyle = look.trace; g.lineWidth = 0.3 * ppm; g.lineCap = 'round'; g.lineJoin = 'round';
   const step = 1.27;
-  for (let i = 0; i < Math.round((wMm * hMm) / 90); i++) {
+  for (let i = 0; i < Math.round((wMm * hMm * density) / 90); i++) {
     let x = Math.round((r() * wMm) / step) * step; let y = Math.round((r() * hMm) / step) * step;
     g.beginPath(); g.moveTo(x * ppm, y * ppm);
     let dir = Math.floor(r() * 4);
@@ -62,7 +62,7 @@ export function smallBoardMaterial(key: string, wMm: number, hMm: number, look: 
     g.stroke();
     if (i % 3 === 0) { g.fillStyle = look.pad; g.beginPath(); g.arc(x * ppm, y * ppm, 0.34 * ppm, 0, Math.PI * 2); g.fill(); g.fillStyle = look.mask; g.beginPath(); g.arc(x * ppm, y * ppm, 0.14 * ppm, 0, Math.PI * 2); g.fill(); }
   }
-  for (let i = 0; i < Math.round((wMm * hMm) / 400); i++) {
+  for (let i = 0; i < Math.round((wMm * hMm * density) / 400); i++) {
     const x0 = 3 + r() * (wMm - 12); const y0 = 3 + r() * (hMm - 12); const along = r() > 0.5; const n = 3 + Math.floor(r() * 5);
     for (let k = 0; k < n; k++) {
       const x = along ? x0 + k * 1.8 : x0; const y = along ? y0 : y0 + k * 1.8;

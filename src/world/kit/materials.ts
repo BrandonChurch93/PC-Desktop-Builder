@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { textures, TILE_MM, type TextureSet } from './textures';
 
 export type MatName =
-  | 'powderBlack' | 'powderBlackInner' | 'powderWhite' | 'powderWhiteInner' | 'powderGunmetal' | 'powderGunmetalInner' | 'powderPanel' | 'panelPowder' | 'aluLid' | 'aluStamp'
+  | 'powderBlack' | 'powderBlackInner' | 'powderWhite' | 'powderWhiteInner' | 'powderGunmetal' | 'powderGunmetalInner' | 'powderPanel' | 'panelPowder' | 'finAnodized' | 'capTop' | 'capBody' | 'plasticMolded' | 'finGraphite' | 'aluLid' | 'aluStamp'
   | 'steelBare' | 'steelZinc'
   | 'aluBlack' | 'aluSilver' | 'aluWhite' | 'aluRaw' | 'aluBrushed' | 'aluBrushedDark' | 'aluBrushedPlate' | 'aluAnodized' | 'aluCast' | 'aluSatin' | 'aluSatinDark' | 'aluGunmetal'
   | 'nickel' | 'nickelLapped' | 'pipeNickel' | 'copper' | 'gold' | 'solder'
@@ -39,8 +39,8 @@ const plastic = (color: number, rough: number, extra: THREE.MeshPhysicalMaterial
   color, metalness: 0, roughness: rough, roughnessMap: tex().grain, specularIntensity: 0.55, ...extra,
 });
 
-/** Mean coverage of the perforation tile: two holes of radius 0.4 tile in a 1 by root 3 cell leave 58 percent open. */
-const PERF_MEAN = 0.42;
+/** Mean coverage of the perforation tile: two holes of radius 0.38 tile in a 1 by root 3 cell leave 52 percent open. */
+const PERF_MEAN = 0.48;
 
 /**
  * Perforated sheet: crisp holes up close, and where a hole spans less than about two pixels the coverage
@@ -85,6 +85,12 @@ function makeMat(name: MatName): THREE.Material {
     case 'aluBrushedPlate': return metal(0x383b43, 0.68, t.brushedCoarse, { anisotropy: 0.3, bumpMap: t.brushedCoarse, bumpScale: 0.12 });
     // A dark coated casting: bare grey metal mirrored the key light as a lone hot point on the rounded corners.
     case 'aluCast': return metal(0x4a4d53, 0.64, t.grain);
+    // Thin anodized fins are seen edge on, where a clearcoat and half metal turned them silver: matte and mostly dielectric.
+    case 'finAnodized': return physical({ color: 0x18191c, metalness: 0.3, roughness: 0.64, roughnessMap: t.mottle });
+    case 'capTop': return metal(0x9a9da3, 0.62, t.mottle);
+    case 'capBody': return metal(0x2c2e33, 0.55, t.mottle);
+    // Graphite cards: a darker fin grey, so fins seen through the backplate's vents read as fins and not as bright bars.
+    case 'finGraphite': return metal(0x5e6168, 0.62, t.mottle);
     case 'aluAnodized': return physical({ color: 0x1c1d21, metalness: 0.5, roughness: 0.52, roughnessMap: t.grainFine, clearcoat: 0.2, clearcoatRoughness: 0.5 });
     case 'aluSatin': return metal(0xc4c7cc, 0.5, t.brushedCoarse);
     // A drive cover seen at the closest zoom: a fine brush, as the coarse one broke into dark streaks there.
@@ -99,7 +105,8 @@ function makeMat(name: MatName): THREE.Material {
     case 'gold': return metal(0xe3bc68, 0.22, null);
     case 'solder': return metal(0xb9bcc0, 0.3, null);
     case 'plasticMatte': return plastic(0x232428, 0.6);
-    case 'plasticSatin': return physical({ color: 0x222328, metalness: 0, roughness: 0.5, roughnessMap: t.grainFine, bumpMap: t.bead, bumpScale: 0.03, specularIntensity: 0.6 });
+    // A card shroud's textured molded finish, visible at the closest zoom.
+    case 'plasticSatin': return physical({ color: 0x222328, metalness: 0, roughness: 0.5, roughnessMap: t.bead, bumpMap: t.bead, bumpScale: 0.14, specularIntensity: 0.6 });
     case 'plasticSoft': return plastic(0x25262b, 0.82, { sheen: 0.25, sheenRoughness: 0.8, sheenColor: new THREE.Color(0x3a3d48) });
     case 'plasticGloss': return physical({ color: 0x0f0f12, metalness: 0, roughness: 0.22, clearcoat: 0.8, clearcoatRoughness: 0.14 });
     case 'plasticWhite': return plastic(0xe1e2e6, 0.55);
@@ -115,7 +122,8 @@ function makeMat(name: MatName): THREE.Material {
     case 'pcbEdge': return physical({ color: 0x8b7f5c, metalness: 0, roughness: 0.75 });
     case 'chip': return physical({ color: 0x1e1f23, metalness: 0, roughness: 0.55, roughnessMap: t.grainFine });
     case 'chipWhite': return physical({ color: 0xcfd0d4, metalness: 0, roughness: 0.5 });
-    case 'ceramic': return physical({ color: 0x8a7a62, metalness: 0, roughness: 0.6 });
+    // Ceramic chip capacitors a millimeter long: a duller tan, as a brighter one read as a lone sparkle a pixel wide.
+    case 'ceramic': return physical({ color: 0x5f5444, metalness: 0, roughness: 0.78 });
     case 'ferrite': return physical({ color: 0x24252a, metalness: 0.2, roughness: 0.55, roughnessMap: t.grain });
     case 'glassTint': return new THREE.MeshPhysicalMaterial({ color: 0x0b0c12, metalness: 0, roughness: 1, transparent: true, opacity: 0.16, depthWrite: false, specularIntensity: 0 });
     case 'glassSpec': return clampGlass(physical({ color: 0x000000, metalness: 0, roughness: 0.03, ior: 1.52, specularIntensity: 1, envMapIntensity: 1, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
@@ -137,7 +145,9 @@ function makeMat(name: MatName): THREE.Material {
     case 'meshGunmetal': return perforatedSheet(physical({ color: 0x45484f, metalness: 0.5, roughness: 0.42, alphaMap: t.perf, alphaTest: 0.5, alphaToCoverage: true, side: THREE.DoubleSide }));
     case 'meshRaw': return perforatedSheet(physical({ color: 0xb6b9be, metalness: 1, roughness: 0.48, alphaMap: t.perf, alphaTest: 0.5, alphaToCoverage: true, side: THREE.DoubleSide }));
     case 'labelPaper': return physical({ color: 0xc4c5c8, metalness: 0, roughness: 0.7, specularIntensity: 0.25 });
-    case 'sticker': return physical({ color: 0x1a1b1f, metalness: 0, roughness: 0.42, clearcoat: 0.25, clearcoatRoughness: 0.3 });
+    case 'sticker': return physical({ color: 0x1a1b1f, metalness: 0, roughness: 0.5, roughnessMap: t.grain, bumpMap: t.bead, bumpScale: 0.07, clearcoat: 0.25, clearcoatRoughness: 0.34 });
+    // Molded hub plastic with the fine texture an injection mold leaves.
+    case 'plasticMolded': return plastic(0x232428, 0.62, { roughnessMap: t.bead, bumpMap: t.bead, bumpScale: 0.12 });
     case 'thermalPad': return physical({ color: 0x5f6670, metalness: 0, roughness: 0.8 });
     case 'diffuserOff': return physical({ color: 0x2a2b31, metalness: 0, roughness: 0.4, transmission: 0, clearcoat: 0.2 });
     case 'darkVoid': return new THREE.MeshBasicMaterial({ color: 0x050507 });
@@ -286,7 +296,7 @@ export const FINISHES: Record<string, CaseFinish> = {
 /** Part colorways: graphite is black and dark metal, frost is white and pale metal. */
 export type PartFinish = { body: MatName; metal: MatName; pcb: MatName; plastic: MatName; fin: MatName; blade: MatName };
 export const PART_FINISHES: Record<'graphite' | 'frost', PartFinish> = {
-  graphite: { body: 'plasticMatte', metal: 'aluBrushedDark', pcb: 'pcbBlack', plastic: 'plasticMatte', fin: 'finGrey', blade: 'bladeBlack' },
+  graphite: { body: 'plasticMatte', metal: 'aluBrushedDark', pcb: 'pcbBlack', plastic: 'plasticMatte', fin: 'finGraphite', blade: 'bladeBlack' },
   frost: { body: 'plasticWhite', metal: 'aluBrushed', pcb: 'pcbWhite', plastic: 'plasticWhite', fin: 'finSilver', blade: 'bladeWhite' },
 };
 

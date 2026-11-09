@@ -12,13 +12,19 @@ import type { Anchor, GenOpts, PartObject } from './types';
 const PI = Math.PI;
 
 /** Hexagonal holes inside a region, as hole paths for a shape. Cells are measured across flats. */
-export function honeycombHoles(region: (x: number, y: number) => boolean, x0: number, x1: number, y0: number, y1: number, cell: number, wall: number): THREE.Path[] {
+export function honeycombHoles(region: (x: number, y: number) => boolean, x0: number, x1: number, y0: number, y1: number, cell: number, wall: number, centered = false): THREE.Path[] {
   const holes: THREE.Path[] = [];
   const r = (cell - wall) / Math.sqrt(3);
   const dx = cell; const dy = cell * Math.sqrt(3) / 2;
-  let row = 0;
-  for (let y = y0 + r; y <= y1 - r; y += dy, row++) {
-    for (let x = x0 + r + (row % 2 ? dx / 2 : 0); x <= x1 - r; x += dx) {
+  // The grid is centered on the region, so a round grille is filled evenly to its rim on every side.
+  const cx = centered ? (x0 + x1) / 2 : x0 + r; const cy = centered ? (y0 + y1) / 2 : y0 + r;
+  const nr = Math.ceil((y1 - y0) / dy) + 1; const nc = Math.ceil((x1 - x0) / dx) + 1;
+  for (let j = -nr; j <= nr; j++) {
+    const y = cy + j * dy;
+    if (y < y0 + r || y > y1 - r) continue;
+    for (let i = -nc; i <= nc; i++) {
+      const x = cx + i * dx + ((centered ? Math.abs(j) : j) % 2 ? dx / 2 : 0);
+      if (x < x0 + r || x > x1 - r) continue;
       let ok = true;
       for (let k = 0; k < 6 && ok; k++) { const a = (k / 6) * PI * 2 + PI / 6; ok = region(x + Math.cos(a) * r * 1.05, y + Math.sin(a) * r * 1.05); }
       if (!ok) continue;
@@ -46,10 +52,12 @@ export function psuPart(id: string, opts: GenOpts = {}): PartObject {
   const t = 1.0; const bend = 3;
 
   const u = new THREE.Shape();
-  u.moveTo(-W / 2, H - t); u.lineTo(-W / 2, bend); u.absarc(-W / 2 + bend, bend, bend, PI, PI * 1.5, false);
-  u.lineTo(W / 2 - bend, 0); u.absarc(W / 2 - bend, bend, bend, -PI / 2, 0, false); u.lineTo(W / 2, H - t);
-  u.lineTo(W / 2 - t, H - t); u.lineTo(W / 2 - t, bend); u.absarc(W / 2 - bend, bend, bend - t, 0, -PI / 2, true);
-  u.lineTo(-W / 2 + bend, t); u.absarc(-W / 2 + bend, bend, bend - t, -PI / 2, -PI, true); u.lineTo(-W / 2 + t, H - t); u.closePath();
+  // The base U stops under the cover's rounded edge; the cover is a thick plate with a 1.5 mm radius all round.
+  const capT = 3.4; const wallTop = H - 2.0;
+  u.moveTo(-W / 2, wallTop); u.lineTo(-W / 2, bend); u.absarc(-W / 2 + bend, bend, bend, PI, PI * 1.5, false);
+  u.lineTo(W / 2 - bend, 0); u.absarc(W / 2 - bend, bend, bend, -PI / 2, 0, false); u.lineTo(W / 2, wallTop);
+  u.lineTo(W / 2 - t, wallTop); u.lineTo(W / 2 - t, bend); u.absarc(W / 2 - bend, bend, bend - t, 0, -PI / 2, true);
+  u.lineTo(-W / 2 + bend, t); u.absarc(-W / 2 + bend, bend, bend - t, -PI / 2, -PI, true); u.lineTo(-W / 2 + t, wallTop); u.closePath();
   pb.add(extrude(u, L - 1.6, 0.3, 'zy', 16), shell, xf({ p: [-L / 2 + 0.8, 0, 0] }));
 
   const fanR = sfx ? 46 : 64;
@@ -57,9 +65,10 @@ export function psuPart(id: string, opts: GenOpts = {}): PartObject {
   const top = new THREE.Shape(); rrect(top, -L / 2, -W / 2, L, W, bend);
   top.holes.push(circleHole(fx, 0, fanR + 1));
   for (const [sx, sz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]] as [number, number][]) top.holes.push(circleHole(sx * (L / 2 - 6), sz * (W / 2 - 6), 1.6));
-  pb.add(extrude(top, t + 0.2, 0.45, 'xz', 32), shell, xf({ p: [0, H - t - 0.2, 0] }));
+  pb.add(extrude(top, capT, 1.5, 'xz', 32, 4), shell, xf({ p: [0, H - capT, 0] }));
   const grille = new THREE.Shape(); grille.absarc(0, 0, fanR + 0.6, 0, PI * 2, false);
-  grille.holes.push(...honeycombHoles((x, y) => Math.hypot(x, y) < fanR - 1.5, -fanR, fanR, -fanR, fanR, 6.2, 1.1));
+  // Cells right up to the rim, as a stamped grille has them, so no blade shows through a bare crescent at the edge.
+  grille.holes.push(...honeycombHoles((x, y) => Math.hypot(x, y) < fanR - 0.4, -fanR, fanR, -fanR, fanR, 6.2, 1.1, true));
   const gGeo = extrude(grille, 0.9, 0.2, 'xz', 48, 1);
   pb.add(gGeo, grilleMat, xf({ p: [fx, H - 1.5, 0] }));
   pb.add(lathe([[fanR - 1.2, H - 1.6], [fanR + 0.9, H - 1.6], [fanR + 0.9, H - 0.6], [fanR - 1.2, H - 0.6]], 64), grilleMat, xf({ p: [fx, 0, 0] }).multiply(new THREE.Matrix4().makeRotationX(-PI / 2)));
@@ -77,7 +86,7 @@ export function psuPart(id: string, opts: GenOpts = {}): PartObject {
   for (let i = 0; i < 4; i++) { const a = (i / 4) * PI * 2 + PI / 4; pb.add(rbox(fanR - 20, 2.6, 2, 0.8, 1), 'plasticMatte', xf({ p: [fx + Math.cos(a) * (fanR + 18) / 2, H - 16, Math.sin(a) * (fanR + 18) / 2], r: [0, -a, 0] })); }
 
   const endPlate = (sign: 1 | -1) => {
-    const s = new THREE.Shape(); rrect(s, -W / 2 + t, t, W - 2 * t, H - 2 * t - 0.2, 1);
+    const s = new THREE.Shape(); rrect(s, -W / 2 + t, t, W - 2 * t, H - t - 2.2, 1);
     if (sign < 0) {
       const boss = (x: number, y: number) => [H / 2 + 36, H / 2 - 36].some((by) => Math.hypot(x - 66, y - by) < 8);
       s.holes.push(...honeycombHoles((x, y) => x > -W / 2 + 46 && x < W / 2 - 6 && y > 6 && y < H - 6 && !boss(x, y), -W / 2 + 46, W / 2 - 6, 6, H - 6, 6.2, 1.1));
@@ -167,7 +176,7 @@ export function psuPart(id: string, opts: GenOpts = {}): PartObject {
       pb.add(new THREE.BoxGeometry(0.3, s.pitch * 0.2, s.pitch * 0.2), 'nickel', xf({ p: [front - 1.0, cy, cz] }));
     }
     if (sense) for (let c = 0; c < 4; c++) pb.add(new THREE.BoxGeometry(1, 1.1, 1.1), 'darkVoid', xf({ p: [front - 1.6, s.y + sh / 2 - 1.5, s.z + (c - 1.5) * s.pitch] }), { uv: 'keep' });
-    labels.text(s.label, TINY_TYPE, 1.5, xf({ p: [front - 0.48, s.y + sh / 2 + 1.6, s.z], r: [0, PI / 2, 0] }), { color: frost ? '#4c5058' : '#b5b9c2' });
+    labels.text(s.label, TINY_TYPE, 2.0, xf({ p: [front - 0.48, s.y + sh / 2 + 1.8, s.z], r: [0, PI / 2, 0] }), { color: frost ? '#4c5058' : '#b5b9c2' });
     anchors[s.name] = { pos: [front - 1, s.y, s.z], dir: [1, 0, 0] };
   }
   const bigLabel = (side: 1 | -1) => {
@@ -180,9 +189,10 @@ export function psuPart(id: string, opts: GenOpts = {}): PartObject {
       const ink = frost ? 'rgba(28,30,34,1)' : 'rgba(226,228,233,1)';
       const big: TextStyle = { ...(BRAND_TYPE.thessic ?? SPEC_TYPE), weight: 800 };
       g.fillStyle = ink;
-      g.save(); g.font = `800 ${lh * 0.62 * s}px "DM Sans Variable"`; g.textBaseline = 'alphabetic';
-      g.translate(4 * s, lh * 0.7 * s); g.scale(0.78, 1); g.fillText(cap, 0, 0); const capW = g.measureText(cap).width * 0.78; g.restore();
-      g.font = `800 ${lh * 0.2 * s}px "DM Sans Variable"`; g.fillText('W', 4 * s + capW + 1.6 * s, lh * 0.7 * s);
+      g.save(); g.font = `800 ${lh * 0.5 * s}px "DM Sans Variable"`; g.textBaseline = 'alphabetic';
+      g.translate(4 * s, lh * 0.7 * s); g.scale(0.78, 1); g.fillText(cap, 0, 0);
+      // The unit is printed at the number's size on its baseline, so it reads as one rating seen at any angle.
+      g.fillText('W', g.measureText(cap).width + 1.2 * s, 0); g.restore();
       g.save(); g.translate(4 * s, lh * 0.86 * s); g.scale(big.scaleX, 1); g.font = `800 ${lh * 0.13 * s}px "DM Sans Variable"`; g.fillText(brandName(spec?.brand ?? 'thessic').toUpperCase(), 0, 0); g.restore();
       const colX = lw * 0.62 * s;
       g.strokeStyle = frost ? 'rgba(120,122,128,1)' : 'rgba(110,114,122,1)'; g.lineWidth = Math.max(1, 0.15 * s);

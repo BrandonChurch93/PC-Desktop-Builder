@@ -160,7 +160,7 @@ export function textures(scale = 1): TextureSet {
     peel: tile(wrap(fromValues(s(512), fbm(s(512), 22, 4, seeded(21), 0.55), 40, 215)), TILE_MM.peel),
     brushed: tile(wrap(brushed(s(1024), 7)), TILE_MM.brushed),
     bead: tile(wrap(grain(s(512), 31, 60, 196)), TILE_MM.bead),
-    perf: tile(wrap(perforation(64, 0.8)), TILE_MM.perf),
+    perf: tile(wrap(perforation(64, 0.76)), TILE_MM.perf),
     braid: tile(wrap(braid(s(256))), TILE_MM.braid),
     braidTone: tile(wrap(braid(s(256), 0.5, 1), { srgb: true }), TILE_MM.braid),
     braidToneHi: tile(wrap(braid(s(256), 0.22, 1), { srgb: true }), TILE_MM.braid),

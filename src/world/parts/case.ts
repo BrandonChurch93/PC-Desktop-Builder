@@ -35,7 +35,8 @@ function glassPanel(pb: PartBuilder, L: CaseLayout, F: CaseFinish) {
   const spec = pb.mesh(new THREE.PlaneGeometry(w - 1.2, h - 1.2), mat('glassSpec'), at(cx, cy, g.outer + 0.02), { to: group });
   spec.renderOrder = 11; spec.userData.glass = true; spec.userData.glassSpec = true;
   const edge = mat('glassEdge');
-  for (const [ex, ey, ew, eh] of [[cx, g.rect.min[1] + 0.25, w - 1, 0.5], [cx, g.rect.max[1] - 0.25, w - 1, 0.5], [g.rect.min[0] + 0.25, cy, 0.5, h - 1], [g.rect.max[0] - 0.25, cy, 0.5, h - 1]] as [number, number, number, number][]) {
+  // The edge strips end under the corner standoffs: their end faces showed at the corners and caught the key light as a teal point.
+  for (const [ex, ey, ew, eh] of [[cx, g.rect.min[1] + 0.25, w - 20, 0.5], [cx, g.rect.max[1] - 0.25, w - 20, 0.5], [g.rect.min[0] + 0.25, cy, 0.5, h - 20], [g.rect.max[0] - 0.25, cy, 0.5, h - 20]] as [number, number, number, number][]) {
     const m = pb.mesh(rbox(ew, eh, t - 0.2, 0.15, 1), edge, at(ex, ey, (g.inner + g.outer) / 2), { to: group });
     m.userData.glass = true; m.renderOrder = 9;
   }
@@ -144,9 +145,10 @@ function vitrine(pb: PartBuilder, labels: Labels, spec: CaseSpec, L: CaseLayout,
   const br = new THREE.Shape(); rrect(br, -70, y0 + 4, 140, 474, 4);
   for (const fy of [100, 222, 344]) {
     br.holes.push(circleHole(0, fy, 57.5));
-    for (const [dy, dz] of HOLES4) br.holes.push(circleHole(dz, fy + dy, 2.2));
   }
   pb.add(extrude(br, 1.5, 0.2, 'xy', 24, 1), F.inner, new THREE.Matrix4().makeTranslation(224.5, 0, 0).multiply(ZY));
+  // Threaded fan screw holes: tapped into the bracket, so no light shows through them behind the mesh.
+  for (const fy of [100, 222, 344]) for (const [dy, dz] of HOLES4) for (const sx of [1, -1]) pb.add(cyl(2.0, 0.2, 'x', 16), 'darkVoid', at(223.75 + sx * 0.85, fy + dy, dz), { uv: 'keep' });
   labels.text(brandName(spec.brand), BRAND_TYPE[spec.brand] ?? SPEC_TYPE, 3.2, xf({ p: [x1 + 0.05, y0 + 8.5, 0], r: [0, PI / 2, 0] }), { color: light ? '#7b7f88' : '#8d919a' });
 
   // board tray: cutouts with rubber grommets, standoffs for every board size

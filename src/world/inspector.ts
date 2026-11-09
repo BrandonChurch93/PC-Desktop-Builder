@@ -129,7 +129,7 @@ export class Inspector {
   private glow: THREE.Mesh;
   private shade: THREE.Mesh;
   private light = new TurntableGlow();
-  private lights: { key: THREE.RectAreaLight; fill: THREE.RectAreaLight; rim: THREE.RectAreaLight };
+  private lights: { key: THREE.RectAreaLight; fill: THREE.RectAreaLight; rim: THREE.RectAreaLight; sheen: THREE.RectAreaLight };
   angle = 0;
   zoom = 0;
   elevation = 0.32;
@@ -147,7 +147,10 @@ export class Inspector {
     const spot = new THREE.SpotLight(0xffffff, 1.4, 5, 1.0, 1, 2); spot.position.set(0.5, 1.6, 0.8); spot.castShadow = false;
     spot.shadow.mapSize.set(1024, 1024); spot.shadow.radius = 8; spot.shadow.blurSamples = 16; spot.shadow.bias = -0.0003; spot.shadow.normalBias = 0.002;
     void top;
-    this.lights = { key, fill, rim };
+    // A broad softbox seen in a case's large side panels, so a dark panel shows a soft sheen and not a flat slab.
+    const sheen = new THREE.RectAreaLight(0xeef0ff, 0, 1.8, 1.2); sheen.position.set(-1.4, 1.1, 0.9); sheen.lookAt(0, 0.2, 0);
+    this.scene.add(sheen);
+    this.lights = { key, fill, rim, sheen };
     this.scene.add(key, fill, rim, spot, spot.target, new THREE.HemisphereLight(0x3a3650, 0x0a0a10, 0.6));
     this.disc = new THREE.Mesh(lathe([[0, -0.02], [0.96, -0.02], [1, -0.012], [1, -0.002], [0.985, 0], [0, 0]], 96), new THREE.MeshPhysicalMaterial({ color: 0x24232c, metalness: 0, roughness: 0.7, specularIntensity: 0.4 }));
     this.disc.rotation.x = -Math.PI / 2;
@@ -157,9 +160,10 @@ export class Inspector {
     // The LEDs' light on the turntable is a soft colored ring drawn around the part, and its contact is a soft shade under it.
     // A real lamp this close to the disc drew a hard edged footprint and lit the part's own underside.
     this.glow = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: 0xffffff, map: this.light.tex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
-    this.glow.rotation.x = -Math.PI / 2; this.glow.position.y = 0.0006; this.glow.renderOrder = 2;
+    this.glow.rotation.x = -Math.PI / 2; this.glow.position.y = 0.0004; this.glow.renderOrder = 1;
     this.shade = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: 0x050407, alphaMap: blobAlpha(), transparent: true, opacity: 0.75, depthWrite: false }));
-    this.shade.rotation.x = -Math.PI / 2; this.shade.position.y = 0.0004; this.shade.renderOrder = 1;
+    // The contact shade draws over the LED glow: occlusion darkens every light near the part's base, the glow included.
+    this.shade.rotation.x = -Math.PI / 2; this.shade.position.y = 0.0006; this.shade.renderOrder = 2;
     this.table.add(this.glow, this.shade);
     this.rgb = new RgbEngine(this.scene, false);
     this.rgb.lampCount = 4;
@@ -200,7 +204,10 @@ export class Inspector {
       this.radius = Math.max(0.02, this.size.length() / 2);
       const r = Math.max(this.size.x, this.size.z) * 0.62 + 0.012;
       this.disc.scale.set(r, r, 1);
-      this.shade.scale.set(this.size.x * 1.15, this.size.z * 1.15, 1);
+      // Boxes that stand flat on the disc throw a wider contact shade; a tight one stayed hidden under their footprint.
+      const sk = category === 'case' || category === 'psu' ? 1.42 : 1.15;
+      // A part that stands on a thin edge, such as a memory stick, still gets a shade band a few centimeters wide.
+      this.shade.scale.set(this.size.x * sk, Math.max(this.size.z * sk, category === 'ram' ? 0.034 : 0), 1);
       const gs = Math.max(this.size.x, this.size.z) * 2.6;
       this.glow.scale.set(gs, gs, 1);
       this.holder.updateMatrixWorld(true);
@@ -222,10 +229,17 @@ export class Inspector {
     this.flip = flip;
     // A case is large and black: as a studio would, it gets more light than a small part so its frame separates from the backdrop.
     const big = category === 'case';
-    this.lights.key.intensity = big ? 6.6 : 4.6; this.lights.fill.intensity = big ? 4.6 : 3.2; this.lights.rim.intensity = big ? 4.4 : 2.2;
+    this.lights.key.intensity = big ? 6.6 : 4.6; this.lights.fill.intensity = big ? 4.6 : 3.2; this.lights.rim.intensity = big ? 4.4 : 2.2; this.lights.sheen.intensity = big ? 3.2 : 0;
     this.scene.environmentIntensity = big ? 1.7 : 1.25;
     // A card's hero surfaces are its backplate and its glass facing edge, so the camera stands higher to show that edge.
     this.elevation = category === 'cpu' || category === 'storage' ? 0.62 : category === 'board' ? 0.2 : category === 'gpu' ? 0.5 : 0.32;
+  }
+
+  /** Sub-pixel geometry the occlusion pass must not see in the Inspector. */
+  noAO(): THREE.Object3D[] {
+    const out: THREE.Object3D[] = [];
+    this.part?.root.traverse((o) => { if (o.userData.noAO) out.push(o); });
+    return out;
   }
 
   /** The turntable glow follows the LEDs that face it. */

@@ -3,13 +3,14 @@ import { brandName, getBoard, PLATFORMS, type BoardSpec } from '../../data/catal
 import { boardBoxes, boardLayout } from '../layout/boards';
 import { DIMS } from '../layout/dims';
 import type { BoardLayout } from '../layout/types';
-import { at, circleHole, cyl, extrude, lathe, PartBuilder, polyShape, puck, rbox, roundedPoly, rrect, rrectHole, rrectShape, screwGeometry, xf } from '../kit/geometry';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { at, circleHole, clean, cyl, extrude, lathe, PartBuilder, polyShape, puck, rbox, roundedPoly, rrect, rrectHole, rrectShape, screwGeometry, xf } from '../kit/geometry';
 import { Labels } from '../kit/labels';
 import { mat, type MatName } from '../kit/materials';
 import { seededFor } from '../kit/rng';
 import { canvas, wrap } from '../kit/textures';
 import { BRAND_TYPE, MODEL_TYPE, SPEC_TYPE, TINY_TYPE } from '../kit/type';
-import { spillStrip, stripLeds, uvAlong, Zone } from '../light/zones';
+import { spillStrip, spillStripRange, stripLeds, uvAlong, Zone } from '../light/zones';
 import type { Anchor, GenOpts, PartObject } from './types';
 
 const PI = Math.PI;
@@ -112,57 +113,93 @@ function surface(b: BoardSpec, L: BoardLayout, look: Look, ppm: number): { map: 
   return { map, bump };
 }
 
-function backSurface(b: BoardSpec, L: BoardLayout, look: Look, ppm: number): THREE.Texture {
+/**
+ * The board's underside: solder, vias, small parts and print, with a second map that makes the solder and plated rings
+ * metal (blue channel) and smoother (green channel) than the solder mask, so tin reads as tin and not as paint.
+ */
+function backSurface(b: BoardSpec, L: BoardLayout, look: Look, ppm: number): { map: THREE.Texture; mr: THREE.Texture } {
   const W = Math.round(L.w * ppm); const H = Math.round(L.h * ppm);
-  const { canvas: cv, g } = canvas(W, H);
+  const { canvas: cv, g: paint } = canvas(W, H);
+  const { canvas: mv, g: mg } = canvas(W, H);
+  mg.fillStyle = 'rgb(0,150,0)'; mg.fillRect(0, 0, W, H);
+  const METAL = 'rgb(0,85,255)';
+  // Tin is drawn into both maps: its color into the paint, metal and a smoother finish into the second.
+  const dot = (x: number, y: number, rad: number) => { for (const c of [paint, mg]) { c.beginPath(); c.arc(x, y, rad, 0, PI * 2); } mg.fillStyle = METAL; mg.fill(); paint.fill(); };
+  const tinRect = (x: number, y: number, w: number, h: number) => { mg.fillStyle = METAL; mg.fillRect(x, y, w, h); paint.fillRect(x, y, w, h); };
   const r = seededFor(`board-back-${b.id}`);
-  g.fillStyle = look.mask2; g.fillRect(0, 0, W, H);
-  g.fillStyle = look.frost ? 'rgba(190,192,198,1)' : 'rgba(160,162,168,1)';
+  paint.fillStyle = look.mask2; paint.fillRect(0, 0, W, H);
+  const tin = look.frost ? 'rgba(196,198,204,1)' : 'rgba(176,178,184,1)';
+  paint.fillStyle = tin;
   const pins = (x: number, y: number, cols: number, rows: number, pitch: number) => {
-    for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) { g.beginPath(); g.arc((x + (i - (cols - 1) / 2) * pitch) * ppm, -(y + (j - (rows - 1) / 2) * pitch) * ppm, 0.9 * ppm, 0, PI * 2); g.fill(); }
+    for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) { dot((x + (i - (cols - 1) / 2) * pitch) * ppm, -(y + (j - (rows - 1) / 2) * pitch) * ppm, 0.9 * ppm); }
   };
   pins(L.atx24.x, L.atx24.y, 2, 12, 4.2);
   pins(L.eps.x, L.eps.y, 4, 2, 4.2);
-  for (const d of L.dimms.slice(0, b.ramSlots)) for (let i = 0; i < 48; i++) { g.fillRect((d.x - 0.6) * ppm, -(d.y + 66 - i * 2.8) * ppm, 1.2 * ppm, 0.7 * ppm); }
-  const pinTone = g.fillStyle;
-  if (L.chipset) { const c = L.chipset; for (let x = c.x0 + 6; x < c.x1 - 4; x += 2.4) for (let y = c.y0 - 6; y > c.y1 + 4; y -= 2.4) { g.beginPath(); g.arc(x * ppm, -y * ppm, 0.32 * ppm, 0, PI * 2); g.fill(); } }
-  L.m2.slice(0, b.m2Slots).forEach((m) => { if (m.level === 0) for (let i = 0; i < 34; i++) for (const dx of [-0.8, 0.8]) g.fillRect((m.x0 + dx - 0.3) * ppm, -(m.y + 10.5 - i * 0.62) * ppm, 0.6 * ppm, 0.3 * ppm); });
+  for (const d of L.dimms.slice(0, b.ramSlots)) for (let i = 0; i < 48; i++) tinRect((d.x - 0.6) * ppm, -(d.y + 66 - i * 2.8) * ppm, 1.2 * ppm, 0.7 * ppm);
+  if (L.chipset) { const c = L.chipset; for (let x = c.x0 + 6; x < c.x1 - 4; x += 2.4) for (let y = c.y0 - 6; y > c.y1 + 4; y -= 2.4) { dot(x * ppm, -y * ppm, 0.32 * ppm); } }
+  L.m2.slice(0, b.m2Slots).forEach((m) => { if (m.level === 0) for (let i = 0; i < 34; i++) for (const dx of [-0.8, 0.8]) tinRect((m.x0 + dx - 0.3) * ppm, -(m.y + 10.5 - i * 0.62) * ppm, 0.6 * ppm, 0.3 * ppm); });
   for (let i = 0; i < 6; i++) pins(L.coin.x - 30 + i * 9, L.coin.y + 12, 3, 1, 2.54);
-  for (const sl of L.pcie) for (let x = sl.x0 + 1; x < sl.x0 + sl.len - 0.5; x += 1) for (const dy of [-1.2, 1.2]) g.fillRect((x - 0.3) * ppm, -(sl.y + dy + 0.35) * ppm, 0.6 * ppm, 0.7 * ppm);
+  for (const sl of L.pcie) for (let x = sl.x0 + 1; x < sl.x0 + sl.len - 0.5; x += 1) for (const dy of [-1.2, 1.2]) tinRect((x - 0.3) * ppm, -(sl.y + dy + 0.35) * ppm, 0.6 * ppm, 0.7 * ppm);
   for (const h of L.headers) pins(h.x, h.y, h.pins[0], h.pins[1], 2.54);
   L.sata.slice(0, b.sataPorts).forEach((p) => { if (p.level === 0) pins(p.x - 2, p.y, 4, 2, 1.27); });
   const vr = L.vrmRear; const vt = L.vrmTop;
   for (const [x0, x1, y0, y1] of [[vr.x0, vr.x1, vr.y0, vr.y1], [vt.x0, vt.x1, vt.y0, vt.y1]] as [number, number, number, number][]) {
-    for (let x = x0 + 3; x < x1 - 2; x += 3.2) for (let y = y0 - 3; y > y1 + 2; y -= 3.2) { g.beginPath(); g.arc(x * ppm, -y * ppm, 0.35 * ppm, 0, PI * 2); g.fill(); }
+    for (let x = x0 + 3; x < x1 - 2; x += 3.2) for (let y = y0 - 3; y > y1 + 2; y -= 3.2) { dot(x * ppm, -y * ppm, 0.35 * ppm); }
   }
-  g.lineCap = 'round'; g.lineJoin = 'round';
+  // Plated vias scattered along the trace field, each a tin ring around a dark drill.
+  for (let i = 0; i < 520; i++) {
+    const x = 6 + r() * (L.w - 12); const y = -6 - r() * (L.h - 12);
+    dot(x * ppm, -y * ppm, 0.38 * ppm);
+    paint.fillStyle = 'rgba(14,16,20,1)'; paint.beginPath(); paint.arc(x * ppm, -y * ppm, 0.16 * ppm, 0, PI * 2); paint.fill(); paint.fillStyle = tin;
+  }
+  paint.lineCap = 'round'; paint.lineJoin = 'round';
   for (let i = 0; i < 160; i++) {
     let x = Math.round((r() * L.w) / 1.27) * 1.27; let y = -Math.round((r() * L.h) / 1.27) * 1.27;
-    g.strokeStyle = look.frost ? 'rgba(206,208,214,1)' : 'rgba(38,44,54,1)'; g.lineWidth = 0.32 * ppm;
-    g.beginPath(); g.moveTo(x * ppm, -y * ppm);
+    paint.strokeStyle = look.frost ? 'rgba(206,208,214,1)' : 'rgba(38,44,54,1)'; paint.lineWidth = 0.32 * ppm;
+    paint.beginPath(); paint.moveTo(x * ppm, -y * ppm);
     let dir = Math.floor(r() * 4);
     for (let k = 0; k < 2 + Math.floor(r() * 3); k++) {
       const len = (4 + Math.floor(r() * 16)) * 1.27; const diag = r() > 0.55;
       const d = diag ? [[1, 1], [1, -1], [-1, 1], [-1, -1]][dir]! : [[1, 0], [0, 1], [-1, 0], [0, -1]][dir]!;
-      x += d[0]! * len; y += d[1]! * len; g.lineTo(x * ppm, -y * ppm);
+      x += d[0]! * len; y += d[1]! * len; paint.lineTo(x * ppm, -y * ppm);
       dir = (dir + (r() > 0.5 ? 1 : 3)) % 4;
     }
-    g.stroke();
+    paint.stroke();
   }
   const body = look.frost ? 'rgba(150,146,138,1)' : 'rgba(46,42,36,1)';
   for (let i = 0; i < 26; i++) {
     const x0 = 8 + r() * (L.w - 16); const y0 = -8 - r() * (L.h - 16); const along = r() > 0.5; const n = 3 + Math.floor(r() * 5);
     for (let k = 0; k < n; k++) {
       const x = along ? x0 + k * 1.8 : x0; const y = along ? y0 : y0 - k * 1.8;
-      g.fillStyle = body; g.fillRect(x * ppm, -y * ppm, (along ? 0.6 : 1.1) * ppm, (along ? 1.1 : 0.6) * ppm);
+      const w = (along ? 0.6 : 1.1) * ppm; const hh = (along ? 1.1 : 0.6) * ppm;
+      paint.fillStyle = body; paint.fillRect(x * ppm, -y * ppm, w, hh);
+      // Tin terminations at both ends of each part.
+      paint.fillStyle = tin;
+      if (along) { tinRect(x * ppm, -y * ppm, w, 0.22 * ppm); tinRect(x * ppm, -y * ppm + hh - 0.22 * ppm, w, 0.22 * ppm); }
+      else { tinRect(x * ppm, -y * ppm, 0.22 * ppm, hh); tinRect(x * ppm + w - 0.22 * ppm, -y * ppm, 0.22 * ppm, hh); }
     }
   }
-  g.fillStyle = pinTone;
-  for (const [x, y] of L.holes) { g.fillStyle = 'rgba(170,150,104,1)'; g.beginPath(); g.arc(x * ppm, -y * ppm, 4 * ppm, 0, PI * 2); g.fill(); g.save(); g.globalCompositeOperation = 'destination-out'; g.beginPath(); g.arc(x * ppm, -y * ppm, 1.9 * ppm, 0, PI * 2); g.fill(); g.restore(); }
-  g.fillStyle = look.frost ? 'rgba(80,84,92,1)' : 'rgba(205,210,220,1)';
-  g.font = `600 ${1.6 * ppm}px "DM Sans Variable"`;
-  g.fillText(`${brandName(b.brand).toUpperCase()} ${b.name.toUpperCase()} · MADE FOR THE BENCH`, (L.w * 0.4) * ppm, (L.h - 10) * ppm);
-  return wrap(cv, { srgb: true, repeat: false });
+  for (const [x, y] of L.holes) {
+    paint.fillStyle = 'rgba(170,150,104,1)'; dot(x * ppm, -y * ppm, 4 * ppm);
+    for (const c of [paint, mg]) { c.save(); c.globalCompositeOperation = 'destination-out'; c.beginPath(); c.arc(x * ppm, -y * ppm, 1.9 * ppm, 0, PI * 2); c.fill(); c.restore(); }
+  }
+  const silk = look.frost ? 'rgba(80,84,92,1)' : 'rgba(205,210,220,1)';
+  paint.fillStyle = silk; paint.strokeStyle = silk; paint.lineWidth = 0.18 * ppm;
+  paint.font = `600 ${1.6 * ppm}px "DM Sans Variable"`;
+  paint.fillText(`${brandName(b.brand).toUpperCase()} ${b.name.toUpperCase()} · MADE FOR THE BENCH`, (L.w * 0.4) * ppm, (L.h - 10) * ppm);
+  // Designators beside parts, outlines around connector footprints, and a serial sticker, as a real underside carries.
+  paint.font = `500 ${1.1 * ppm}px "DM Sans Variable"`;
+  for (let i = 0; i < 70; i++) { const x = 10 + r() * (L.w - 30); const y = 10 + r() * (L.h - 20); paint.fillText(`${['C', 'R', 'U', 'Q', 'L'][Math.floor(r() * 5)]}${100 + Math.floor(r() * 800)}`, x * ppm, y * ppm); }
+  paint.strokeRect((L.atx24.x - 4) * ppm, -(L.atx24.y + 26.5) * ppm, 8 * ppm, 53 * ppm);
+  paint.strokeRect((L.eps.x - 9.5) * ppm, -(L.eps.y + 5) * ppm, 19 * ppm, 10 * ppm);
+  for (const d of L.dimms.slice(0, b.ramSlots)) paint.strokeRect((d.x - 2) * ppm, -(d.y + 68) * ppm, 4 * ppm, 136 * ppm);
+  const sx = L.w * 0.14; const sy = L.h * 0.62; const sw = 34; const sh = 11;
+  paint.fillStyle = 'rgba(214,215,218,1)'; paint.fillRect(sx * ppm, sy * ppm, sw * ppm, sh * ppm);
+  paint.fillStyle = 'rgba(28,30,34,1)';
+  let bx = sx + 1.5; while (bx < sx + sw - 1.5) { const bw = 0.18 + r() * 0.42; paint.fillRect(bx * ppm, (sy + 1.4) * ppm, bw * ppm, 5.2 * ppm); bx += bw + 0.16 + r() * 0.34; }
+  paint.font = `600 ${1.4 * ppm}px "DM Sans Variable"`;
+  paint.fillText(`SN ${b.id.toUpperCase()}-2611-04172`, (sx + 1.5) * ppm, (sy + 9.4) * ppm);
+  return { map: wrap(cv, { srgb: true, repeat: false }), mr: wrap(mv, { repeat: false }) };
 }
 
 // ---- pieces ---------------------------------------------------------------------------------
@@ -175,6 +212,7 @@ function heatsink(pb: PartBuilder, look: Look, x0: number, x1: number, y0: numbe
   const along = finsAlong === 'y' ? d : w;
   const n = Math.max(3, Math.floor(along / 3.3));
   const finT = 1.4;
+  const finGeos: THREE.BufferGeometry[] = [];
   for (let i = 0; i < n; i++) {
     const o = -along / 2 + (along / n) * (i + 0.5);
     const span = finsAlong === 'y' ? w : d;
@@ -184,8 +222,13 @@ function heatsink(pb: PartBuilder, look: Look, x0: number, x1: number, y0: numbe
     const m = finsAlong === 'y'
       ? new THREE.Matrix4().makeTranslation((x0 + x1) / 2, (y0 + y1) / 2 + o, T + base).multiply(new THREE.Matrix4().makeBasis(new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, -1, 0)))
       : new THREE.Matrix4().makeTranslation((x0 + x1) / 2 + o, (y0 + y1) / 2, T + base).multiply(new THREE.Matrix4().makeBasis(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1), new THREE.Vector3(1, 0, 0)));
-    pb.add(g, look.frost ? look.sinkDark : 'aluAnodized', m);
+    finGeos.push(clean(g).applyMatrix4(m));
+    g.dispose();
   }
+  // One mesh that skips the occlusion pass: fins thinner than a pixel came out of it as grey speckle.
+  const fins = pb.mesh(mergeGeometries(finGeos), mat(look.frost ? look.sinkDark : 'finAnodized'), undefined, { uv: 'box' });
+  fins.userData.noAO = true; fins.castShadow = true;
+  for (const fg of finGeos) fg.dispose();
   const top = h - 4;
   const r = seededFor(seed);
   // A compact heatsink keeps one short armor cap at its end, so its fins show across most of its length.
@@ -206,9 +249,10 @@ function choke(pb: PartBuilder, x: number, y: number, labels?: Labels) {
   pb.add(rbox(7.6, 1.2, 0.6, 0.2, 1), 'nickel', at(x, y - 3.3, T + 0.3));
 }
 
+/** A solid capacitor: a can with a rolled top edge and a satin top; a sharp rim caught the key light as a hot point. */
 function capacitor(pb: PartBuilder, x: number, y: number, h = 8, r = 2.6, gold = false) {
-  pb.add(cyl(r, h - 0.4, 'z', 18), gold ? 'gold' : 'aluBrushedDark', at(x, y, T + (h - 0.4) / 2));
-  pb.add(cyl(r - 0.2, 0.4, 'z', 18), 'aluSatin', at(x, y, T + h - 0.2));
+  pb.add(lathe([[0, 0], [r, 0], [r, h - 0.9], [r - 0.15, h - 0.45], [r - 0.45, h - 0.2], [r - 0.6, h - 0.2], [0, h - 0.2]], 24), gold ? 'gold' : 'capBody', at(x, y, T));
+  pb.add(cyl(r - 0.65, 0.12, 'z', 24), 'capTop', at(x, y, T + h - 0.14));
 }
 
 function housing(pb: PartBuilder, look: Look, x: number, y: number, w: number, h: number, depth: number, cols: number, rows: number, pitch: number, along: 'x' | 'y') {
@@ -259,7 +303,8 @@ export function boardPart(id: string, opts: GenOpts = {}): PartObject {
   const topMat = pb.own(new THREE.MeshPhysicalMaterial({ map: pb.own(surf.map), bumpMap: pb.own(surf.bump), bumpScale: 0.6, roughness: look.frost ? 0.42 : 0.38, metalness: 0.05, clearcoat: 0.55, clearcoatRoughness: 0.22, alphaTest: 0.5 }));
   const top = new THREE.PlaneGeometry(L.w, L.h); top.translate(L.w / 2, -L.h / 2, T + 0.02);
   pb.mesh(top, topMat, undefined, { uv: 'keep' });
-  const backMat = pb.own(new THREE.MeshPhysicalMaterial({ map: pb.own(backSurface(b, L, look, Math.max(3, Math.round(5 * detail)))), roughness: 0.45, clearcoat: 0.4, alphaTest: 0.5 }));
+  const backTex = backSurface(b, L, look, Math.max(4, Math.round(8 * detail)));
+  const backMat = pb.own(new THREE.MeshPhysicalMaterial({ map: pb.own(backTex.map), roughnessMap: pb.own(backTex.mr), metalnessMap: backTex.mr, roughness: 1, metalness: 1, clearcoat: 0.4, clearcoatRoughness: 0.3, alphaTest: 0.5 }));
   const back = new THREE.PlaneGeometry(L.w, L.h); back.rotateY(PI); back.translate(L.w / 2, -L.h / 2, -0.02);
   const buv = back.getAttribute('uv'); for (let i = 0; i < buv.count; i++) buv.setX(i, 1 - buv.getX(i));
   pb.mesh(back, backMat, undefined, { uv: 'keep' });
@@ -538,7 +583,22 @@ export function boardPart(id: string, opts: GenOpts = {}): PartObject {
     // Its light on the solid armor of the heatsink beside it. The lamp lights the fins below; a spill layer over the fins
     // painted the gaps between them and read as a lit slab.
     const toPlusX = new THREE.Matrix4().makeBasis(new THREE.Vector3(0, -1, 0), new THREE.Vector3(-1, 0, 0), new THREE.Vector3(0, 0, -1));
-    pb.mesh(spillStrip(80, 10, 12), z.spill(look.frost ? 0.3 : 0.5), toPlusX.setPosition(L.vrmRear.x0, -76, T + L.vrmRear.h - 0.32), { uv: 'keep' }).userData.spill = true;
+    pb.mesh(spillStrip(80, 16, 12), z.spill(look.frost ? 0.5 : 1.0), toPlusX.setPosition(L.vrmRear.x0, -76, T + L.vrmRear.h - 0.32), { uv: 'keep' }).userData.spill = true;
+    // And along the top edge of each fin, fading away from the strip, so the gaps between fins stay dark.
+    {
+      const vrS = L.vrmRear; const d = vrS.y0 - vrS.y1; const n = Math.max(3, Math.floor(d / 3.3));
+      const pos: number[] = []; const uv: number[] = [];
+      for (let i = 0; i < n; i++) {
+        const y = (vrS.y0 + vrS.y1) / 2 - d / 2 + (d / n) * (i + 0.5);
+        const u = Math.min(1, Math.max(0, (-36 - y) / 80));
+        const zt = T + vrS.h - 4 + 0.03; const xa = vrS.x0 + (vrS.x1 - vrS.x0) * 0.25; const xb = vrS.x1;
+        const q: [number, number, number, number][] = [[xa, y - 0.7, u, 0], [xa, y + 0.7, u, 0], [xb, y + 0.7, u, 1], [xb, y - 0.7, u, 1]];
+        for (const k of [0, 2, 1, 0, 3, 2]) { pos.push(q[k]![0], q[k]![1], zt); uv.push(q[k]![2], q[k]![3]); }
+      }
+      const fg = new THREE.BufferGeometry();
+      fg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); fg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); fg.computeVertexNormals();
+      pb.mesh(fg, z.spill(look.frost ? 0.7 : 1.4), undefined, { uv: 'keep' }).userData.spill = true;
+    }
     z.emit(new THREE.Vector3(28, -76, T + ioTop), new THREE.Vector3(0.55, 0, 0.84), 80, 10, 0.8, new THREE.Vector3(0, 1, 0));
     zones.push(z);
   }
@@ -551,8 +611,17 @@ export function boardPart(id: string, opts: GenOpts = {}): PartObject {
     pb.mesh(spillStrip(p0.y - p1.y, 22, 8), z.spill(look.frost ? 0.42 : 0.8), toMinusX.clone().setPosition(p0.x - 1.2, (p0.y + p1.y) / 2, chipZ + 0.06), { uv: 'keep' }).userData.spill = true;
     // And on the board beside the chipset, toward the SATA ports.
     const onBoard = new THREE.Matrix4().makeBasis(new THREE.Vector3(0, -1, 0), new THREE.Vector3(-1, 0, 0), new THREE.Vector3(0, 0, -1));
-    pb.mesh(spillStrip(p0.y - p1.y, 24, 8), z.spill(look.frost ? 0.3 : 0.5), onBoard.setPosition(cs.x1 + 0.3, (p0.y + p1.y) / 2, T + 0.1), { uv: 'keep' }).userData.spill = true;
+    pb.mesh(spillStrip(p0.y - p1.y, 44, 8), z.spill(look.frost ? 0.6 : 1.2), onBoard.setPosition(cs.x1 + 0.3, (p0.y + p1.y) / 2, T + 0.1), { uv: 'keep' }).userData.spill = true;
+    // On the faces of the SATA ports that look back at the accent.
+    const sata = L.sata.slice(0, b.sataPorts);
+    if (sata.length) {
+      const sy0 = Math.max(...sata.map((s) => s.y)) + 4.3; const sy1 = Math.min(...sata.map((s) => s.y)) - 4.3; const sx = Math.min(...sata.map((s) => s.x)) - 5.08;
+      const toMinusXUp = new THREE.Matrix4().makeBasis(new THREE.Vector3(0, -1, 0), new THREE.Vector3(0, 0, 1), new THREE.Vector3(-1, 0, 0));
+      const mid = (p0.y + p1.y) / 2;
+      pb.mesh(spillStripRange(p0.y - p1.y, mid - sy0, mid - sy1, 13, 8), z.spill(look.frost ? 0.4 : 0.8), toMinusXUp.setPosition(sx, mid, T + 13), { uv: 'keep' }).userData.spill = true;
+    }
     z.emit(new THREE.Vector3(p0.x, (p0.y + p1.y) / 2, chipZ + 1), new THREE.Vector3(0, 0, 1), p0.y - p1.y, 10, 0.7, new THREE.Vector3(0, 1, 0));
+    z.emit(new THREE.Vector3(p0.x + 1.2, (p0.y + p1.y) / 2, chipZ - 2), new THREE.Vector3(1, 0, 0.25), p0.y - p1.y, 6, 0.6, new THREE.Vector3(0, 1, 0));
     zones.push(z);
   }
   if (id === 'x9') {

@@ -24,7 +24,7 @@ export function fanLook(id: string): FanLook {
   const f = getFan(id);
   const base = { key: id, brand: f?.brand ?? 'kestrane', name: f?.name ?? 'Gale', blades: f?.blades ?? 9, lit: f?.lit ?? false };
   switch (id) {
-    case 'gale-lux': return { ...base, frame: 'plasticMatte', blade: 'smoke', hub: 'plasticMatte', pads: true, light: 'ring' };
+    case 'gale-lux': return { ...base, frame: 'plasticMatte', blade: 'smoke', hub: 'plasticMolded', pads: true, light: 'ring' };
     case 'aureole': return { ...base, frame: 'plasticMatte', blade: 'smoke', hub: 'plasticMatte', pads: true, light: 'ring+hub' };
     case 'petal': return { ...base, frame: 'plasticWhite', blade: 'frost', hub: 'plasticWhite', pads: true, light: 'hub' };
     case 'frame': return { ...base, frame: 'plasticMatte', blade: 'bladeBlack', hub: 'plasticMatte', pads: true, light: 'edge' };

@@ -167,7 +167,9 @@ function buildRadiator(pb: PartBuilder, labels: Labels, k: CoolerSpec, key: stri
     if (ring) {
       const backZ = o.order === 'rad-first' ? coreZ0 - 0.25 : coreZ1 + 0.25;
       const lm = new THREE.Matrix4().makeTranslation(cx, 0, backZ).multiply(new THREE.Matrix4().makeRotationX(flip));
-      pb.mesh(spillRing(57, 36, 64), ring.spill(frost ? 0.08 : 0.15), lm, { uv: 'keep', to: root }).userData.spill = true;
+      // Peaks under the ring and fades both ways, so no hard circle shows on the core.
+      // Through 27 mm of folded fins the ring's light spreads into a broad soft patch, not a ring.
+      for (const [a, b] of [[40, 70], [40, 6]] as [number, number][]) pb.mesh(spillRing(a, b, 64), ring.spill(frost ? 0.035 : 0.06), lm, { uv: 'keep', to: root }).userData.spill = true;
     }
     rotors.push(...fb.rotors);
     void g;

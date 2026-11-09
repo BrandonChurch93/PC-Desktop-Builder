@@ -76,7 +76,8 @@ export function ramPart(id: string, opts: GenOpts = {}): PartObject {
       };
       const top = plateTop - 6; const low = spreaderBottom + 6;
       facet([[-HALF + 8, low], [-14, low], [-4, top - 4], [-HALF + 14, top - 4]]);
-      facet([[14, low], [HALF - 8, low], [HALF - 14, top - 4], [4, top - 4]]);
+      // The back carries the kit label on flat plate where the second facet would be.
+      if (side > 0) facet([[14, low], [HALF - 8, low], [HALF - 14, top - 4], [4, top - 4]]);
     }
   }
 
@@ -128,12 +129,13 @@ export function ramPart(id: string, opts: GenOpts = {}): PartObject {
     bar.translate(-barW / 2, 0, -(z0 + z1) / 2);
     uvAlong(bar, 'y');
     pb.mesh(bar, diff, xf({ p: [0, 0, (z0 + z1) / 2] }), { uv: 'keep' });
-    const spill = zone.spill(frost ? 0.25 : 0.5);
+    const spill = zone.spill(frost ? 0.2 : 0.34);
+    // The bar's light just in front of the facet tops, so it falls on the facets, the rim under the bar and the label too.
+    // One strip from the rim's top edge down, the whole length: split strips met in a visible seam at the notch.
+    const total = DIMS.dimmLength - 3; const outer = (DIMS.dimmLength - 14) / 2;
     for (const sd of [1, -1]) {
-      const sm = new THREE.Matrix4().makeBasis(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1), new THREE.Vector3(sd, 0, 0)).setPosition(sd * (gap + plateT + 0.8), 0, plateTop - 2.9);
-      // One strip below the bar and below the notch in the top line, so the bar never shows a seam.
-      const len = DIMS.dimmLength - 14;
-      pb.mesh(spillStripRange(DIMS.dimmLength - 3, -len / 2, len / 2, 18, 12), spill, sm, { uv: 'keep' }).userData.spill = true;
+      const m = new THREE.Matrix4().makeBasis(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1), new THREE.Vector3(sd, 0, 0)).setPosition(sd * (gap + plateT + 1.06), 0, z0 + 1.1);
+      pb.mesh(spillStripRange(total, -outer, outer, 20, 16), spill, m, { uv: 'keep' }).userData.spill = true;
     }
     if (line === 'crown') {
       for (let i = 0; i < 9; i++) pb.add(rbox(barW + 0.4, 0.8, 1.2, 0.3, 1), 'aluWhite', xf({ p: [0, -HALF + 10 + i * 14.2, z0 + 0.6] }));

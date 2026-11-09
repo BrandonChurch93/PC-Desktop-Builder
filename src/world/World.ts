@@ -119,7 +119,7 @@ export class World {
     this.room.setRearFlag(this.rig.itemBounds('case'), this.rig.itemBounds('psu'));
     this.post?.dispose();
     this.post = new Post(this.renderer, this.scene, this.camera, tier);
-    this.post.hideForAO = () => [...this.rig.glassObjects(), ...(this.room.mirror ? [this.room.mirror] : [])];
+    this.post.hideForAO = () => (this.showingInspector ? this.inspector.noAO() : [...this.rig.glassObjects(), ...(this.room.mirror ? [this.room.mirror] : [])]);
     this.rgb.lampCount = s.lamps;
     this.rig.detail = s.detail;
     this.resize();

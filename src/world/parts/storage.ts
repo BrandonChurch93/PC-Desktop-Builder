@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { brandName, getStorage, type StorageType } from '../../data/catalog';
+import { mat } from '../kit/materials';
 import { DIMS } from '../layout/dims';
 import { storageBoxes } from '../layout/partBoxes';
 import { at, cyl, extrude, lathe, PartBuilder, rbox, roundedPoly, rrectShape, screwGeometry, torus, tube, xf } from '../kit/geometry';
@@ -29,7 +30,12 @@ function gridLabel(labels: Labels, w: number, h: number, m: THREE.Matrix4, lines
     g.fillStyle = ink; g.textBaseline = 'top';
     g.font = `500 ${h * 0.13 * s}px "DM Sans Variable"`;
     g.fillText(title, 2.2 * s, 2 * s);
-    g.font = `700 ${h * 0.2 * s}px "DM Sans Variable"`;
+    // The model name is set as large as the label allows: on the narrow 2.5 inch label it ran off the edge at the full size.
+    const room = W - 4.4 * s;
+    let size = h * 0.2 * s;
+    g.font = `700 ${size}px "DM Sans Variable"`;
+    const mw = g.measureText(model).width;
+    if (mw > room) { size *= room / mw; g.font = `700 ${size}px "DM Sans Variable"`; }
     g.fillText(model, 2.2 * s, (2.4 + h * 0.15) * s);
     g.strokeStyle = faint; g.lineWidth = Math.max(1, 0.12 * s);
     const rowH = 3.0;
@@ -108,9 +114,21 @@ function nvme(pb: PartBuilder, labels: Labels) {
 
 function ssd(pb: PartBuilder, labels: Labels): Record<string, Anchor> {
   const { w, l, h } = DIMS.ssd;
-  pb.add(rbox(w, h * 0.42, l, 0.8, 2), 'plasticMatte', xf({ p: [0, h * 0.21, 0] }));
+  // The base is a dark brushed aluminum tray, as metal 2.5 inch drives have; flat black plastic read as a featureless slab.
+  // Part metallic, as for the lid: fully metallic it only mirrored the dark studio and read black.
+  const base = pb.own((mat('aluBrushedDark') as THREE.MeshPhysicalMaterial).clone()); base.metalness = 0.55; base.color.setHex(0x4a4d55); base.roughness = 0.42;
+  pb.add(rbox(w, h * 0.42, l, 0.8, 2), base, xf({ p: [0, h * 0.21, 0] }));
   const lid = extrude(rrectShape(w, l, 2.2), h * 0.6, 0.6, 'xz', 12);
-  pb.add(lid, 'aluBrushed', xf({ p: [0, h * 0.4, 0] }));
+  pb.add(lid, 'aluLidBrushed', xf({ p: [0, h * 0.4, 0] }));
+  // The family's colored corner tab: a molded clip over the lid corner at the connector end, folded down its side.
+  {
+    const tabMat = pb.own(new THREE.MeshPhysicalMaterial({ color: new THREE.Color(TAB_COLOR.ssd), roughness: 0.42, clearcoat: 0.3, clearcoatRoughness: 0.3 }));
+    // Shape y runs to world -z on the xz plane, so the connector end (-z) is at shape y = +l / 2.
+    const tri = roundedPoly([[w / 2 + 0.3, l / 2 + 0.3], [w / 2 + 0.3, l / 2 - 12], [w / 2 - 12, l / 2 + 0.3]], 0.8);
+    pb.add(extrude(tri, 0.7, 0.25, 'xz', 6, 1), tabMat, xf({ p: [0, h + 0.05, 0] }));
+    pb.add(rbox(0.7, 3.2, 9, 0.25, 1), tabMat, xf({ p: [w / 2 + 0.3, h - 1.3, -l / 2 + 5] }));
+    pb.add(rbox(9, 3.2, 0.7, 0.25, 1), tabMat, xf({ p: [w / 2 - 5, h - 1.3, -l / 2 - 0.3] }));
+  }
   for (const sx of [1, -1]) for (const z of [-l / 2 + 14, l / 2 - 24]) pb.add(cyl(1.5, 0.5, 'x', 12), 'darkVoid', xf({ p: [sx * (w / 2 + 0.05), h * 0.3, z] }), { uv: 'keep' });
   for (const sx of [1, -1]) for (const z of [-l / 2 + 14, l / 2 - 24]) pb.add(cyl(1.6, 0.4, 'y', 12), 'darkVoid', xf({ p: [sx * (w / 2 - 4.1), -0.12, z] }), { uv: 'keep' });
   const conn = (x: number, width: number) => {
@@ -122,7 +140,10 @@ function ssd(pb: PartBuilder, labels: Labels): Record<string, Anchor> {
   const spec = getStorage('ssd');
   gridLabel(labels, w - 10, l - 22, xf({ p: [0, h + 0.12, 2], r: [-Math.PI / 2, 0, 0] }), ['SATA 6 Gb/s', '2.5 IN 7 MM', '5 V 1.4 A', 'PN PL-FL2T', 'SN 26103371', 'TLC NAND'], brandName(spec?.brand ?? 'pellam').toUpperCase(), spec?.name ?? 'Flint 2 TB', TAB_COLOR.ssd, false);
   labels.text('SATA', TINY_TYPE, 1.1, xf({ p: [-w / 2 + 14.5, 5.6, -l / 2 - 0.1], r: [0, Math.PI, 0] }), { color: '#9aa0a8' });
-  labels.text('PELLAM', BRAND_TYPE.pellam ?? SPEC_TYPE, 3, xf({ p: [0, -0.06, 0], r: [Math.PI / 2, 0, 0] }), { color: '#8f949c' });
+  labels.text('PELLAM', BRAND_TYPE.pellam ?? SPEC_TYPE, 3, xf({ p: [0, -0.06, -14], r: [Math.PI / 2, 0, 0] }), { color: '#8f949c' });
+  // A small certification and lot sticker on the base, as drives carry.
+  pb.add(new THREE.BoxGeometry(34, 0.08, 20), 'labelPaper', xf({ p: [0, -0.04, 22] }));
+  gridLabel(labels, 34, 20, xf({ p: [0, -0.1, 22], r: [Math.PI / 2, 0, 0] }), ['LOT 2610B', 'FW PL41', 'MADE FOR THE BENCH', 'REV A2'], brandName(spec?.brand ?? 'pellam').toUpperCase(), 'SN 26103371', TAB_COLOR.ssd, false);
   return { sataData: { pos: [-w / 2 + 14.5, 2.8, -l / 2 - 0.1], dir: [0, 0, -1] }, sataPower: { pos: [w / 2 - 22, 2.8, -l / 2 - 0.1], dir: [0, 0, -1] } };
 }
 

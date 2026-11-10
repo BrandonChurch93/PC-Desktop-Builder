@@ -1,7 +1,8 @@
 import type { Category } from './data/catalog';
 import { getPreset } from './data/catalog';
 import { decode, encode } from './engine/codec';
-import { buildFromPreset, emptyBuild, revalidate, setFinish } from './engine/rules';
+import { buildFromPreset, emptyBuild, install, revalidate, setFinish } from './engine/rules';
+import type { ActionOpts } from './engine/types';
 import { sheet } from './engine/sheet';
 import { store, type Mode, type Quality } from './state/store';
 import type { World } from './world/World';
@@ -39,8 +40,13 @@ export function installHook(world: World) {
       store.setState(next);
       await world.settle();
     },
-    async act(action: { type: string; patch?: Record<string, unknown>; id?: string }, _o: { instant?: boolean } = {}) {
+    async act(action: { type: string; patch?: Record<string, unknown>; id?: string; category?: string; opts?: ActionOpts }, _o: { instant?: boolean } = {}) {
       const s = store.getState();
+      if (action.type === 'install' && action.category && action.id) {
+        const r = install(s.build, action.category, action.id, action.opts ?? {});
+        if (!r.ok) throw new Error(`install ${action.category} ${action.id}: ${r.code}`);
+        store.setState({ build: r.build, instant: true });
+      }
       if (action.type === 'lighting' && action.patch) {
         const next = revalidate({ ...s.build, lighting: { ...s.build.lighting, ...action.patch } as typeof s.build.lighting }).build;
         store.setState({ build: next, instant: true });

@@ -80,6 +80,8 @@ export type Run = {
   combs?: boolean;
   /** arc length from the path start to the first comb */
   combFrom?: number;
+  /** the tray's z where the run dives through a tray grommet: the wires darken as they go into the opening */
+  intoTray?: number;
 };
 
 /** A comb's outline hugs each wire with a soft lobe, as molded combs do, so it reads as a comb and not as a bar. */
@@ -139,6 +141,25 @@ function sweep(points: V[], r: number, radial: number): THREE.BufferGeometry {
   return g;
 }
 
+/**
+ * Sleeving for single wires, with a per vertex shade over all its light, sheen included: a run going into a grommet falls into
+ * the ring's shadow and the dark cable space. Lit to its end, the turn away from the glass read as wires capped in mid air.
+ */
+const wireSleeves = new Map<string, THREE.MeshPhysicalMaterial>();
+function wireSleeve(color: string): THREE.MeshPhysicalMaterial {
+  let m = wireSleeves.get(color);
+  if (!m) {
+    m = sleeve(color).clone();
+    m.onBeforeCompile = (sh) => {
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float shade;\nvarying float vShade;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvShade = shade;');
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vShade;').replace('#include <opaque_fragment>', 'outgoingLight *= vShade;\n#include <opaque_fragment>');
+    };
+    m.customProgramCacheKey = () => 'wire-shade';
+    wireSleeves.set(color, m);
+  }
+  return m;
+}
+
 /** Builds one run: each wire its own tube, combs along the straights, a plug housing at the connector end. */
 export function buildRun(run: Run, group: THREE.Group, detail = 1) {
   const { T, N, B } = frames(run.path, run.rowAxis);
@@ -148,14 +169,22 @@ export function buildRun(run: Run, group: THREE.Group, detail = 1) {
     const pts = run.path.map((p, i) => p.clone().addScaledVector(N[i]!, or).addScaledVector(B[i]!, oc));
     const color = run.colors.length > 1 && c % 2 === 0 ? run.colors[1]! : run.colors[0]!;
     const list = byColor.get(color) ?? [];
-    list.push(sweep(pts, run.wire, detail >= 1 ? 8 : 6));
+    const tube = sweep(pts, run.wire, detail >= 1 ? 8 : 6);
+    const tu = tube.getAttribute('uv'); const shade = new Float32Array(tu.count);
+    // The shade falls along the wire from a little before it starts to drop toward the tray, so the whole turn away from the
+    // glass darkens into the opening. The tube's u is its length in millimeters.
+    let drop = Infinity;
+    if (run.intoTray !== undefined) { let acc = 0; for (let k = 1; k < pts.length; k++) { if (pts[k]!.z < pts[0]!.z - 0.5) { drop = acc; break; } acc += pts[k]!.distanceTo(pts[k - 1]!); } }
+    for (let k = 0; k < tu.count; k++) shade[k] = 1 - 0.94 * THREE.MathUtils.smoothstep(tu.getX(k), drop - 14, drop + 12);
+    tube.setAttribute('shade', new THREE.BufferAttribute(shade, 1));
+    list.push(tube);
     byColor.set(color, list);
   }
   for (const [color, geos] of byColor) {
     const merged = mergeGeometries(geos.map((x) => x.toNonIndexed()), false);
     for (const g of geos) g.dispose();
     if (!merged) continue;
-    const mesh = new THREE.Mesh(merged, color.startsWith('#') ? sleeve(color) : mat('rubber'));
+    const mesh = new THREE.Mesh(merged, color.startsWith('#') ? wireSleeve(color) : mat('rubber'));
     mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.flexible = true; mesh.name = `run:${run.name}`;
     group.add(mesh);
   }
@@ -235,15 +264,17 @@ export function buildCables(build: Build, items: Map<string, RigItem>, detail = 
     if (a && g) {
       const { p } = toCase(board, a);
       const gz = g.center[2];
-      runs.push({ name: 'atx24', rows: 2, cols: 12, pitch: 4.2, wire: 1.65, rowAxis: v(0, 0, 1), colors, comb, plugAt: 'start', plug: 'latch', combFrom: DIMS.plugLength + 6.5,
+      runs.push({ name: 'atx24', rows: 2, cols: 12, pitch: 4.2, wire: 1.65, rowAxis: v(0, 0, 1), colors, comb, plugAt: 'start', plug: 'latch', combFrom: DIMS.plugLength + 6.5, intoTray: gz,
         // A 24 pin bundle bends on a wide radius: it bends toward the tray before the slot and dives back under the board's edge behind it, so the turn shows through the opening, and goes through the split
         // membrane into the dark cable space; a tight bend at the slot's middle hid the turn and read as wires ending there.
-        path: filletPath([p.clone(), v(g.center[0] + 6, p.y, p.z), v(g.center[0] - 1, p.y, gz - 1), v(g.center[0] - 22, p.y, gz - 26)], 12, 2.5, DIMS.plugLength + 12) });
+        // The turn starts before the slot and sweeps through it on a 20 mm radius, so from the glass it reads as a curve into the
+        // grommet; a 12 mm turn straight away from the eye was seen end on and read as wires capped in mid air (critic 262).
+        path: filletPath([p.clone(), v(g.center[0] + 14, p.y, p.z), v(g.center[0] - 4, p.y, gz - 2), v(g.center[0] - 30, p.y, gz - 30)], 20, 2.5, DIMS.plugLength + 12) });
     }
     const e = board.part.anchors.eps; const ge = grommet('eps');
     if (e && ge) {
       const { p } = toCase(board, e);
-      runs.push({ name: 'eps', rows: 2, cols: 4, pitch: 4.2, wire: 1.65, rowAxis: v(0, 1, 0), colors, comb, plugAt: 'start',
+      runs.push({ name: 'eps', rows: 2, cols: 4, pitch: 4.2, wire: 1.65, rowAxis: v(0, 1, 0), colors, comb, plugAt: 'start', intoTray: ge.center[2],
         path: filletPath([p.clone(), v(p.x, p.y, p.z + 31), v(p.x, ge.center[1], p.z + 31), v(p.x, ge.center[1], ge.center[2] - 14)], 18.5) });
     }
   }
@@ -258,7 +289,8 @@ export function buildCables(build: Build, items: Map<string, RigItem>, detail = 
       const down = g ? g.center[1] - 20 : 100;
       const gx = g ? Math.min(Math.max(p.x, g.center[0] - g.size[0] / 2 + 14), g.center[0] + g.size[0] / 2 - 14) : p.x;
       const gz = g ? g.center[2] : p.z + 20;
-      runs.push({ name: `gpu-power-${i}`, rows: 2, cols, pitch, wire: twelve ? 1.35 : 1.65, rowAxis: v(0, 1, 0), colors, comb, plugAt: 'start',
+      // A comb sits just past the plug, where the macros see the run.
+      runs.push({ name: `gpu-power-${i}`, rows: 2, cols, pitch, wire: twelve ? 1.35 : 1.65, rowAxis: v(0, 1, 0), colors, comb, plugAt: 'start', combFrom: DIMS.plugLength + 6,
         path: filletPath([p.clone(), v(p.x, p.y, Math.max(p.z + 30.4, gz + 11)), v(gx, down, Math.max(p.z + 30.4, gz + 11))], 18.4) });
     });
   }

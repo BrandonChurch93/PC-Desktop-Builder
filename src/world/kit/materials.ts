@@ -19,7 +19,7 @@ function spun(): THREE.Texture {
 }
 
 export type MatName =
-  | 'powderBlack' | 'powderBlackInner' | 'powderWhite' | 'powderWhiteInner' | 'powderGunmetal' | 'powderGunmetalInner' | 'powderPanel' | 'panelPowder' | 'finAnodized' | 'capTop' | 'capBody' | 'pcbCore' | 'stickerMatte' | 'chipTop' | 'plasticMolded' | 'finGraphite' | 'aluLidStamp' | 'aluLid' | 'aluStamp'
+  | 'powderBlack' | 'powderBlackInner' | 'powderWhite' | 'powderPanelWhite' | 'powderWhiteInner' | 'powderGunmetal' | 'powderGunmetalInner' | 'powderPanel' | 'panelPowder' | 'panelPowderWhite' | 'finAnodized' | 'capTop' | 'capBody' | 'pcbCore' | 'stickerMatte' | 'chipTop' | 'plasticMolded' | 'finGraphite' | 'aluLidStamp' | 'aluLidBrushed' | 'aluLid' | 'aluStamp'
   | 'steelBare' | 'steelZinc'
   | 'aluBlack' | 'aluSilver' | 'aluPale' | 'aluWhite' | 'aluRaw' | 'aluBrushed' | 'aluBrushedDark' | 'aluBrushedPlate' | 'aluAnodized' | 'aluCast' | 'aluSatin' | 'aluSatinDark' | 'aluGunmetal' | 'aluFacet'
   | 'nickel' | 'nickelLapped' | 'pipeNickel' | 'copper' | 'gold' | 'solder'
@@ -160,7 +160,12 @@ function makeMat(name: MatName): THREE.Material {
     case 'powderBlack': return powder(0x25262b, 0.64, 0.08, 2.2e-5);
     case 'powderBlackInner': return powder(0x222327, 0.74, 0, 1e-5);
     // The socket panel is seen close up: an orange peel that reads at that range, which on the whole shell read as leather.
+    // The white supply's socket panel: the dark panel's sprayed texture in white, held under bloom.
+    case 'panelPowderWhite': return capHighlights(physical({ color: 0xd4d6da, metalness: 0, roughness: 0.48, roughnessMap: t.grain, bumpMap: t.peel, bumpScale: 1.6, clearcoat: 0.1, clearcoatRoughness: 0.45, specularIntensity: 0.5 }), 1.4, 'panel-powder-white');
     case 'panelPowder': return physical({ color: 0x323439, metalness: 0, roughness: 0.42, roughnessMap: t.grain, bumpMap: t.peel, bumpScale: 2.4, clearcoat: 0.15, clearcoatRoughness: 0.45, specularIntensity: 0.6 });
+    // The white supply's sheet: the same fine sprayed grain as the dark panel, highlights held under bloom. The case white,
+    // tuned for large panels seen from afar, read as flat plastic on a small box seen close.
+    case 'powderPanelWhite': return capHighlights(physical({ color: 0xdcdde1, metalness: 0, roughness: 0.55, roughnessMap: t.peel, bumpMap: t.grainFine, bumpScale: 0.16, clearcoat: 0.12, clearcoatRoughness: 0.45, specularIntensity: 0.5 }), 1.4, 'powder-panel-white');
     case 'powderPanel': return physical({ color: 0x34363c, metalness: 0, roughness: 0.5, roughnessMap: t.peel, bumpMap: t.grainFine, bumpScale: 0.22, clearcoat: 0.2, clearcoatRoughness: 0.45, specularIntensity: 0.6 });
     // No clearcoat, and highlights held under the bloom threshold: the frame's rounded corners bloomed into a halo.
     case 'powderWhite': return capHighlights(worldBump(physical({ color: 0xe0e1e5, metalness: 0, roughness: 0.6, roughnessMap: tex().mottleMid, bumpMap: tex().orange, bumpScale: 2.2e-5, specularIntensity: 0.4 })), 1.4, 'powder-white');
@@ -195,6 +200,9 @@ function makeMat(name: MatName): THREE.Material {
     // Fine bead blast, as drive covers are: coarse brushing stretched into streaks at the shroud window's grazing angle.
     // Part metallic: the blasted surface scatters some light diffusely. Fully metallic, it mirrored only the dark shroud and
     // read black through the window while the paper label beside it was lit.
+    // A 2.5 inch drive's brushed lid: a fine brush in a part metallic finish, so the grain reads without the coarse dark streaks
+    // a fully metallic brush mirrored from the dark studio.
+    case 'aluLidBrushed': return metal(0xb7bac0, 0.4, t.brushed, { metalness: 0.62, anisotropy: 0.5, bumpMap: t.brushed, bumpScale: 0.035 });
     case 'aluLid': return metal(0xb4b7bd, 0.48, t.grainFine, { metalness: 0.6, bumpMap: t.bead, bumpScale: 0.004 });
     case 'aluStamp': return metal(0xc0c3c8, 0.44, t.mottle);
     case 'aluWhiteSatin': return worldBump(physical({ color: 0xe6e7ea, metalness: 0.15, roughness: 0.42, roughnessMap: t.mottleMid, bumpMap: t.orange, bumpScale: 6e-5, clearcoat: 0.12, clearcoatRoughness: 0.35 }));

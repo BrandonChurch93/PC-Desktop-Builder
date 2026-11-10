@@ -277,10 +277,11 @@ export class Inspector {
     return out;
   }
 
-  /** LED diffusers: in the occlusion depth, but their own pixels take none. */
+  /** LED diffusers, and parts seen through a perforated sheet (userData.aoExempt): in the occlusion depth, but their own pixels
+   * take none. The pass reads a fine grille as a solid lid over a cavity and blacked out the supply fan behind it. */
   emitters(): THREE.Object3D[] {
     const out: THREE.Object3D[] = [];
-    this.part?.root.traverse((o) => { if (isEmitter(o)) out.push(o); });
+    this.part?.root.traverse((o) => { if (o.userData.aoExempt) o.traverse((m) => { if (m instanceof THREE.Mesh) out.push(m); }); else if (isEmitter(o)) out.push(o); });
     return out;
   }
 

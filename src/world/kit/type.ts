@@ -37,9 +37,9 @@ export const SPEC_TYPE: TextStyle = { family: 'body', weight: 500, spacing: 0.04
 export const MODEL_TYPE: TextStyle = { family: 'body', weight: 600, spacing: 0.08, scaleX: 1, upper: true };
 export const TINY_TYPE: TextStyle = { family: 'body', weight: 500, spacing: 0.02, scaleX: 0.94, upper: true };
 
-/** Upper case that keeps the casing a standard name is written in: 12V-2x6, NVMe. */
+/** Upper case that keeps the casing a standard name or unit is written in: 12V-2x6, NVMe, Hz. */
 function caps(text: string): string {
-  return text.toUpperCase().replace(/12V-2X6/g, '12V-2x6').replace(/NVME/g, 'NVMe');
+  return text.toUpperCase().replace(/12V-2X6/g, '12V-2x6').replace(/NVME/g, 'NVMe').replace(/(\d)\s?HZ\b/g, (m) => m.replace('HZ', 'Hz'));
 }
 
 export function fontString(s: TextStyle, px: number) {

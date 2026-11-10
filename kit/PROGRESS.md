@@ -1,4 +1,4 @@
-PHASE 3 IN PROGRESS · step 6
+PHASE 3 IN PROGRESS · thumbnails, contact sheets, Gate 3
 
 <!-- Builder: this file is your memory. Read it first in every session and after every compaction. Keep it current. Replace the first line as you go: "PHASE N IN PROGRESS · step k", "BLOCKED: ...", and at the very end "BUILD COMPLETE" with nothing else on that line. -->
 
@@ -7,9 +7,9 @@ PHASE 3 IN PROGRESS · step 6
 ## Where things stand
 
 - Current phase: 3 · The roster
-- Current step: 6 · processor tidal16 (then 7 flint, 8 supplies, 9 cables)
+- Current step: after step 9 · thumbnails, generator test, contact sheets, Gate 3
 - Next action: confirm the step 1 to 5 groups on the current build (all have builder verdicts on their newest images, addendum 01), commit "phase 3: boards", then steps 6 (tidal16), 7 (flint), 8 (supplies; fix the HZ casing in the spec table), 9 (cables). Generators for all of them already exist; each is the loop plus one critic round. Then `npm run thumbs` (scripts/thumbs.mjs written, writes public/thumbs, which changes the build id, so run it once before the Gate 3 retake), tests/unit/generators.test.ts (written: every non-case part generates a real model in Node, 43 pass; its 43 thumbnail checks pass once thumbs exist), 9 contact sheets with one critic round. B8 is dropped by addendum 01. Take shots group by group (a wide prefix lost manifest entries).
-- Last commit: phase 3: boards (step 5)
+- Last commit: phase 3: processor, storage, supplies, cables (steps 6 to 9)
 
 ## Phases
 
@@ -18,7 +18,7 @@ PHASE 3 IN PROGRESS · step 6
 | 0 | Setup | done | see Gate 0 evidence below | phase 0: setup |
 | 1 | Engine | done | 134 unit tests pass, typecheck clean, check:copy 0 problems | phase 1: engine |
 | 2 | World foundation and the hero slice | done | see Gate 2 evidence below | phase 2: world foundation and the hero slice |
-| 3 | The roster | in progress (steps 1 to 5 done: fans, memory, coolers, cards, boards) | | |
+| 3 | The roster | in progress (steps 1 to 9 done) | | |
 | 4 | Cases and layouts | not started | | |
 | 5 | Interface and the build flow | not started | | |
 | 6 | Hands | not started | | |
@@ -221,7 +221,8 @@ Newest first. One entry per working session or per compaction: what was done, wh
   - Card bar glow 0.52 to 0.44 (Apex 2X detail cyan end pale). Pump-only liquid coolers take the dark-part rim and sheen (Tarn 240 front radiator melted into black).
   - Next: retake and judge fans, coolers, cards, both Gate 2 groups and the Night Rig ram and storage macros; record builder verdicts on every changed image (addendum 01 rule 1); commit "phase 3: boards"; then step 6 tidal16.
   - Later the same session: the standalone pump's rear lamp lit the radiator core from behind through the fans (area lights cast no shadow), so a loose pump has no rear lamp. Drive lid aluLid made part metallic (0.6): fully metallic it mirrored only the dark shroud. Facet bars show LED hotspots. Builder verdicts recorded on every changed image of boards (16), memory (12), fans (15), coolers (22), cards (21) and the two macros.
-  - Found while pre-viewing steps 6 to 8, to fix next: Tidal 16 wordmark runs into the notched corner (size 1.7 to 1.4, start 1 mm left); Flint model name "Flint 2 TB" set at 20 % of label height overflows its 60 mm label (auto-fit in gridLabel) and its coarse brushed lid streaks (aluLid like the Vault, Pellam family); every supply's capacity number runs into the spec table (auto-fit to the room left of the table); SF 750 shows four rings floating outside its box because the ATX hole pattern (z ±66) is wider than an SFX unit (125 mm), and on ATX units those holes sit 2 mm from the corner holes as double rings, so the second pattern goes; the rear print sets Hz as HZ (caps keeps Hz).
+  - Steps 6 to 9 done (critics 262, 263, then fixes judged by me under addendum 01): Tidal 16 wordmark resized (critic pass). Flint: fine brushed lid in a part metallic finish (aluLidBrushed), molded teal corner tab folded over the lid corner at the connector end, model name auto-fit, dark brushed part metallic base with a lot sticker. Supplies: the AO pass read the fine grille as a solid lid and blacked out the fan; parts flagged userData.aoExempt (on a group, since PartBuilder merges meshes and drops their userData) join the emitter mask; rotor just under the grille, lighter blades; SFX fan 88 mm, ATX double ring holes removed, short unit fan centered (its frame ring showed through the socket panel); keyed IEC inlet shroud 5 mm deep with walls, a lighter pin face and short pins; capacity number fitted left of the table; table text 2.5 mm on 5 mm rows (2.1 mm washed to grey at the front distance); white unit in powderPanelWhite and panelPowderWhite (sprayed grain); rear print sits above the inlet on SFX; Hz kept in caps(). Cables: hook act({ type: 'install' }) and six cable/<colorway> shots; the 24 pin turn sweeps on a 20 mm radius and the wires shade to dark by path length past where they drop toward the tray (attribute 'shade', wireSleeve material), so the turn reads as diving into the grommet and not as capped ends (critic 262); graphics runs get a comb right past the plug. Checks: part/cpu 6, part/storage 9, part/psu 15, cable 6 passed, problems 0.
+  - Found while pre-viewing steps 6 to 8, to fix next (all done, see above): Tidal 16 wordmark runs into the notched corner (size 1.7 to 1.4, start 1 mm left); Flint model name "Flint 2 TB" set at 20 % of label height overflows its 60 mm label (auto-fit in gridLabel) and its coarse brushed lid streaks (aluLid like the Vault, Pellam family); every supply's capacity number runs into the spec table (auto-fit to the room left of the table); SF 750 shows four rings floating outside its box because the ATX hole pattern (z ±66) is wider than an SFX unit (125 mm), and on ATX units those holes sit 2 mm from the corner holes as double rings, so the second pattern goes; the rear print sets Hz as HZ (caps keeps Hz).
 
 - 2026-11-10 session 1, Phase 3 step 4 cards done, critics 216 to 250. Evidence: npm run check:shots -- part/gpu- part/ram- part/cooler- part/fan- part/case-vitrine: problems 0 (85 passed); rig/night-rig bench/night-rig macro/night-rig light/effect: problems 0 (22 passed). 147 unit tests, typecheck clean, check:copy 0 problems. Fixes in this stretch: socket terminals and latches, Facet bar depth glow, brushed white card backplates, smooth satin plastic and fine white peel, Crest deep end chamfer with its accent following it, Dravik zinc brackets, coated card and supply fins, satin black powder, processor socket field as a texture with load lever, hook and hinge, stacked SATA seams, board pads and footprints, coarser top perforation and dark top filter, SATA grommet lower, 24 pin bend into the slot, backplate print at the bracket end, coin cell print, supply rim, rear print and thin inlet blades, chipset accent gain. Next: step 5 boards.
 

@@ -45,7 +45,7 @@ export function psuPart(id: string, opts: GenOpts = {}): PartObject {
   const { w: W, h: H } = DIMS.psu[sfx ? 'sfx' : 'atx'];
   const L = spec?.length ?? 160;
   const frost = spec?.finish === 'frost';
-  const shell: MatName = frost ? 'powderWhite' : 'powderPanel';
+  const shell: MatName = frost ? 'powderPanelWhite' : 'powderPanel';
   const grilleMat: MatName = frost ? 'aluSilver' : 'powderBlack';
   const pb = new PartBuilder(`psu-${id}`);
   const labels = new Labels(pb, 18);
@@ -67,8 +67,14 @@ export function psuPart(id: string, opts: GenOpts = {}): PartObject {
     pb.add(extrude(rim, 2.4, 1.0, 'zy', 16, 3), shell, xf({ p: [ex, 0, 0] }));
   }
 
-  const fanR = sfx ? 46 : 64;
-  const fx = sfx ? 0 : L * 0.04;
+  // An SFX unit takes a 92 mm fan, about 88 mm across its blades; a 92 mm opening met the edge of its 100 mm top and the
+  // top plate lost its opening.
+  const fanR = sfx ? 44 : Math.min(64, L / 2 - 6);
+  // The rotor sits just under the top: its pitched blades reach about 8 mm above and below its middle, so they clear the
+  // grille by about 3 mm and still show through its cells. Higher, they passed through the top; lower, the cells showed black.
+  const rotorY = H - capT - 9.5;
+  // A short unit centers its fan, so the fan frame ring stays inside the box; off center it showed through the socket panel.
+  const fx = sfx || L <= 140 ? 0 : L * 0.04;
   const top = new THREE.Shape(); rrect(top, -L / 2, -W / 2, L, W, bend);
   top.holes.push(circleHole(fx, 0, fanR + 1));
   for (const [sx, sz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]] as [number, number][]) top.holes.push(circleHole(sx * (L / 2 - 6), sz * (W / 2 - 6), 1.6));
@@ -80,17 +86,18 @@ export function psuPart(id: string, opts: GenOpts = {}): PartObject {
   pb.add(gGeo, grilleMat, xf({ p: [fx, H - 1.5, 0] }));
   pb.add(lathe([[fanR - 1.2, H - 1.6], [fanR + 0.9, H - 1.6], [fanR + 0.9, H - 0.6], [fanR - 1.2, H - 0.6]], 64), grilleMat, xf({ p: [fx, 0, 0] }).multiply(new THREE.Matrix4().makeRotationX(-PI / 2)));
   pb.add(rbox(L - 4, 0.6, W - 4, 0.2, 1), 'darkVoid', xf({ p: [0, 3, 0] }), { uv: 'keep' });
-  pb.add(cyl(fanR + 2.6, 0.6, 'y', 64, fanR + 2.6, true), 'plasticMatte', xf({ p: [fx, H - 8, 0] }));
+  pb.add(cyl(fanR + 2.6, 0.6, 'y', 64, fanR + 2.6, true), 'plasticMatte', xf({ p: [fx, rotorY, 0] }));
 
-  const rotor = pb.group('psu-rotor', pb.root, xf({ p: [fx, H - 6.5, 0], r: [-PI / 2, 0, 0] }));
+  const rotor = pb.group('psu-rotor', pb.root, xf({ p: [fx, rotorY, 0], r: [-PI / 2, 0, 0] }));
   const blades = pb.group('psu-blades', rotor);
   const bg = bladeGeometry({ r0: 19, r1: fanR - 2.5, c0: 18, c1: 36, pitch0: 0.8, pitch1: 0.42, sweep: 0.5, thick: 1.6, z: 0, nu: 12, nv: 8 });
-  const bladeMat = pb.own((mat('plasticGrey') as THREE.MeshPhysicalMaterial).clone()); bladeMat.side = THREE.DoubleSide; bladeMat.color.setHex(0x6b6f77);
+  const bladeMat = pb.own((mat('plasticGrey') as THREE.MeshPhysicalMaterial).clone()); bladeMat.side = THREE.DoubleSide; bladeMat.color.setHex(0x9a9ea6);
   for (let i = 0; i < 9; i++) pb.add(bg.clone(), bladeMat, xf({ r: [0, 0, (i / 9) * PI * 2] }), { to: blades, uv: 'keep' });
   bg.dispose();
   pb.add(lathe([[0, 3.6], [15, 3.6], [18.5, 2.2], [19.2, 0], [19.2, -6], [0, -6]], 48), 'plasticMatte', undefined, { to: rotor });
   labels.text(brandName(spec?.brand ?? 'thessic'), BRAND_TYPE.thessic ?? SPEC_TYPE, 3.2, xf({ p: [0, 0, 3.7] }), { color: '#9a9ea8', to: rotor });
-  for (let i = 0; i < 4; i++) { const a = (i / 4) * PI * 2 + PI / 4; pb.add(rbox(fanR - 20, 2.6, 2, 0.8, 1), 'plasticMatte', xf({ p: [fx + Math.cos(a) * (fanR + 18) / 2, H - 16, Math.sin(a) * (fanR + 18) / 2], r: [0, -a, 0] })); }
+  rotor.userData.aoExempt = true;
+  for (let i = 0; i < 4; i++) { const a = (i / 4) * PI * 2 + PI / 4; pb.add(rbox(fanR - 20, 2.6, 2, 0.8, 1), 'plasticMatte', xf({ p: [fx + Math.cos(a) * (fanR + 18) / 2, rotorY - 12, Math.sin(a) * (fanR + 18) / 2], r: [0, -a, 0] })); }
 
   const endPlate = (sign: 1 | -1) => {
     const s = new THREE.Shape(); rrect(s, -W / 2 + t, t, W - 2 * t, H - t - 2.2, 1);
@@ -113,12 +120,18 @@ export function psuPart(id: string, opts: GenOpts = {}): PartObject {
     const housing = rrectShape(30, 24, 1.6);
     housing.holes.push(polyHole([[-11.5, -7.5], [11.5, -7.5], [11.5, 4.6], [8.6, 7.5], [-8.6, 7.5], [-11.5, 4.6]]));
     pb.add(extrude(housing, 2.4, 0.4, 'zy', 6, 1), 'plasticDark', at(rear - 1.4, iy, iz));
-    // A dark cavity behind the keyed opening, so the bright blades stand out; a grey floor read as a plain block.
-    pb.add(rbox(1.2, 22, 28, 0.3, 1), 'plasticDark', xf({ p: [rear + 4.4, iy, iz] }));
+    // The keyed shroud goes 6 mm deep with its own walls to a pin face a shade lighter than the walls, so the opening reads as
+    // a socket with three pins and not as a flat dark recess (critic 263).
+    const keyed: [number, number][] = [[-11.5, -7.5], [11.5, -7.5], [11.5, 4.6], [8.6, 7.5], [-8.6, 7.5], [-11.5, 4.6]];
+    const wall = new THREE.Shape(keyed.map(([a, b]) => new THREE.Vector2(a, b)));
+    wall.holes.push(polyHole(keyed.map(([a, b]) => [a * 0.92, b * 0.88] as [number, number])));
+    pb.add(extrude(wall, 5, 0.2, 'zy', 4, 1), 'plasticDark', at(rear - 0.2, iy, iz));
+    const face = pb.own(new THREE.MeshPhysicalMaterial({ color: 0x3a3c42, roughness: 0.6 }));
+    pb.add(rbox(1.0, 15, 23, 0.3, 1), face, xf({ p: [rear + 5.2, iy, iz] }));
     // Three solid flat blades as an IEC inlet has them, set back inside the shroud: line and neutral low, earth high in the
     // middle, nickel plated. Standing proud of the face, their sides overlapped into blocks seen at an angle.
-    const blade = pb.own(new THREE.MeshPhysicalMaterial({ color: 0xb4b7bc, metalness: 1, roughness: 0.58 }));
-    for (const [dy, dz] of [[-2.6, -7], [-2.6, 7], [3.6, 0]] as [number, number][]) pb.add(rbox(2.8, 4.6, 0.9, 0.25, 2), blade, xf({ p: [rear + 3.0, iy + dy, iz + dz] }));
+    const blade = pb.own(new THREE.MeshPhysicalMaterial({ color: 0x9da0a7, metalness: 1, roughness: 0.38 }));
+    for (const [dy, dz] of [[-2.6, -7], [-2.6, 7], [3.6, 0]] as [number, number][]) pb.add(rbox(2.6, 4.6, 0.9, 0.25, 2), blade, xf({ p: [rear + 3.4, iy + dy, iz + dz] }));
   }
   // The four threaded holes the case screws go into, near the corners of the rear face.
   for (const hy of [7, H - 7]) for (const hz of [-W / 2 + 7, W / 2 - 7]) {
@@ -134,20 +147,16 @@ export function psuPart(id: string, opts: GenOpts = {}): PartObject {
   pb.own(led.material as THREE.Material);
   const sg = screwGeometry(2.6, 1.2, 'pan');
   const sm = pb.own(new THREE.MeshPhysicalMaterial({ color: frost ? 0xd6d8dc : 0x1e1f23, metalness: 1, roughness: 0.4, vertexColors: true }));
-  // Threaded holes on the standard ATX pattern; the case's screws go into them.
-  for (const [y, z] of [[H / 2 + 36, 66], [H / 2 + 36, -66], [H / 2 - 36, 66], [H / 2 - 36, -66]] as [number, number][]) {
-    pb.add(cyl(1.7, 0.4, 'x', 16), 'darkVoid', xf({ p: [rear - 0.05, y, z] }), { uv: 'keep' });
-    pb.add(torus(1.95, 0.25, 6, 20), 'steelZinc', xf({ p: [rear - 0.02, y, z], r: [0, PI / 2, 0] }));
-  }
   for (const [sx, sz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]] as [number, number][]) pb.add(sg.clone(), sm, xf({ p: [sx * (L / 2 - 6), H - 0.1, sz * (W / 2 - 6)], r: [-PI / 2, 0, 0] }), { uv: 'keep' });
   sg.dispose();
-  labels.text('100-240 V ~ 50/60 Hz', TINY_TYPE, 2.0, xf({ p: [rear - 1.1, H * 0.78, -W / 2 + 22], r: [0, -PI / 2, 0] }), { color: frost ? '#4c5058' : '#9aa0a8' });
+  // On the low SFX face the print sits a fixed height over the inlet; at a share of the height it ran into the inlet's top.
+  labels.text('100-240 V ~ 50/60 Hz', TINY_TYPE, 2.0, xf({ p: [rear - 1.1, sfx ? H * 0.58 + 15.5 : H * 0.78, -W / 2 + 22], r: [0, -PI / 2, 0] }), { color: frost ? '#4c5058' : '#9aa0a8' });
   // The maker and rating on the rear plate too, so the supply is named from behind, where a shroud leaves it seen.
-  labels.text(`${brandName(spec?.brand ?? 'thessic').toUpperCase()} ${spec?.capacity ?? 850}W`, BRAND_TYPE[spec?.brand ?? 'thessic'] ?? SPEC_TYPE, 2.6, xf({ p: [rear - 1.1, H * 0.85, -W / 2 + 22], r: [0, -PI / 2, 0] }), { color: frost ? '#3e424a' : '#b9bdc5' });
+  labels.text(`${brandName(spec?.brand ?? 'thessic').toUpperCase()} ${spec?.capacity ?? 850}W`, BRAND_TYPE[spec?.brand ?? 'thessic'] ?? SPEC_TYPE, 2.6, xf({ p: [rear - 1.1, sfx ? H * 0.58 + 21 : H * 0.85, -W / 2 + 22], r: [0, -PI / 2, 0] }), { color: frost ? '#3e424a' : '#b9bdc5' });
 
   const anchors: Record<string, Anchor> = {};
   const front = L / 2;
-  pb.add(rbox(1.0, H - 12, W - 12, 0.6, 1), frost ? 'aluWhite' : 'panelPowder', xf({ p: [front - 3, H / 2, 0] }));
+  pb.add(rbox(1.0, H - 12, W - 12, 0.6, 1), frost ? 'panelPowderWhite' : 'panelPowder', xf({ p: [front - 3, H / 2, 0] }));
   {
     const psg = screwGeometry(2.0, 1.0, 'pan');
     const psm = pb.own(new THREE.MeshPhysicalMaterial({ color: frost ? 0xd6d8dc : 0x2a2b30, metalness: 1, roughness: 0.4, vertexColors: true }));
@@ -219,24 +228,33 @@ export function psuPart(id: string, opts: GenOpts = {}): PartObject {
       const ink = frost ? 'rgba(28,30,34,1)' : 'rgba(226,228,233,1)';
       const big: TextStyle = { ...(BRAND_TYPE.thessic ?? SPEC_TYPE), weight: 800 };
       g.fillStyle = ink;
-      g.save(); g.font = `800 ${lh * 0.5 * s}px "DM Sans Variable"`; g.textBaseline = 'alphabetic';
+      // The rating is set as large as the room left of the spec table allows: four digits ran into the table at full size.
+      let size = lh * 0.5 * s;
+      g.save(); g.font = `800 ${size}px "DM Sans Variable"`; g.textBaseline = 'alphabetic';
+      const room = (lw * 0.62 - 7) * s / 0.78;
+      const need = g.measureText(cap).width + 1.2 * s + g.measureText('W').width;
+      if (need > room) { size *= room / need; g.font = `800 ${size}px "DM Sans Variable"`; }
       g.translate(4 * s, lh * 0.7 * s); g.scale(0.78, 1); g.fillText(cap, 0, 0);
       // The unit is printed at the number's size on its baseline, so it reads as one rating seen at any angle.
       g.fillText('W', g.measureText(cap).width + 1.2 * s, 0); g.restore();
       g.save(); g.translate(4 * s, lh * 0.86 * s); g.scale(big.scaleX, 1); g.font = `800 ${lh * 0.13 * s}px "DM Sans Variable"`; g.fillText(brandName(spec?.brand ?? 'thessic').toUpperCase(), 0, 0); g.restore();
       const colX = lw * 0.62 * s;
+      // The label column keeps room for AC INPUT on the short SFX label.
+      const split = Math.max(lw * 0.125, 13.5) * s;
+      // Table text is set at 2.5 mm: at 2.1 mm its strokes fell under a pixel at the front shot's distance and washed to grey.
+      const rowH = 5.0;
       g.strokeStyle = frost ? 'rgba(120,122,128,1)' : 'rgba(110,114,122,1)'; g.lineWidth = Math.max(1, 0.15 * s);
-      g.font = `500 ${2.1 * s}px "DM Sans Variable"`;
+      g.font = `${frost ? 600 : 500} ${2.5 * s}px "DM Sans Variable"`;
       const rows = [['AC INPUT', '100-240 V'], ['FREQ', '50/60 Hz'], ['+12V', `${Math.round((spec?.capacity ?? 850) / 12.2)} A`], ['+5V', '20 A'], ['+3.3V', '20 A'], ['FORM', sfx ? 'SFX' : 'ATX 3.1'], ['MODEL', `TH-${cap}${sfx ? 'S' : ''}`]];
       // Every other row shaded and the columns divided, so each value reads with its own label at any angle.
       rows.forEach(([a, b], i) => {
-        const y = (5 + i * 4.6) * s;
-        if (i % 2 === 0) { g.save(); g.fillStyle = frost ? 'rgba(214,216,221,1)' : 'rgba(44,46,52,1)'; g.fillRect(colX, y - 0.6 * s, lw * 0.34 * s, 4.6 * s); g.restore(); }
-        g.strokeRect(colX, y - 0.6 * s, lw * 0.34 * s, 4.6 * s);
-        g.fillText(a!, colX + 1 * s, y + 2.6 * s); g.fillText(b!, colX + lw * 0.135 * s, y + 2.6 * s);
+        const y = (5 + i * rowH) * s;
+        if (i % 2 === 0) { g.save(); g.fillStyle = frost ? 'rgba(214,216,221,1)' : 'rgba(44,46,52,1)'; g.fillRect(colX, y - 0.6 * s, lw * 0.34 * s, rowH * s); g.restore(); }
+        g.strokeRect(colX, y - 0.6 * s, lw * 0.34 * s, rowH * s);
+        g.fillText(a!, colX + 1 * s, y + 2.95 * s); g.fillText(b!, colX + split + 1 * s, y + 2.95 * s);
       });
-      g.beginPath(); g.moveTo(colX + lw * 0.125 * s, 4.4 * s); g.lineTo(colX + lw * 0.125 * s, (4.4 + rows.length * 4.6) * s); g.stroke();
-      g.font = `600 ${2.4 * s}px "DM Sans Variable"`;
+      g.beginPath(); g.moveTo(colX + split, 4.4 * s); g.lineTo(colX + split, (4.4 + rows.length * rowH) * s); g.stroke();
+      g.font = `${frost ? 700 : 600} ${2.9 * s}px "DM Sans Variable"`;
       g.fillText(spec?.name ? `${brandName(spec.brand)} ${spec.name}` : '', 4 * s, 6 * s);
     }, xf({ p: [-L * 0.04, H / 2, side * (W / 2 + 0.15)], r: [0, side > 0 ? 0 : PI, 0] }));
   };

@@ -56,6 +56,8 @@ export function SheetDialog() {
         <div className={s.side}>
           <Rows title="Capacity" rows={m.capacity} />
           <Rows title="Power" rows={m.power} />
+        </div>
+        <div className={s.side}>
           <Rows title="Cooling" rows={m.cooling} />
           <Rows title="Clearances" rows={m.clearances} />
           <section className={s.section} aria-labelledby="sheet-warnings">

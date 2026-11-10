@@ -34,6 +34,12 @@ export type TabItem<T extends string> = { value: T; label: string; badge?: numbe
 /** Category tabs. The active tab carries an accent underline; a tab shows a count or dot when its category has parts. */
 export function Tabs<T extends string>({ value, items, onChange, label, idBase }: { value: T; items: TabItem<T>[]; onChange: (v: T) => void; label: string; idBase: string }) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
+  // The active tab scrolls into view in a row that overflows, as on a phone.
+  useEffect(() => {
+    const el = refs.current[items.findIndex((t) => t.value === value)];
+    const row = el?.parentElement;
+    if (el && row && row.scrollWidth > row.clientWidth) row.scrollTo({ left: Math.max(0, el.offsetLeft - (row.clientWidth - el.offsetWidth) / 2), behavior: 'instant' as ScrollBehavior });
+  }, [value, items]);
   const onKey = (e: KeyboardEvent, i: number) => {
     const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
     if (!d) return;

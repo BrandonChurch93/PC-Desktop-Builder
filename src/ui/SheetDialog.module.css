@@ -1,5 +1,5 @@
 .eyebrow {
-  margin: calc(-1 * var(--space-2)) 0 var(--space-4);
+  margin: 0 0 var(--space-4);
   color: var(--ink-muted);
   font-size: var(--text-eyebrow);
   font-weight: 500;
@@ -9,14 +9,14 @@
 
 .grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, 1fr);
   gap: var(--space-6);
 }
 
 .side {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-4);
 }
 
 .section {
@@ -44,7 +44,7 @@
     'name remove';
   align-items: center;
   column-gap: var(--space-3);
-  padding: var(--space-2) 0;
+  padding: 6px 0;
   border-bottom: 1px solid var(--line);
 }
 
@@ -71,7 +71,7 @@
   display: flex;
   justify-content: space-between;
   gap: var(--space-4);
-  padding: 6px 0;
+  padding: 5px 0;
   border-bottom: 1px solid var(--line);
   font-size: var(--text-control);
 }
@@ -135,8 +135,22 @@
   flex: 1;
 }
 
+@media (max-width: 1100px) {
+  .grid {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  }
+
+  .grid > .side:last-child {
+    grid-column: 2;
+  }
+}
+
 @media (max-width: 760px) {
   .grid {
     grid-template-columns: 1fr;
+  }
+
+  .grid > .side:last-child {
+    grid-column: auto;
   }
 }

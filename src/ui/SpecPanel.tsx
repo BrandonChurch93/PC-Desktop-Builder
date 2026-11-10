@@ -19,7 +19,7 @@ export function SpecStats() {
       <Stat label="Power" value={sh.drawW || null} unit="W" detail={sh.psuCapacityW ? `of ${sh.psuCapacityW} W · ${sh.loadPercent ?? 0} percent` : sh.drawW ? 'Waiting for a supply' : 'Waiting for parts'}>
         <Meter value={loadRatio} warnAt={K.headroomWarnRatio} label="Power load" />
       </Stat>
-      <Stat label="Graphics" value={sh.gpuLength || null} unit="mm" detail={sh.gpuLength ? `of ${sh.gpuMaxLength} mm clearance` : build.case ? `Waiting for a card · ${sh.gpuMaxLength} mm clearance` : 'Waiting for a case'} />
+      <Stat label="Graphics" value={sh.gpuLength || null} unit="mm" detail={sh.gpuLength ? `of ${sh.gpuMaxLength} mm clearance` : build.case ? `Waiting for a card · ${sh.gpuMaxLength} mm free` : 'Waiting for a case'} />
     </div>
   );
 }

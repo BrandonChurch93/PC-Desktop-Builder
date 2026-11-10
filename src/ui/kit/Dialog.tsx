@@ -18,8 +18,8 @@ export function Dialog({ title, onClose, children, wide, actions, labelHidden }:
     opener.current = document.activeElement;
     const el = box.current;
     if (el) {
-      const first = el.querySelector<HTMLElement>('[data-autofocus]') ?? el.querySelector<HTMLElement>(FOCUSABLE);
-      (first ?? el).focus();
+      // The dialog itself takes focus, so a screen reader reads its title first; a dialog that names a first control focuses that.
+      (el.querySelector<HTMLElement>('[data-autofocus]') ?? el).focus();
       if (!reduced) {
         gsap.fromTo(el, { opacity: 0, y: 12, scale: 0.985 }, { opacity: 1, y: 0, scale: 1, duration: 0.36, ease: 'power2.out' });
         if (back.current) gsap.fromTo(back.current, { opacity: 0 }, { opacity: 1, duration: 0.36, ease: 'power2.out' });

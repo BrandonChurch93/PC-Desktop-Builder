@@ -6,7 +6,7 @@
   align-items: flex-start;
   gap: var(--space-4);
   width: max-content;
-  max-width: min(520px, calc(100vw - 2 * var(--inset)));
+  max-width: min(720px, calc(100vw - 2 * var(--inset)));
   padding: var(--space-3) var(--space-3) var(--space-3) var(--space-5);
   translate: -50% 0;
   border: 1px solid var(--line);
@@ -35,6 +35,21 @@
 
 .lines li + li {
   margin-top: 2px;
+}
+
+.columns {
+  columns: 2;
+  column-gap: var(--space-6);
+}
+
+.columns li {
+  break-inside: avoid;
+}
+
+@media (max-width: 760px) {
+  .columns {
+    columns: 1;
+  }
 }
 
 .actions {

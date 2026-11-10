@@ -49,7 +49,7 @@ export function Notice() {
     <div ref={el} className={s.notice} style={{ bottom: offset }} role={n.action ? 'alertdialog' : 'status'} aria-labelledby={`notice-${n.id}`}>
       <div className={s.text}>
         <div id={`notice-${n.id}`} className={s.title}>{n.title}</div>
-        {n.lines.length > 0 && <ul className={s.lines}>{n.lines.map((l) => <li key={l}>{l}</li>)}</ul>}
+        {n.lines.length > 0 && <ul className={[s.lines, n.lines.length > 4 ? s.columns : ''].join(' ')}>{n.lines.map((l) => <li key={l}>{l}</li>)}</ul>}
       </div>
       <div className={s.actions}>
         {n.action === 'undo' && <Button variant="primary" onClick={undo}>Undo</Button>}

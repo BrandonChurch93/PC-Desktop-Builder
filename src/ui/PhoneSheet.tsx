@@ -75,6 +75,7 @@ export function PhoneSheet({ topRef }: { topRef: RefObject<HTMLDivElement | null
     const target = shown ? heights[stop] : 0;
     if (reduced) { gsap.set(node, { height: target }); frame(target); return; }
     gsap.to(node, { height: target, duration: 0.36, ease: 'power2.out', onUpdate: () => frame(node.getBoundingClientRect().height) });
+    return () => { gsap.killTweensOf(node); };
   }, [stop, h, landscape, shown, reduced, heights.peek, heights.half, heights.full, frame]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const down = (e: RPointerEvent) => {

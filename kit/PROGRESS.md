@@ -1,4 +1,4 @@
-PHASE 5 IN PROGRESS · step 1
+PHASE 6 IN PROGRESS · step 1
 
 <!-- Builder: this file is your memory. Read it first in every session and after every compaction. Keep it current. Replace the first line as you go: "PHASE N IN PROGRESS · step k", "BLOCKED: ...", and at the very end "BUILD COMPLETE" with nothing else on that line. -->
 
@@ -6,10 +6,10 @@ PHASE 5 IN PROGRESS · step 1
 
 ## Where things stand
 
-- Current phase: 5 · Interface and the build flow
-- Current step: 1 (tokens, global styles, fonts)
-- Next action: Phase 5 steps 1 to 9 per kit/08-BUILD-ORDER.md; read kit/05-DESIGN.md, kit/01-PRODUCT.md, the named sections of kit/03-RULES.md and kit/06-ARCHITECTURE.md first. Do not end the turn with a status report: updates go here.
-- Last commit: phase 4: gate 4
+- Current phase: 6 · Hands
+- Current step: 1 (picking, hover and selection outlines, the selection menu)
+- Next action: Phase 6 steps 1 to 7 per kit/08-BUILD-ORDER.md; first read the Camera, Modes in the scene, Sockets picking and dragging, and Choreography sections of kit/04-WORLD.md, the Components and Motion sections of kit/05-DESIGN.md, and the motion checklist in kit/07-QUALITY-BAR.md. Do not end the turn with a status report: updates go here.
+- Last commit: phase 5: gate 5
 
 ## Phases
 
@@ -20,7 +20,7 @@ PHASE 5 IN PROGRESS · step 1
 | 2 | World foundation and the hero slice | done | see Gate 2 evidence below | phase 2: world foundation and the hero slice |
 | 3 | The roster | done | see Gate 3 evidence below | phase 3: the roster |
 | 4 | Cases and layouts | done | see Gate 4 evidence below | phase 4: gate 4 |
-| 5 | Interface and the build flow | not started | | |
+| 5 | Interface and the build flow | done | see Gate 5 evidence below | phase 5: gate 5 |
 | 6 | Hands | not started | | |
 | 7 | Light and life | not started | | |
 | 8 | Modes and keeping | not started | | |
@@ -80,6 +80,13 @@ PHASE 5 IN PROGRESS · step 1
 - Item B8: dropped by addendum 01 rule 7.
 - `npm run check:shots -- contact/mirevale contact/skarn contact/paleforge`: `contact sheets passed: 3 · problems: 0` (critic 276 failed all three for shared glass caps and a faint stencil; fixed with per brand glass fixings, a wider stencil bridge and a matte white plate, passed on my verdict under rule 1).
 - Every catalog part has a generator and every thumbnail exists: tests/unit/generators.test.ts checks 43 parts and all 12 case finishes (generate and thumbnail). `npm run thumbs`: 55 thumbnails, 1.8 MB. `npx vitest run`: 9 files, 276 tests passed. Typecheck clean. check:copy 0 problems.
+
+### Gate 5 evidence
+
+- tests/e2e/build-flow.spec.ts, `npx playwright test --project=chromium`: 8 passed. Keyboard only, from an empty bench, the Night Rig part by part (cooler before fans, four Enters on the fan card fill front 1 to 3 and rear 1, two drives, the Orchid cables, the name typed in place): the share code equals the fixture's `encoded` and the spec panel shows the fixture's numbers. The same on a 390 x 844 touch viewport with taps (the liquid cooler and the fans show their places and the test taps them, as the build's mounts require). A case swap to the Cub shows Removed 11 parts with the lines kit/03-RULES.md builds from the fixture's removed list (computed in the test from the kit, not from the app), and Undo restores the exact build. Reload restores the build. With localStorage throwing, the app installs a part and reloads with no error. C20: a tap on a single place card installs at once; a tap on a fan card with several free mounts shows the sockets and changes nothing until one is tapped; Enter four times on a fan card fills four different mounts.
+- Weak point 11 (placeholder thumbnails, static controls, desktop only): every card shows the part's real render from public/thumbs (cases in their installed finish); every control is live and drives the engine (tray install and remove, finish switch, steppers that stop at their limits with the reason as tooltip, fill and clear fans, cable swatches, name in place, glass and power and airflow, lighting effect, speed, brightness, direction and presets, undo and redo, full sheet with Remove); the numbers count to new values; three layouts (desktop panels, tablet side sheets with edge buttons, phone bottom sheet with three stops and momentum and a 320 px landscape panel), and the camera frames the rig in the area the panels leave clear.
+- Shots: `npm run check:shots -- ui-desktop/02 ui-desktop/03 ui-desktop/06 ui-desktop/08 ui-tablet/landscape-build ui-tablet/landscape-spec-sheet ui-tablet/portrait-build ui-tablet/portrait-spec-sheet ui-phone/empty-bench ui-phone/peek ui-phone/half ui-phone/full ui-phone/specs`: passed 13, problems 0 (my verdicts under addendum rule 2, shots/peek/v-gate5.txt).
+- Earlier tests: 276 unit tests pass, typecheck clean, check:copy 0 problems. The 3D groups retaken on this build: all 223 rig, bench, finish, macro and part images came back same (zoom 1 and no offset with the interface hidden); the six cable shots changed from the Gate 4 shared changes and passed on my verdict. `npm run check:shots -- rig bench finish macro part cable`: passed 229, problems 0. `npm run check:shots -- contact`: 12 passed.
 
 ## Environment
 

@@ -23,6 +23,30 @@ function socketName(caseId: string | undefined, sock: Socket): string {
 }
 
 /**
+ * Labels laid out so no two overlap: each starts at its place in the scene, and one that would cover a label already
+ * placed moves down, then up, by its own height until it is clear. Places behind the camera get no label.
+ */
+function spread(pos: { x: number; y: number; front: boolean }[], names: string[]): ({ x: number; y: number } | null)[] {
+  const coarse = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
+  const h = (coarse ? 44 : 32) + 6;
+  const boxes: { l: number; r: number; t: number; b: number }[] = [];
+  const order = pos.map((_, i) => i).sort((a, b) => (pos[a]?.y ?? 0) - (pos[b]?.y ?? 0));
+  const out: ({ x: number; y: number } | null)[] = pos.map(() => null);
+  for (const i of order) {
+    const p = pos[i];
+    if (!p || !p.front) continue;
+    const w = 44 + (names[i]?.length ?? 8) * 7.6;
+    const at = (y: number) => ({ l: p.x - 16, r: p.x - 16 + w, t: y - h / 2, b: y + h / 2 });
+    const hit = (bx: { l: number; r: number; t: number; b: number }) => boxes.some((o) => bx.l < o.r && bx.r > o.l && bx.t < o.b && bx.b > o.t);
+    let y = p.y;
+    for (let k = 1; k < 12 && hit(at(y)); k++) y = p.y + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * h;
+    boxes.push(at(y));
+    out[i] = { x: p.x, y };
+  }
+  return out;
+}
+
+/**
  * The places a held part can go, as labels positioned from the scene. A tap or click installs at a valid place; a blocked
  * place shows its reason. With the keyboard, arrow keys move between places, Enter installs and Escape cancels.
  */
@@ -67,6 +91,8 @@ export function SocketLabels() {
   }, [held, sockets.length]);
 
   if (!held) return null;
+  const names = sockets.map((x) => socketName(build.case?.id, x));
+  const placed = spread(pos, names);
   return (
     <div className={s.layer} role="group" aria-label={`Places for ${partName(held.category, held.id)}`}>
       <div className={s.banner} role="status">
@@ -74,8 +100,8 @@ export function SocketLabels() {
         <button type="button" className={s.cancel} onClick={cancelPlacing}>Cancel</button>
       </div>
       {sockets.map((sock, i) => {
-        const p = pos[i];
-        if (!p || !p.front) return null;
+        const p = placed[i];
+        if (!p) return null;
         const active = held.socket === i;
         return (
           <button key={sock.key} ref={(el) => { refs.current[i] = el; }} type="button" data-socket={sock.key}

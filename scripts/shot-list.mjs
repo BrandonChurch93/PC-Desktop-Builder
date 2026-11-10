@@ -8,7 +8,9 @@
 // required names from the catalog and kit/07-QUALITY-BAR.md lists them in its Shots table.
 // To see what is still missing, run: npm run check:shots
 //
-// Names chosen for __pcb.open(name): none yet.
+// Names chosen for __pcb.open(name): sheet, share, saved, settings, about, poster (dialogs); menu; intro, start (overlays);
+//   lighting, spec (the tablet side sheets); peek, half, full (the phone sheet stops); parts, specs, lighting-tab (the
+//   phone sheet tabs); tab-<category> (the tray tab); none (closes all of them).
 //
 // Extra hook options used here: inspect(category, id, angle, { zoom, size, finish, ui, flip, focus }),
 //   flip shows the underside, focus aims a close view at a point given as fractions of the part's bounds.
@@ -86,5 +88,26 @@ for (const [key, cat] of PART_GROUPS) {
 for (const e of catalog.lighting.effects) {
   SHOTS[`light/effect-${e.id}`] = { steps: [['load', 'night-rig'], ['mode', 'showcase'], ['set', { ui: false, glass: true, power: true, load: 0 }], ['act', { type: 'lighting', patch: { effect: e.id } }, { instant: true }], ['cam', 'hero'], FREEZE] };
 }
+
+// Interface shots: the interface shown, a named build, a frozen clock. A build in progress is the Night Rig before its card,
+// supply and fans; the spec sheet with warnings is the Night Rig on a 650 W supply.
+const ui = (pre) => [['load', 'night-rig'], ['set', { ui: true }], ['act', { type: 'name', name: 'Night Rig' }], ...pre, ['cam', 'hero'], FREEZE];
+const inProgress = [['act', { type: 'remove', category: 'gpu' }], ['act', { type: 'remove', category: 'psu' }], ['act', { type: 'clearFans' }], ['open', 'tab-gpu']];
+const warned = [['act', { type: 'install', category: 'psu', id: 't650' }]];
+const emptyBench = [['empty'], ['set', { ui: true }], ['cam', 'hero'], FREEZE];
+SHOTS['ui-desktop/02-empty-bench'] = { steps: emptyBench };
+SHOTS['ui-desktop/03-build'] = { steps: ui(inProgress) };
+SHOTS['ui-desktop/06-cascade'] = { steps: ui([['open', 'tab-case'], ['act', { type: 'install', category: 'case', id: 'cub' }]]) };
+SHOTS['ui-desktop/08-spec-sheet'] = { steps: ui([...warned, ['open', 'sheet']]) };
+for (const [o, width, height] of [['landscape', 1180, 820], ['portrait', 820, 1180]]) {
+  SHOTS[`ui-tablet/${o}-build`] = { width, height, touch: true, steps: ui(inProgress) };
+  SHOTS[`ui-tablet/${o}-spec-sheet`] = { width, height, touch: true, steps: ui([...warned, ['open', 'sheet']]) };
+}
+const phone = { width: 390, height: 844, touch: true };
+SHOTS['ui-phone/empty-bench'] = { ...phone, steps: emptyBench };
+SHOTS['ui-phone/peek'] = { ...phone, steps: ui([['open', 'peek'], ['open', 'tab-gpu']]) };
+SHOTS['ui-phone/half'] = { ...phone, steps: ui([['open', 'half'], ['open', 'parts'], ['open', 'tab-ram']]) };
+SHOTS['ui-phone/full'] = { ...phone, steps: ui([['open', 'full'], ['open', 'parts'], ['open', 'tab-case']]) };
+SHOTS['ui-phone/specs'] = { ...phone, steps: ui([['open', 'half'], ['open', 'specs']]) };
 
 export { SHOTS };

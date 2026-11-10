@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { installHook } from './hook';
 import { flushAutosave } from './state/actions';
 import { boot } from './state/boot';
@@ -11,7 +11,7 @@ import { Shell } from './ui/Shell';
 import { installShortcuts } from './ui/shortcuts';
 import { SocketLabels } from './ui/SocketLabels';
 import { Tips } from './ui/Tips';
-import { setWorld } from './ui/worldRef';
+import { getWorld, setWorld } from './ui/worldRef';
 import { World } from './world/World';
 import styles from './App.module.css';
 
@@ -19,6 +19,8 @@ let world: World | null = null;
 
 function UiLayer() {
   const hidden = useApp((s) => s.uiHidden);
+  // With the interface hidden nothing covers the scene: the camera frames the whole window.
+  useLayoutEffect(() => { if (hidden) getWorld()?.setInsets({ left: 0, right: 0, top: 0, bottom: 0 }); }, [hidden]);
   if (hidden) return <LiveRegion />;
   return (
     <>
@@ -53,9 +55,9 @@ export function App() {
     return () => { off(); window.removeEventListener('pagehide', flushAutosave); };
   }, []);
   return (
-    <div className={styles.stage}>
+    <main className={styles.stage}>
       <canvas ref={stage} className={styles.canvas} aria-label="A 3D view of the PC build on a desk. The full spec sheet lists every part." />
       <UiLayer />
-    </div>
+    </main>
   );
 }

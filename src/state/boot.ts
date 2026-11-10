@@ -19,7 +19,13 @@ export function boot(hook: boolean) {
   const settings = loadSettings();
   const reducedMotion = settings.reducedMotion === 'on' || systemReducedMotion();
   store.setState({ settings, quality: settings.quality, reducedMotion, saved: loadSaved(), profiles: loadProfiles(), ui: DEFAULT_UI });
-  if (hook) { store.setState({ build: house(), instant: true }); return; }
+  if (hook) {
+    // A fresh context has nothing saved, so harness frames always start on the house build; a reload in a test restores.
+    const saved = read(KEYS.current);
+    const d = saved ? decode(saved) : null;
+    store.setState({ build: d && !('error' in d) ? d.build : house(), instant: true });
+    return;
+  }
 
   const code = codeFromHash(location.hash);
   if (code) {

@@ -282,7 +282,7 @@ export function buildCables(build: Build, items: Map<string, RigItem>, detail = 
       const geo = new THREE.TubeGeometry(curve, Math.max(64, Math.round(len / 3)), 6.1, 18, false);
       const uv = geo.getAttribute('uv');
       for (let k = 0; k < uv.count; k++) uv.setXY(k, uv.getX(k) * len, uv.getY(k) * 6.1 * 2 * Math.PI);
-      const m = new THREE.Mesh(geo, sleeve(frost ? '#dcdee3' : '#2c2c34', 2.2));
+      const m = new THREE.Mesh(geo, sleeve(frost ? '#f1f2f5' : '#2c2c34', 2.2));
       m.castShadow = true; m.receiveShadow = true; m.userData.flexible = true; m.name = 'tube';
       group.add(m);
     }

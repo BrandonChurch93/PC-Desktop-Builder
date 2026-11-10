@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { getRam, type Category } from '../data/catalog';
+import { getCooler, getRam, type Category } from '../data/catalog';
 import { lathe } from './kit/geometry';
 import { canvas, wrap } from './kit/textures';
 import { RgbEngine } from './light/rgb';
@@ -179,7 +179,10 @@ export class Inspector {
       this.part = part;
       this.key = key;
       part.root.scale.setScalar(MM);
-      const pose = category === 'storage' && id === 'nvme' ? [-Math.PI / 2, 0, 0] as [number, number, number] : POSE[category];
+      // An air cooler and a flat M.2 drive stand up from the board along their z.
+      const air = category === 'cooler' && getCooler(id)?.type !== 'aio';
+      // An air cooler turns its fan toward the camera's front angle, which is set for a liquid cooler's fan side.
+      const pose: [number, number, number] = air ? [-Math.PI / 2, 0, Math.PI] : category === 'storage' && id === 'nvme' ? [-Math.PI / 2, 0, 0] : POSE[category];
       const orient = new THREE.Group();
       orient.rotation.set(...pose);
       if (flip) orient.rotateX(Math.PI);

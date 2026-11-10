@@ -108,16 +108,19 @@ export function airCoolerBoxes(id: string): Box[] {
   const k = getCooler(id);
   if (!k || k.type === 'aio') return [];
   const h = k.height ?? 60;
-  const plate = box([-20, -20, 0], [20, 20, 6], 'plate');
+  // The base, and the X bracket with its sprung thumbscrews out to the socket's corner holes.
+  const plate = [box([-20, -20, 0], [20, 20, 6], 'plate'), box([-50, -50, 6], [50, 50, 12.6], 'bracket')];
   if (k.type === 'lowprofile') {
     const under = overhangZ(k.ramClearance ?? 34);
-    return [plate, box([-26, -30, 6], [26, 30, under], 'pipes'), box([-38, -62, under], [86, 62, h - 15], 'stack'), box([-36, -60, h - 15], [84, 60, h], 'fan')];
+    // Pipes leave the base flat toward its sides and rise near the stack's edges; the fan's screw heads sit on its pads.
+    return [...plate, box([-50, -54, 0], [28, 54, under], 'pipes'), box([-38, -62, under], [86, 62, h - 15], 'stack'), box([-36, -60, h - 15], [84, 60, h + 2], 'fan')];
   }
   if (k.fans >= 2) {
     const under = overhangZ(k.ramClearance ?? 45);
-    return [plate, box([-30, -30, 6], [30, 30, under], 'pipes'), box([-50, -62.5, under], [65, 62.5, h], 'stack'), box([65, -60, under + 3], [91, 60, h - 2], 'fan')];
+    // The front fan's wire clips reach round its frame's corners.
+    return [...plate, box([-30, -30, 6], [30, 30, under], 'pipes'), box([-50, -62.5, under], [65, 62.5, h], 'stack'), box([65, -64, under + 3], [95, 64, h - 2], 'fan')];
   }
-  return [plate, box([-24, -30, 6], [24, 30, 40], 'pipes'), box([-37.5, -62.5, 40], [12.5, 62.5, h], 'stack'), box([12.5, -60, h - 122], [38.5, 60, h - 2], 'fan')];
+  return [...plate, box([-24, -30, 6], [24, 30, 40], 'pipes'), box([-37.5, -62.5, 40], [12.5, 62.5, h], 'stack'), box([12.5, -64, h - 122], [42, 64, h - 2], 'fan')];
 }
 
 export { boardBoxes };

@@ -1,4 +1,4 @@
-PHASE 3 IN PROGRESS · step 3
+PHASE 3 IN PROGRESS · step 4
 
 <!-- Builder: this file is your memory. Read it first in every session and after every compaction. Keep it current. Replace the first line as you go: "PHASE N IN PROGRESS · step k", "BLOCKED: ...", and at the very end "BUILD COMPLETE" with nothing else on that line. -->
 
@@ -7,9 +7,9 @@ PHASE 3 IN PROGRESS · step 3
 ## Where things stand
 
 - Current phase: 3 · The roster
-- Current step: 3 · coolers (the other seven)
-- Next action: re-read the Coolers rows of kit/02-PARTS.md and the catalog, build pillar, pillar-lux, twin, slate (air coolers are box placeholders today), tarn240, tarn240-frost, tarn360, take part/cooler- shots, review, builder verdicts, critics. Open item for the B8 step: __pcb.bounds reports fans 6.1 mm (the loose plug housing is rigid geometry, it belongs to the lead and should be flexible), case 17.83 and cooler 45.07: check each before writing the B8 test.
-- Last commit: phase 3: memory (step 2)
+- Current step: 4 · graphics cards (the other seven)
+- Next action: re-read the Graphics cards rows of kit/02-PARTS.md, the Veltrin and Dravik brand language and the catalog; build apex2x, mini, crest (with its support), monolith, monolith-s, halide, strata; take part/gpu- shots, review, builder verdicts, critics. Open item for the B8 step: __pcb.bounds reports fans 6.1 mm (the loose plug housing is rigid geometry, it belongs to the lead and should be flexible), case 17.83, cooler 45.07 and air coolers 2.4 to 6.1: check each before writing the B8 test. Process note: one npm run shots over a very wide prefix (part/) lost manifest entries (parallel writes); take shots group by group.
+- Last commit: phase 3: coolers (step 3)
 
 ## Phases
 
@@ -18,7 +18,7 @@ PHASE 3 IN PROGRESS · step 3
 | 0 | Setup | done | see Gate 0 evidence below | phase 0: setup |
 | 1 | Engine | done | 134 unit tests pass, typecheck clean, check:copy 0 problems | phase 1: engine |
 | 2 | World foundation and the hero slice | done | see Gate 2 evidence below | phase 2: world foundation and the hero slice |
-| 3 | The roster | in progress (steps 1 fans and 2 memory done) | | |
+| 3 | The roster | in progress (steps 1 fans, 2 memory, 3 coolers done) | | |
 | 4 | Cases and layouts | not started | | |
 | 5 | Interface and the build flow | not started | | |
 | 6 | Hands | not started | | |
@@ -150,7 +150,7 @@ What the floor looks like, its weak points, and how each was beaten.
 
 Per shot verdicts live in `kit/VERDICTS.jsonl`, not here. At each gate write one line per `check:shots` command you ran: the command, and the line it printed.
 
-- Critics run so far (the highest number in `kit/critics/`): 145
+- Critics run so far (the highest number in `kit/critics/`): 157
 - Weak shots, if any (name, and why): none
 - Research and rebuild notes for shots that failed four rounds (shot, what you learned, what you rebuilt):
   - part/ram-mono16 and mono32 front and back (failed in critics 134/137, 138, 141, 142, 143: flat uniform face read as plastic, then facets read as a copy of Facet, then no contact shade on the dark disc). Learned (web search 2026-11-09: Crucial DDR5 Pro low profile spreader is machined aluminum in matte black; XPG Lancer and G.Skill Trident Z5 are black with a brushed aluminum finish): plain spreaders read as metal through brushing and machined edges, not through relief. Rebuilt: brushed satin black anodizing (aluSatinBlack, anisotropic brushing), a raised machined border round a flat field whose edges catch the light, no facets, the family notch kept, marks inside the field; the Inspector gives unlit memory the rim and sheen softboxes like cards (they light the disc around it), and a black kit's contact shade spreads 30 mm wide.
@@ -178,6 +178,10 @@ One line per feature id in kit/01-PRODUCT.md: `F01 · where it is tested or show
 ## Session log
 
 Newest first. One entry per working session or per compaction: what was done, what is next.
+
+- 2026-11-09 session 1, Phase 3 step 3 coolers done, critics 146 to 157. Evidence: `npm run check:shots -- part/cooler-` problems 0 (24 passed); memory, fans and both Gate 2 groups problems 0. Fixes over the rounds: black coated fins (finCoated, darker and rougher; anodized metal read silver grey); six U pipes on the single towers (twelve tips; three read as three pipes); the twin's middle fan held by its own clips and its lead chained along the frame (no loose plug); painted black top covers with the wordmark across the plate in the free band past the pipe tips, sized to each plate; satin nickel pipes (0.5, 0xaeb0b5; bright nickel flared on thin bends); fin pitch 2.4 mm and 0.5 mm fins (2.0 mm read as moire bands; hiding fins from the occlusion pass laid the pipes' occlusion on them as streaks, reverted); the low profile rebuilt: fins standing along its length so their edges show on both long sides, four J pipes from the base bending up outside the open end and running the stack, a printed end cap, the slim fan screwed down with closed side walls and a fine molded frame; X brackets screwed to the base; white 240: coated white fins, crimp bands, tank screws and threaded fan channels, white sleeving with a gentler weave tone (braidTonePale), pump rings tinting the cap and calmer. Air cooler close views aim at the top cover and a fan clip (tower, twin) and the printed end and bracket (low profile): the old aim was set for a pump. Next: step 4, graphics cards.
+
+- 2026-11-09 session 1, Phase 3 step 3 coolers in progress: new src/world/parts/aircooler.ts builds the four air coolers inside their layout boxes (single tower, lit tower, twin tower, low profile): nickel plated copper base with the pipes' contact faces underneath, the pump's X bracket with sprung thumbscrews, U shaped nickel heat pipes (6, 7 and 4) rising in staggered rows, instanced coated black fins with pipe holes and collars (new finCoated, a dielectric black coating: anodized metal fins read silver grey), a chevron front edge, gunmetal top covers with wordmark and pipe tips, fans held by four wire clips, the slim top fan and printed side covers on the low profile. Boxes: an X bracket box for every air cooler and fan boxes widened for the clips (layout tests still pass). The Inspector stands an air cooler up and turns its fan to the front angle. Liquid coolers: the pump sits at the same share of the radiator's length for every size (the 240's close view cut the wordmark), and white pump rings step their body down from white as the LEDs come up. Next: critics 146 and 147.
 
 - 2026-11-09 session 1, Phase 3 step 2 memory done, critics 136 to 145. Evidence: `npm run check:shots -- part/ram-` problems 0 (18 passed); fans problems 0; both Gate 2 groups problems 0. Since the last entry: Crown passes with satin white (aluWhiteSatin: stipple and slow roughness drift) and a deeper contact line; Mono rebuilt after five rounds (research note under Shot results: brushed satin black, a smooth machined raised border, no facets, marks inside the field, rim and sheen softboxes for unlit memory, a 30 mm contact shade); a shade under the spreader edge on the board for Mono and Crown; the kit label small print 1.75 mm at weight 600 (it read soft on the backs). Facts logged: the key notch mirror (critics 138 and 144 measured screen percentages under perspective). Next: step 3, coolers.
 

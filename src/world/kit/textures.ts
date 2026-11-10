@@ -141,7 +141,7 @@ function braid(size: number, lo = 0.25, hi = 1): HTMLCanvasElement {
 
 export type TextureSet = {
   grain: THREE.Texture; grainFine: THREE.Texture; peel: THREE.Texture; brushed: THREE.Texture; bead: THREE.Texture; orange: THREE.Texture; stipple: THREE.Texture; mottleSoft: THREE.Texture; mottleMid: THREE.Texture;
-  perf: THREE.Texture; braid: THREE.Texture; braidTone: THREE.Texture; braidToneHi: THREE.Texture; brushedCoarse: THREE.Texture; lap: THREE.Texture; mottle: THREE.Texture; soft: THREE.Texture;
+  perf: THREE.Texture; braid: THREE.Texture; braidTone: THREE.Texture; braidToneHi: THREE.Texture; braidTonePale: THREE.Texture; brushedCoarse: THREE.Texture; lap: THREE.Texture; mottle: THREE.Texture; soft: THREE.Texture;
 };
 
 /** Every texture is mapped in millimeters: a repeat of 1/tile makes one tile cover that many mm. */
@@ -175,6 +175,7 @@ export function textures(scale = 1): TextureSet {
     braid: tile(wrap(braid(s(256))), TILE_MM.braid),
     braidTone: tile(wrap(braid(s(256), 0.5, 1), { srgb: true }), TILE_MM.braid),
     braidToneHi: tile(wrap(braid(s(256), 0.22, 1), { srgb: true }), TILE_MM.braid),
+    braidTonePale: tile(wrap(braid(s(256), 0.62, 1), { srgb: true }), TILE_MM.braid),
     brushedCoarse: tile(wrap(brushed(s(1024), 13)), TILE_MM.brushed * 3),
     lap: tile(wrap(lapping(s(512))), TILE_MM.lap),
     mottle: tile(wrap(fromValues(s(512), fbm(s(512), 6, 5, seeded(55), 0.6), 90, 165)), TILE_MM.mottle),

@@ -59,7 +59,7 @@ function cornerSpill(r: number, half: number, n: number): THREE.BufferGeometry {
   return g;
 }
 
-export function buildFan(pb: PartBuilder, labels: Labels, look: FanLook, size: 120 | 140, m: THREE.Matrix4, zoneKey: string, opts: { mountSide?: -1 | 0 | 1; detail?: number; thick?: number; tucked?: boolean; loose?: boolean } = {}): FanBuild {
+export function buildFan(pb: PartBuilder, labels: Labels, look: FanLook, size: 120 | 140, m: THREE.Matrix4, zoneKey: string, opts: { mountSide?: -1 | 0 | 1; detail?: number; thick?: number; tucked?: boolean; loose?: boolean; daisy?: boolean } = {}): FanBuild {
   const D = DIMS.fan[size];
   const t = opts.thick ?? look.thick ?? D.thick;
   const half = D.size / 2; const hole = half - 2.6; const hp = D.holes / 2;
@@ -69,6 +69,8 @@ export function buildFan(pb: PartBuilder, labels: Labels, look: FanLook, size: 1
   const out: FanBuild = { zones: [], rotors: [], movers: {} };
   const fl = 3.2; const face = t / 2 - 0.5;
   const R = (look.soft ? 14 : 6.5) * k;
+  // A slim fan's frame is molded with a fine stipple: its wide flat flange faces showed the stock grain as cloudy blotches.
+  const frameMat: MatName = t < 20 && look.frame === 'plasticMatte' ? 'plasticMolded' : look.frame;
 
   const flange = () => {
     const s = rrect(new THREE.Shape(), -half, -half, D.size, D.size, R);
@@ -76,10 +78,10 @@ export function buildFan(pb: PartBuilder, labels: Labels, look: FanLook, size: 1
     for (const [sx, sy] of CORNERS) s.holes.push(circleHole(sx * hp, sy * hp, 2.25));
     return extrude(s, fl, 0.55, 'xy', Math.round(40 * detail), 2);
   };
-  pb.add(flange(), look.frame, at(0, 0, -face), { to: holder });
-  pb.add(flange(), look.frame, at(0, 0, face - fl), { to: holder });
-  pb.add(lathe([[hole, -face + fl - 0.2], [hole + 1.6, -face + fl - 0.2], [hole + 1.6, face - fl + 0.2], [hole, face - fl + 0.2]], Math.round(72 * detail)), look.frame, undefined, { to: holder });
-  pb.add(lathe([[hole - 0.01, -face + 0.4], [hole - 0.01, face - 0.4]], Math.round(72 * detail)), look.frame, undefined, { to: holder });
+  pb.add(flange(), frameMat, at(0, 0, -face), { to: holder });
+  pb.add(flange(), frameMat, at(0, 0, face - fl), { to: holder });
+  pb.add(lathe([[hole, -face + fl - 0.2], [hole + 1.6, -face + fl - 0.2], [hole + 1.6, face - fl + 0.2], [hole, face - fl + 0.2]], Math.round(72 * detail)), frameMat, undefined, { to: holder });
+  pb.add(lathe([[hole - 0.01, -face + 0.4], [hole - 0.01, face - 0.4]], Math.round(72 * detail)), frameMat, undefined, { to: holder });
   for (const [sx, sy] of CORNERS) {
     const corner = new THREE.Shape();
     if (look.soft) {
@@ -88,12 +90,12 @@ export function buildFan(pb: PartBuilder, labels: Labels, look: FanLook, size: 1
       corner.moveTo(a, a); corner.lineTo(half, a); corner.lineTo(half, half - R); corner.absarc(half - R, half - R, R, 0, PI / 2, false); corner.lineTo(a, half); corner.closePath();
       corner.holes.push(circleHole(hp, hp, 2.25));
       const turn = sx > 0 ? (sy > 0 ? 0 : -PI / 2) : (sy > 0 ? PI / 2 : PI);
-      pb.add(extrude(corner, t - 2 * fl - 0.2, 0, 'xy', 16), look.frame, at(0, 0, -face + fl + 0.1).multiply(new THREE.Matrix4().makeRotationZ(turn)), { to: holder });
+      pb.add(extrude(corner, t - 2 * fl - 0.2, 0, 'xy', 16), frameMat, at(0, 0, -face + fl + 0.1).multiply(new THREE.Matrix4().makeRotationZ(turn)), { to: holder });
     } else {
       const cx = sx * (half - 9 * k); const cy = sy * (half - 9 * k);
       rrect(corner, cx - 9 * k, cy - 9 * k, 18 * k, 18 * k, 3);
       corner.holes.push(circleHole(sx * hp, sy * hp, 2.25));
-      pb.add(extrude(corner, t - 2 * fl - 0.2, 0, 'xy', 16), look.frame, at(0, 0, -face + fl + 0.1), { to: holder });
+      pb.add(extrude(corner, t - 2 * fl - 0.2, 0, 'xy', 16), frameMat, at(0, 0, -face + fl + 0.1), { to: holder });
     }
     pb.add(cyl(2.3, t - 1.2, 'z', 12, 2.3, true), 'darkVoid', at(sx * hp, sy * hp, 0), { to: holder, uv: 'keep' });
     if (look.pads && look.soft) {
@@ -106,15 +108,22 @@ export function buildFan(pb: PartBuilder, labels: Labels, look: FanLook, size: 1
     }
   }
 
+  // A slim fan's frame is closed along its sides between the corner blocks: its flanges are too close to stand apart.
+  if (t < 20) {
+    const run = D.size - 2 * 18 * k; const wt = t - 2 * fl - 0.2;
+    for (const [px, py, rot] of [[half - 0.9, 0, 0], [-half + 0.9, 0, 0], [0, half - 0.9, 1], [0, -half + 0.9, 1]] as [number, number, number][]) {
+      pb.add(rbox(1.8, run, wt, 0.4, 2), frameMat, xf({ p: [px, py, 0], r: [0, 0, rot * PI / 2] }), { to: holder });
+    }
+  }
   const back = face - 1.2;
   const motorBase = lathe([[0, back - 6.5], [17.8, back - 6.5], [19, back - 5.3], [19, back], [0, back]], 72);
-  pb.add(motorBase, look.frame, undefined, { to: holder });
+  pb.add(motorBase, frameMat, undefined, { to: holder });
   for (let i = 0; i < 4; i++) {
     const a = (i / 4) * PI * 2 + PI / 4 + 0.32;
     const len = hole - 17;
     const mid = 18 + len / 2;
     // Lumenfold struts are round in section, Kestrane's flat bars.
-    pb.add(rbox(len, 3.2 * k, 3, look.soft ? 1.45 : 1.1, look.soft ? 4 : 2), look.frame, xf({ p: [Math.cos(a) * mid, Math.sin(a) * mid, back - 1.6], r: [0, 0, a + 0.12] }), { to: holder });
+    pb.add(rbox(len, 3.2 * k, 3, look.soft ? 1.45 : 1.1, look.soft ? 4 : 2), frameMat, xf({ p: [Math.cos(a) * mid, Math.sin(a) * mid, back - 1.6], r: [0, 0, a + 0.12] }), { to: holder });
   }
   labels.text(`${brandName(look.brand)} ${look.name} · 12 V · 0.${size === 140 ? 30 : 25} A`, SPEC_TYPE, 1.15, xf({ p: [0, 0, back + 0.06], r: [0, 0, 0] }), { color: '#8c909a', to: holder });
 
@@ -217,11 +226,14 @@ export function buildFan(pb: PartBuilder, labels: Labels, look: FanLook, size: 1
   const lead0: Vec[] = [along(-sLen / 2 + 1.5, back - 2), along(sLen / 2 - 7, back - 2), along(sLen / 2 - 1, face - 1), along(sLen / 2 + 3, face - 0.3), edge, [xe + 0.6, half + 1.9, face - 2.6]];
   const cablePts: Vec[] = opts.loose
     ? [...lead0, [xe + 10, half + 2.6, face - 5], [ce, ce, face - 6.5], [half + 3, half - 14, back - 8], [half + 3.2, half - 30, back - 8], [half + 3.4, half - 46, back - 8]]
+    : opts.daisy
+    // Chained to the next fan: the lead runs on along the frame's edge groove to the corner, with no plug of its own here.
+    ? [...lead0, [xe - 2, half + 1.2, face - 4.5], [half - 10, half + 1.2, back - 6], [half + 0.6, half - 6, back - 6], [half + 1.2, half - 40, back - 6]]
     : opts.tucked
     ? [...lead0, [xe - 2, half + 1.7, face - 4.5], [hp - 33, half + 1.7, back - 6]]
     : [...lead0, [xe + 8, half + 2.6, face - 5], [half + 2, half + 8, back - 8], [half + 6, half + 22, back - 10]];
   const lead = pb.mesh(tube(cablePts, 1.4, 48, 8), mat('rubber'), undefined, { to: holder });
-  if (opts.tucked) pb.add(rbox(10.6, 5.4, 7.4, 0.6, 2), 'plasticDark', at(hp - 39, half + 1.7, back - 6), { to: holder });
+  if (opts.tucked && !opts.daisy) pb.add(rbox(10.6, 5.4, 7.4, 0.6, 2), 'plasticDark', at(hp - 39, half + 1.7, back - 6), { to: holder });
   if (opts.loose) {
     pb.add(rbox(5.4, 10.6, 7.4, 0.6, 2), 'plasticDark', at(half + 3.4, half - 51.5, back - 8), { to: holder });
     pb.add(new THREE.BoxGeometry(3.6, 0.4, 5.8), 'darkVoid', at(half + 3.4, half - 56.9, back - 8), { to: holder, uv: 'keep' });

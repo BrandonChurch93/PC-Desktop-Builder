@@ -24,7 +24,7 @@ export type MatName =
   | 'aluBlack' | 'aluSilver' | 'aluWhite' | 'aluRaw' | 'aluBrushed' | 'aluBrushedDark' | 'aluBrushedPlate' | 'aluAnodized' | 'aluCast' | 'aluSatin' | 'aluSatinDark' | 'aluGunmetal' | 'aluFacet'
   | 'nickel' | 'nickelLapped' | 'pipeNickel' | 'copper' | 'gold' | 'solder'
   | 'plasticMatte' | 'plasticSatin' | 'plasticSoft' | 'plasticGloss' | 'plasticWhite' | 'plasticWhiteGloss' | 'plasticGrey' | 'plasticDark' | 'plasticNylon'
-  | 'rubber' | 'rubberWhite' | 'rubberPad' | 'aluSatinBlack' | 'aluWhiteSatin'
+  | 'rubber' | 'rubberWhite' | 'rubberPad' | 'aluSatinBlack' | 'aluWhiteSatin' | 'finCoated' | 'finCoatedWhite'
   | 'pcbBlack' | 'pcbWhite' | 'pcbGreen' | 'pcbEdge' | 'chip' | 'chipWhite' | 'ceramic' | 'ferrite'
   | 'glassTint' | 'glassSpec' | 'glassEdge' | 'frit'
   | 'bladeSmoke' | 'bladeFrost' | 'bladeBlack' | 'bladeWhite'
@@ -180,6 +180,9 @@ function makeMat(name: MatName): THREE.Material {
     case 'aluLid': return metal(0xc4c7cc, 0.5, t.brushed);
     case 'aluStamp': return metal(0xc0c3c8, 0.44, t.mottle);
     case 'aluWhiteSatin': return worldBump(physical({ color: 0xe6e7ea, metalness: 0.15, roughness: 0.42, roughnessMap: t.mottleMid, bumpMap: t.stipple, bumpScale: 8e-6, clearcoat: 0.2, clearcoatRoughness: 0.35 }));
+    // Black coated cooler fins: the coating is a dielectric, so only a dim sheen comes off the fin faces and their edges.
+    case 'finCoated': return physical({ color: 0x0d0e10, metalness: 0, roughness: 0.66, roughnessMap: t.mottle, specularIntensity: 0.3 });
+    case 'finCoatedWhite': return physical({ color: 0xdcdde1, metalness: 0, roughness: 0.5, roughnessMap: t.mottle, specularIntensity: 0.4 });
     case 'aluSatinBlack': return metal(0x34373d, 0.34, t.brushed, { anisotropy: 0.6, bumpMap: t.brushed, bumpScale: 0.12 });
     case 'aluSatinDark': return metal(0x464950, 0.36, t.brushed, { anisotropy: 0.5 });
     case 'aluGunmetal': return metal(0x4b4e55, 0.38, t.brushed, { anisotropy: 0.6 });
@@ -377,7 +380,9 @@ export function sleeve(color: string, weave = 1): THREE.MeshPhysicalMaterial {
   if (!m) {
     const t = tex();
     const scaled = (src: THREE.Texture) => { if (weave === 1) return src; const c = src.clone(); c.repeat.set(1 / (TILE_MM.braid * weave), 1 / (TILE_MM.braid * weave)); c.needsUpdate = true; return c; };
-    m = physical({ color: new THREE.Color(color), map: scaled(weave > 1 ? t.braidToneHi : t.braidTone), metalness: 0, roughness: 0.66, bumpMap: scaled(t.braid), bumpScale: 1.4, sheen: 0.7, sheenRoughness: 0.4, sheenColor: new THREE.Color(color).lerp(new THREE.Color(0xc8c8d0), 0.35), specularIntensity: 0.5 });
+    // White sleeving scatters light into the gaps between strands, so it keeps a gentler weave tone; a deep one read as grey.
+    const pale = new THREE.Color(color).getHSL({ h: 0, s: 0, l: 0 }).l > 0.8;
+    m = physical({ color: new THREE.Color(color), map: scaled(pale ? t.braidTonePale : weave > 1 ? t.braidToneHi : t.braidTone), metalness: 0, roughness: 0.66, bumpMap: scaled(t.braid), bumpScale: 1.4, sheen: 0.7, sheenRoughness: 0.4, sheenColor: new THREE.Color(color).lerp(new THREE.Color(0xc8c8d0), 0.35), specularIntensity: 0.5 });
     m.name = `sleeve-${color}-${weave}`;
     sleeveCache.set(key, m);
   }

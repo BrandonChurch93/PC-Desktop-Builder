@@ -162,7 +162,10 @@ function buildRadiator(pb: PartBuilder, labels: Labels, k: CoolerSpec, key: stri
   if (up.lengthSq() < 0.01) up.set(-view.x, 0, -view.z);
   if (up.lengthSq() < 0.01) up.set(0, 0, -1);
   up.normalize();
-  const along = new THREE.Vector3().crossVectors(up, normal).normalize();
+  let along = new THREE.Vector3().crossVectors(up, normal).normalize();
+  // Standing upright (world up along the radiator's length), the print runs up the side plate's length, as radiators print it;
+  // across the plate's 30 mm it ran off the plate into the chamber.
+  if (Math.abs(up.x) > 0.7) { along = new THREE.Vector3(Math.sign(up.x), 0, 0); up.copy(new THREE.Vector3().crossVectors(normal, along)); }
   const printAt = (u: number, v: number) => new THREE.Vector3().addScaledVector(along, u).addScaledVector(up, v).add(new THREE.Vector3(0, sy * (W / 2 + 1.46), (rz0 + rz1) / 2));
   const basis = new THREE.Matrix4().makeBasis(along, up, normal);
   const startU = -coreL / 2 + 40;

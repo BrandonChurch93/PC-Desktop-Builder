@@ -178,7 +178,7 @@ function makeMat(name: MatName): THREE.Material {
     // Dark grey metallic with a fine flake: a lighter base and a modest metalness, so in a dark room it keeps a grey body
     // and the flake shows as sparkle in the clearcoat. At 0.55 metal on 0x45484f it mirrored the room and read black.
     // The flake is a fine metalness grain under the clearcoat: points of metal among the paint, so the finish sparkles.
-    case 'powderGunmetal': return capHighlights(physical({ color: 0x51545c, metalness: 0.6, metalnessMap: t.grainFine, roughness: 0.42, roughnessMap: t.grainFine, bumpMap: t.peel, bumpScale: 0.25, clearcoat: 0.55, clearcoatRoughness: 0.22 }), 1.3, 'powder-gunmetal');
+    case 'powderGunmetal': return capHighlights(physical({ color: 0x4f525a, metalness: 0.85, metalnessMap: t.grainFine, roughness: 0.42, roughnessMap: t.grainFine, bumpMap: t.peel, bumpScale: 0.25, clearcoat: 0.55, clearcoatRoughness: 0.22 }), 1.3, 'powder-gunmetal');
     case 'powderGunmetalInner': return physical({ color: 0x41444b, metalness: 0.5, metalnessMap: t.grainFine, roughness: 0.5, roughnessMap: t.grainFine, bumpMap: t.peel, bumpScale: 0.25, clearcoat: 0.25, clearcoatRoughness: 0.35 });
     case 'steelBare': return metal(0xa6a9af, 0.34, t.grainFine);
     case 'steelZinc': return metal(0x9a9da2, 0.42, t.grain, { bumpMap: t.mottle, bumpScale: 0.2 });

@@ -35,6 +35,8 @@ export type GenOpts = {
   airInward?: boolean;
   /** detail scale by quality tier, 1 is full */
   detail?: number;
+  /** a card support post: its height from the surface it stands on to the card's underside, mm */
+  postHeight?: number;
   /** the placed key, so zones of repeated parts get their own names */
   key?: string;
   /** a crest card in the open frame carries an arm instead of a post */

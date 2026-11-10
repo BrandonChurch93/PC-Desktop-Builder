@@ -1,3 +1,4 @@
+import { DIMS } from '../dims';
 import { box, Q, R0, type Box, type V3 } from '../math';
 import type { CaseLayout, FanMountLayout } from '../types';
 import { HOLES_UNION } from './vitrine';
@@ -51,9 +52,9 @@ export const ATRIUM: CaseLayout = {
     { pose: { pos: [160, 87.5, -140], rot: [Q, 0, 0] }, insert: [0, 0, 1] },
   ],
   bays25: [
-    { pose: { pos: [-170, 330, ATRIUM_TRAY_BACK], rot: [-Q, 0, 0] }, insert: [0, 0, 1] },
-    { pose: { pos: [-95, 330, ATRIUM_TRAY_BACK], rot: [-Q, 0, 0] }, insert: [0, 0, 1] },
-    { pose: { pos: [-20, 330, ATRIUM_TRAY_BACK], rot: [-Q, 0, 0] }, insert: [0, 0, 1] },
+    { pose: { pos: [-170, 330, ATRIUM_TRAY_BACK - DIMS.bay25Standoff], rot: [-Q, 0, 0] }, insert: [0, 0, 1] },
+    { pose: { pos: [-95, 330, ATRIUM_TRAY_BACK - DIMS.bay25Standoff], rot: [-Q, 0, 0] }, insert: [0, 0, 1] },
+    { pose: { pos: [-20, 330, ATRIUM_TRAY_BACK - DIMS.bay25Standoff], rot: [-Q, 0, 0] }, insert: [0, 0, 1] },
   ],
   fanMounts: [side(1, 90), side(2, 224), side(3, 358), bottom(1, -112), bottom(2, 22), bottom(3, 156), top(1, -147), top(2, -13), top(3, 121), { id: 'rear-1', group: 'rear', center: [-213.5, 350, 75], rot: [0, -Q, 0], size: 120 }],
   radMounts: [

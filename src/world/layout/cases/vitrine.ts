@@ -1,3 +1,4 @@
+import { DIMS } from '../dims';
 import { box, Q, R0, type Box, type V3 } from '../math';
 import type { CaseLayout, FanMountLayout } from '../types';
 
@@ -36,8 +37,8 @@ export const VITRINE: CaseLayout = {
     { pose: { pos: [82, 22, 46], rot: [0, Q, 0] }, insert: [0, 0, 1] },
   ],
   bays25: [
-    { pose: { pos: [110, 190, TRAY_BACK], rot: [-Q, 0, 0] }, insert: [0, 0, 1] },
-    { pose: { pos: [110, 310, TRAY_BACK], rot: [-Q, 0, 0] }, insert: [0, 0, 1] },
+    { pose: { pos: [110, 190, TRAY_BACK - DIMS.bay25Standoff], rot: [-Q, 0, 0] }, insert: [0, 0, 1] },
+    { pose: { pos: [110, 310, TRAY_BACK - DIMS.bay25Standoff], rot: [-Q, 0, 0] }, insert: [0, 0, 1] },
   ],
   fanMounts: [front(1, 100), front(2, 222), front(3, 344), top(1, -136), top(2, -2), top(3, 132), { id: 'rear-1', group: 'rear', center: [-216, 372, 40], rot: [0, -Q, 0], size: 120 }],
   radMounts: [

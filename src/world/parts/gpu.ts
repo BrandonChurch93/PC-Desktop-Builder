@@ -427,7 +427,8 @@ function veltrin(pb: PartBuilder, labels: Labels, c: Card): { zones: Zone[]; rot
     const rc = new THREE.Vector3(core[0] + 70, bpY + bpT + 0.6, (c.clear + c.H) / 2);
     const ring = new Zone(`${c.key}:ring`, 'gpu', true, Array.from({ length: 20 }, (_, i) => { const a = (i / 20) * PI * 2; return new THREE.Vector3(rc.x + Math.cos(a) * 22, rc.y, rc.z + Math.sin(a) * 22); }), 0.2);
     const tg = torus(22, 1.3, 8, 80);
-    pb.mesh(tg, ring.diffuser(0.8, 0x1f2026, 0.35), xf({ p: [rc.x, rc.y, rc.z], r: [PI / 2, 0, 0] }), { uv: 'keep' });
+    // Rough and at the bar's level: at 0.8 and roughness 0.35 the ring clipped toward white and caught a pinpoint highlight (critic 270).
+    pb.mesh(tg, ring.diffuser(0.5, 0x1f2026, 0.7), xf({ p: [rc.x, rc.y, rc.z], r: [PI / 2, 0, 0] }), { uv: 'keep' });
     pb.add(torus(24.6, 1.0, 8, 80), trim, xf({ p: [rc.x, rc.y - 0.2, rc.z], r: [PI / 2, 0, 0] }));
     ring.emit(rc.clone().add(new THREE.Vector3(0, 1, 0)), new THREE.Vector3(0, 1, 0), 50, 50, 0.7, new THREE.Vector3(1, 0, 0));
     zones2.push(ring);
@@ -608,10 +609,14 @@ export function gpuPart(id: string, opts: GenOpts = {}): PartObject {
 
 /** The post that holds up the far end of the longest card. */
 export function supportPart(id: string, opts: GenOpts = {}): PartObject {
-  void opts;
+  // The post spans its whole gap, foot on the shroud to a padded cradle under the card; a fixed length stopped short of it.
+  const h = Math.max(20, opts.postHeight ?? 66);
   const pb = new PartBuilder(`support-${id}`);
-  pb.add(cyl(6, 6, 'y', 32), 'aluBlack', at(0, 3, 0));
-  pb.add(cyl(3.2, 60, 'y', 24), 'aluSatinDark', at(0, 36, 0));
+  pb.add(cyl(9, 3, 'y', 32), 'aluBlack', at(0, 1.5, 0));
+  pb.add(cyl(6, 4, 'y', 32), 'aluBlack', at(0, 5, 0));
+  pb.add(cyl(3.2, h - 12, 'y', 24), 'aluSatinDark', at(0, 7 + (h - 12) / 2, 0));
+  pb.add(cyl(4.6, 3, 'y', 24), 'aluBlack', at(0, h - 4.5, 0));
+  pb.add(rbox(18, 2.2, 14, 0.8, 2), 'rubber', at(0, h - 1.1, 0));
   const done = pb.finish();
   return { root: done.root, boxes: [], anchors: {}, zones: [], rotors: [], movers: {}, dispose: done.dispose };
 }

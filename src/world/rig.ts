@@ -50,7 +50,7 @@ export class Rig {
       o.localUp = [r(cols[0]![1]), r(cols[1]![1]), r(cols[2]![1])];
       o.localView = [r(cols[0]![2]), r(cols[1]![2]), r(cols[2]![2])];
     }
-    if (p.kind === 'gpu-support') o.openFrame = false;
+    if (p.kind === 'gpu-support') { o.openFrame = false; o.postHeight = Math.max(...p.local.map((b) => b.max[1])); }
     return o;
   }
 
@@ -90,7 +90,7 @@ export class Rig {
     if (glass) glass.visible = build.glass;
     const g = build.gpu ? getGpu(build.gpu) : undefined;
     const used = g ? slotsOf(g.thickness) : 0;
-    for (let k = 1; k <= 7; k++) { const c = kase?.part.movers[`slot-cover-${k}`]; if (c) c.visible = k > used; }
+    for (let k = 1; k <= 8; k++) { const c = kase?.part.movers[`slot-cover-${k}`]; if (c) c.visible = k > used; }
     const sig = `${cableSignature(build)}|${[...this.items.keys()].join(',')}`;
     if (sig !== this.cableSig) {
       if (this.cables) { this.cables.removeFromParent(); disposeTree(this.cables); }

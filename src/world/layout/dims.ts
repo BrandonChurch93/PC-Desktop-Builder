@@ -40,5 +40,7 @@ export const DIMS = {
   hdd: { w: 101.6, l: 147, h: 26.1 },
   ssd: { w: 69.85, l: 100, h: 7 },
   bracketT: 1.0,
+  /** 2.5 inch drives stand this far off the tray's back face on their bracket, so a sticker on their underside clears the tray. */
+  bay25Standoff: 1.5,
   mm: 0.001,
 } as const;

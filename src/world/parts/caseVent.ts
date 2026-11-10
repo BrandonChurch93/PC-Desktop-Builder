@@ -25,7 +25,7 @@ const BEZEL_BACK = 218;
 const BEZEL_DEPTH = 10;
 
 /** A corner post with chamfered edges, the family's corner, standing from y0 to y1. */
-function chamferPost(pb: PartBuilder, mat: string, x: number, z: number, e: number, c: number, y0: number, y1: number) {
+export function chamferPost(pb: PartBuilder, mat: string, x: number, z: number, e: number, c: number, y0: number, y1: number) {
   const h = e / 2;
   const s = new THREE.Shape();
   const pts: [number, number][] = [[-h + c, -h], [h - c, -h], [h, -h + c], [h, h - c], [h - c, h], [-h + c, h], [-h, h - c], [-h, -h + c]];
@@ -38,7 +38,7 @@ function chamferPost(pb: PartBuilder, mat: string, x: number, z: number, e: numb
  * The bowed hexagonal mesh front: one hex ring instanced per cell, each placed on the bow and turned to its tangent, so the
  * fans show through real holes with walls.
  */
-function hexFront(pb: PartBuilder, mat: string, xBase: number, hz: number, y0: number, y1: number) {
+export function hexFront(pb: PartBuilder, mat: string, xBase: number, hz: number, y0: number, y1: number, bowed = true, zMin?: number, zMax?: number) {
   const ro = HEX_CELL / Math.sqrt(3); const ri = (HEX_CELL - HEX_WALL) / Math.sqrt(3);
   const ring = new THREE.Shape(); const hole = new THREE.Path();
   for (let k = 0; k < 6; k++) { const a = (k / 6) * PI * 2 + PI / 6; const p = [Math.cos(a), Math.sin(a)] as const; if (k) { ring.lineTo(p[0] * ro, p[1] * ro); } else ring.moveTo(p[0] * ro, p[1] * ro); }
@@ -49,11 +49,12 @@ function hexFront(pb: PartBuilder, mat: string, xBase: number, hz: number, y0: n
   const mats: THREE.Matrix4[] = [];
   for (let j = 0; y0 + j * dy <= y1; j++) {
     const y = y0 + j * dy;
-    for (let i = -Math.ceil(hz / dz) - 1; i * dz <= hz + dz; i++) {
+    const lo = zMin ?? -(hz + ro); const hi = zMax ?? hz + ro;
+    for (let i = -Math.ceil(Math.abs(lo) / dz) - 1; i * dz <= hi + dz; i++) {
       const z = i * dz + (j % 2 ? dz / 2 : 0);
-      if (Math.abs(z) > hz + ro) continue;
-      const x = xBase + bowAt(z);
-      const slope = Math.abs(z) < BOW_HZ ? -2 * BOW * z / (BOW_HZ * BOW_HZ) : 0;
+      if (z < lo || z > hi) continue;
+      const x = xBase + (bowed ? bowAt(z) : 0);
+      const slope = bowed && Math.abs(z) < BOW_HZ ? -2 * BOW * z / (BOW_HZ * BOW_HZ) : 0;
       // The cell's plane faces +x (out of the front), turned about y to the bow's tangent.
       const m = new THREE.Matrix4().makeRotationY(PI / 2 + Math.atan(slope)).setPosition(x, y, z);
       mats.push(m.multiply(new THREE.Matrix4().makeRotationZ(PI / 2)).multiply(at(0, 0, -0.55)));

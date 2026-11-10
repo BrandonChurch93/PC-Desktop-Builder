@@ -8,8 +8,8 @@ PHASE 4 IN PROGRESS · bulwark
 
 - Current phase: 4 · Cases and layouts
 - Current step: bulwark (vitrine frost, atrium, vent done)
-- Next action: confirm the step 1 to 5 groups on the current build (all have builder verdicts on their newest images, addendum 01), commit "phase 3: boards", then steps 6 (tidal16), 7 (flint), 8 (supplies; fix the HZ casing in the spec table), 9 (cables). Generators for all of them already exist; each is the loop plus one critic round. Then `npm run thumbs` (scripts/thumbs.mjs written, writes public/thumbs, which changes the build id, so run it once before the Gate 3 retake), tests/unit/generators.test.ts (written: every non-case part generates a real model in Node, 43 pass; its 43 thumbnail checks pass once thumbs exist), 9 contact sheets with one critic round. B8 is dropped by addendum 01. Take shots group by group (a wide prefix lost manifest entries).
-- Last commit: phase 3: the roster (Gate 3)
+- Next action: Bulwark (Flagship), then Cub (Pocket) and Gantry (Open Frame), each: layout, both finishes, preset build, rig/bench/finish/macro/part shots, one critic round, commit. Then the layout test log per case, case thumbnails, the three case brand contact sheets, Gate 4. Do not end the turn with a status report: updates go here.
+- Last commit: phase 4: vent and windbreak
 
 ## Phases
 

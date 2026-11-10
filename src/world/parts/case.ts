@@ -7,6 +7,7 @@ import { at, circleHole, cyl, extrude, lathe, PartBuilder, rbox, rrect, rrectHol
 import { glassCapBoxes, glassPanels, HOLES4, hexStandoffs, perforated, screwsAt, trayGrommets, ZY } from './caseKit';
 import { atriumCase } from './caseAtrium';
 import { ventCase } from './caseVent';
+import { bulwarkCase } from './caseBulwark';
 import type { Zone } from '../light/zones';
 import type { Box } from '../layout/math';
 import { Labels } from '../kit/labels';
@@ -204,6 +205,7 @@ const BUILDERS: Record<string, (pb: PartBuilder, labels: Labels, spec: CaseSpec,
   vitrine: vitrineCase,
   atrium: atriumCase,
   vent: ventCase,
+  bulwark: bulwarkCase,
 };
 
 export function casePart(id: string, opts: GenOpts = {}): PartObject {

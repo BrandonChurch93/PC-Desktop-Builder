@@ -177,7 +177,7 @@ What the floor looks like, its weak points, and how each was beaten.
 
 Per shot verdicts live in `kit/VERDICTS.jsonl`, not here. At each gate write one line per `check:shots` command you ran: the command, and the line it printed.
 
-- Critics run so far (the highest number in `kit/critics/`): 248
+- Critics run so far (the highest number in `kit/critics/`): 250
 - Weak shots, if any (name, and why): none
 - Research and rebuild notes for shots that failed four rounds (shot, what you learned, what you rebuilt):
   - part/ram-mono16 and mono32 front and back (failed in critics 134/137, 138, 141, 142, 143: flat uniform face read as plastic, then facets read as a copy of Facet, then no contact shade on the dark disc). Learned (web search 2026-11-09: Crucial DDR5 Pro low profile spreader is machined aluminum in matte black; XPG Lancer and G.Skill Trident Z5 are black with a brushed aluminum finish): plain spreaders read as metal through brushing and machined edges, not through relief. Rebuilt: brushed satin black anodizing (aluSatinBlack, anisotropic brushing), a raised machined border round a flat field whose edges catch the light, no facets, the family notch kept, marks inside the field; the Inspector gives unlit memory the rim and sheen softboxes like cards (they light the disc around it), and a black kit's contact shade spreads 30 mm wide.

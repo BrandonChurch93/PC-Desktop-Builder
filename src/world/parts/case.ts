@@ -8,6 +8,7 @@ import { glassCapBoxes, glassPanels, HOLES4, hexStandoffs, perforated, screwsAt,
 import { atriumCase } from './caseAtrium';
 import { ventCase } from './caseVent';
 import { bulwarkCase } from './caseBulwark';
+import { cubCase } from './caseCub';
 import type { Zone } from '../light/zones';
 import type { Box } from '../layout/math';
 import { Labels } from '../kit/labels';
@@ -206,6 +207,7 @@ const BUILDERS: Record<string, (pb: PartBuilder, labels: Labels, spec: CaseSpec,
   atrium: atriumCase,
   vent: ventCase,
   bulwark: bulwarkCase,
+  cub: cubCase,
 };
 
 export function casePart(id: string, opts: GenOpts = {}): PartObject {

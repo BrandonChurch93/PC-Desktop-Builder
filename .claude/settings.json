@@ -20,8 +20,6 @@
       "Skill"
     ],
     "deny": [
-      "Bash(git push *)",
-      "Bash(git remote *)",
       "Bash(git config --global *)",
       "Bash(gh *)",
       "Bash(sudo *)",

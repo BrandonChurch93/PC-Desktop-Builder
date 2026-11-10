@@ -26,6 +26,15 @@ import { Room } from './room';
 const FOV = 30;
 const EXPOSURE = 1.15;
 const ROOM_GLASS_CLAMP = 0.1;
+
+/**
+ * Softbox level per mode. A pale case under the build mode softboxes went past the bloom threshold and haloed, so it takes the
+ * level that keeps white under it; a dark case needs the full level to read against the room.
+ */
+function roomLevel(mode: string, finish: string | undefined): number {
+  const pale = !!finish && !!FINISHES[finish]?.light;
+  return mode === 'showcase' ? 0.7 : mode === 'build' ? (pale ? 0.86 : 1.12) : 0.9;
+}
 /** A pale interior behind the glass hid the reflections a dark one shows, so the glass read as an empty opening (critic 265). */
 const ROOM_GLASS_CLAMP_LIGHT = 0.26;
 /** Under the bloom threshold even over a white interior. */
@@ -137,7 +146,7 @@ export class World {
 
   private syncFromStore(s: State, prev: State | null) {
     if (!prev || s.build !== prev.build) this.setBuild(s.build);
-    if (!prev || s.mode !== prev.mode) this.room.setLevel(s.mode === 'showcase' ? 0.7 : s.mode === 'build' ? 1.12 : 0.9);
+    if (!prev || s.mode !== prev.mode || s.build.case?.finish !== prev.build.case?.finish) this.room.setLevel(roomLevel(s.mode, s.build.case?.finish));
     if (!prev || s.power !== prev.power) this.setPower(s.power, s.instant || s.frozen !== null);
     if (!prev || s.load !== prev.load || s.build !== prev.build) this.rgb.temps = temps(s.build, s.load);
     if (!prev || s.inspect !== prev.inspect) this.setInspect(s);

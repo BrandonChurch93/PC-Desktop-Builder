@@ -21,7 +21,7 @@ function spun(): THREE.Texture {
 export type MatName =
   | 'powderBlack' | 'powderBlackInner' | 'powderWhite' | 'powderPanelWhite' | 'powderWhiteInner' | 'powderGunmetal' | 'powderGunmetalInner' | 'powderPanel' | 'panelPowder' | 'panelPowderWhite' | 'finAnodized' | 'capTop' | 'capBody' | 'pcbCore' | 'stickerMatte' | 'chipTop' | 'plasticMolded' | 'finGraphite' | 'aluLidStamp' | 'aluLidBrushed' | 'aluLid' | 'aluStamp'
   | 'steelBare' | 'steelZinc'
-  | 'aluBlack' | 'aluSilver' | 'aluPale' | 'aluWhite' | 'aluRaw' | 'aluBrushed' | 'aluBrushedDark' | 'aluBrushedPlate' | 'aluAnodized' | 'aluCast' | 'aluSatin' | 'aluSatinDark' | 'aluGunmetal' | 'aluFacet'
+  | 'aluBlack' | 'aluSilver' | 'aluPale' | 'aluPaleBead' | 'capSilver' | 'capDark' | 'aluWhite' | 'aluRaw' | 'aluBrushed' | 'aluBrushedDark' | 'aluBrushedPlate' | 'aluAnodized' | 'aluCast' | 'aluSatin' | 'aluSatinDark' | 'aluGunmetal' | 'aluFacet'
   | 'nickel' | 'nickelLapped' | 'pipeNickel' | 'copper' | 'gold' | 'solder'
   | 'plasticMatte' | 'plasticSatin' | 'plasticSoft' | 'plasticGloss' | 'plasticWhite' | 'plasticWhiteGloss' | 'plasticGrey' | 'plasticDark' | 'plasticNylon'
   | 'rubber' | 'rubberWhite' | 'rubberPad' | 'aluSatinBlack' | 'aluWhiteSatin' | 'finCoated' | 'finCoatedWhite' | 'finPale' | 'aluWhiteBrushed' | 'aluBeadGunmetal' | 'paintWhiteCard' | 'paintBlackCard'
@@ -184,7 +184,13 @@ function makeMat(name: MatName): THREE.Material {
     case 'aluSilver': return capHighlights(metal(0xa9adb4, 0.3, t.brushed, { anisotropy: 0.6 }), 1.3, 'alu-silver');
     // Pale silver board heatsinks: rougher and a shade darker than aluSilver, so a broad face spreads the softbox into a gradient
     // and stands apart from the white board. As aluSilver, the capped highlight lay flat over the face and read as white plastic.
-    case 'aluPale': return capHighlights(metal(0x9a9ea6, 0.44, t.brushedCoarse, { anisotropy: 0.45, bumpMap: t.brushed, bumpScale: 0.07 }), 1.25, 'alu-pale');
+    // Part metallic: a fully metallic pale sheet mirrored the dark room inside a case and read charcoal (critic 266); the
+    // Inspector's bright studio had hidden it.
+    case 'aluPale': return capHighlights(metal(0xb2b5bc, 0.44, t.brushedCoarse, { metalness: 0.5, anisotropy: 0.45, bumpMap: t.brushed, bumpScale: 0.07 }), 1.25, 'alu-pale');
+    case 'aluPaleBead': return capHighlights(metal(0xbfc2c8, 0.5, t.bead, { metalness: 0.45, bumpMap: t.bead, bumpScale: 0.08 }), 1.25, 'alu-pale-bead');
+    // Glass standoffs: turned metal caps, polished silver on pale cases and dark gunmetal on dark ones, held under bloom.
+    case 'capSilver': return capHighlights(metal(0xc4c7cc, 0.28, t.grainFine, { metalness: 0.7 }), 1.2, 'cap-silver');
+    case 'capDark': return metal(0x3b3e45, 0.3, t.grainFine);
     case 'aluWhite': return physical({ color: 0xe8e9ec, metalness: 0.15, roughness: 0.38, roughnessMap: t.bead, clearcoat: 0.3, clearcoatRoughness: 0.3 });
     case 'aluRaw': return metal(0xbabdc2, 0.5, t.bead, { bumpMap: t.bead, bumpScale: 0.1 });
     case 'aluBrushed': return capHighlights(metal(0xbfc2c8, 0.28, t.brushed, { anisotropy: 0.85, bumpMap: t.brushed, bumpScale: 0.08 }), 1.4, 'alu-brushed');

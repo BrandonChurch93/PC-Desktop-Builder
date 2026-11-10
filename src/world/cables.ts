@@ -290,8 +290,11 @@ export function buildCables(build: Build, items: Map<string, RigItem>, detail = 
       const gx = g ? Math.min(Math.max(p.x, g.center[0] - g.size[0] / 2 + 14), g.center[0] + g.size[0] / 2 - 14) : p.x;
       const gz = g ? g.center[2] : p.z + 20;
       // A comb sits just past the plug, where the macros see the run.
-      runs.push({ name: `gpu-power-${i}`, rows: 2, cols, pitch, wire: twelve ? 1.35 : 1.65, rowAxis: v(0, 1, 0), colors, comb, plugAt: 'start', combFrom: DIMS.plugLength + 6,
-        path: filletPath([p.clone(), v(p.x, p.y, Math.max(p.z + 30.4, gz + 11)), v(gx, down, Math.max(p.z + 30.4, gz + 11))], 18.4) });
+      // A grommet in the tray (a dual chamber case): out toward the glass, down in front of the card, back under it to the tray.
+      const path = g && g.normal[2] === 1
+        ? filletPath([p.clone(), v(p.x, p.y, p.z + 30.4), v(p.x, g.center[1] + i * 9, p.z + 30.4), v(g.center[0], g.center[1] + i * 9, p.z + 30.4), v(g.center[0], g.center[1] + i * 9, gz - 20)], 18.4)
+        : filletPath([p.clone(), v(p.x, p.y, Math.max(p.z + 30.4, gz + 11)), v(gx, down, Math.max(p.z + 30.4, gz + 11))], 18.4);
+      runs.push({ name: `gpu-power-${i}`, rows: 2, cols, pitch, wire: twelve ? 1.35 : 1.65, rowAxis: v(0, 1, 0), colors, comb, plugAt: 'start', combFrom: DIMS.plugLength + 6, ...(g && g.normal[2] === 1 ? { intoTray: gz } : {}), path });
     });
   }
   const pump = items.get('cooler'); const rad = items.get('radiator');
@@ -332,13 +335,15 @@ export function buildCables(build: Build, items: Map<string, RigItem>, detail = 
   for (const [key, item] of items) {
     if (item.placed.kind !== 'fan') continue;
     const mount = String(item.placed.meta.mount);
-    const gid = mount.startsWith('front') ? 'front' : mount.startsWith('top') ? 'top' : mount.startsWith('rear') ? 'rear' : 'front';
+    const gid = mount.split('-')[0] ?? 'front';
     const g = grommet(gid);
     const lead = item.part.anchors.lead;
     if (!g || !lead) continue;
     const { p } = toCase(item, lead);
+    // A fan recessed behind the tray keeps its lead in the cable space there.
+    if (g.normal[2] === 1 && p.z < g.center[2]) continue;
     const target = v(g.center[0], g.center[1], g.center[2]);
-    const mid = p.clone().lerp(target, 0.5); mid.z = Math.min(mid.z, -60);
+    const mid = p.clone().lerp(target, 0.5); mid.z = Math.min(mid.z, g.center[2] + 15.45);
     runs.push({ name: `lead-${key}`, rows: 1, cols: 1, pitch: 0, wire: 1.2, rowAxis: v(0, 1, 0), colors: ['rubber'], comb, plugAt: 'none', path: filletPath([p, mid, v(target.x, target.y, target.z + 8), v(target.x, target.y, target.z - 10)], 12) });
   }
   if (board) {

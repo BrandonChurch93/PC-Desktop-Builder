@@ -18,7 +18,7 @@ const T = DIMS.boardT;
 
 type Look = { frost: boolean; mask: string; mask2: string; silk: string; copper: string; sink: MatName; sinkDark: MatName; plastic: MatName; plasticAlt: MatName; armor: MatName; print: string };
 const lookOf = (b: BoardSpec): Look => (b.finish === 'frost'
-  ? { frost: true, mask: 'rgba(226,228,233,1)', mask2: 'rgba(214,216,222,1)', silk: 'rgba(70,74,84,1)', copper: 'rgba(196,198,204,1)', sink: 'aluPale', sinkDark: 'aluRaw', plastic: 'plasticWhite', plasticAlt: 'plasticGrey', armor: 'steelBare', print: '#5a5e67' }
+  ? { frost: true, mask: 'rgba(226,228,233,1)', mask2: 'rgba(214,216,222,1)', silk: 'rgba(70,74,84,1)', copper: 'rgba(196,198,204,1)', sink: 'aluPale', sinkDark: 'aluPaleBead', plastic: 'plasticWhite', plasticAlt: 'plasticGrey', armor: 'steelBare', print: '#5a5e67' }
   : { frost: false, mask: 'rgba(20,24,30,1)', mask2: 'rgba(28,33,41,1)', silk: 'rgba(205,210,220,1)', copper: 'rgba(176,150,98,1)', sink: 'aluAnodized', sinkDark: 'aluBlack', plastic: 'plasticDark', plasticAlt: 'plasticGrey', armor: 'aluGunmetal', print: '#c6cad3' });
 
 // ---- the circuit surface ---------------------------------------------------------------------
@@ -358,7 +358,7 @@ export function boardPart(id: string, opts: GenOpts = {}): PartObject {
   // 12 px a millimeter: at 9 the baked silkscreen went soft in the close board view.
   const ppm = Math.max(4, Math.round(12 * detail));
   const surf = surface(b, L, look, ppm);
-  const topMat = pb.own(new THREE.MeshPhysicalMaterial({ map: pb.own(surf.map), bumpMap: pb.own(surf.bump), bumpScale: 0.6, roughness: look.frost ? 0.42 : 0.38, metalness: 0.05, clearcoat: 0.55, clearcoatRoughness: 0.22, alphaTest: 0.5 }));
+  const topMat = pb.own(new THREE.MeshPhysicalMaterial({ map: pb.own(surf.map), bumpMap: pb.own(surf.bump), bumpScale: 0.6, roughness: look.frost ? 0.42 : 0.38, metalness: 0.05, clearcoat: look.frost ? 0.18 : 0.55, clearcoatRoughness: look.frost ? 0.35 : 0.22, alphaTest: 0.5 }));
   const top = new THREE.PlaneGeometry(L.w, L.h); top.translate(L.w / 2, -L.h / 2, T + 0.02);
   // The trace relief fades out once a millimeter of board falls under about 1.5 pixels: further off, the relief under the
   // clearcoat caught the LED colors as blotchy speckle instead of reading as traces (critic 265). Close views keep it whole.

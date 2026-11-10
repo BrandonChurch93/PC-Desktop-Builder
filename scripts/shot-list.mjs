@@ -29,6 +29,12 @@ for (const p of catalog.presets) SHOTS[`bench/${p.id}`] = { steps: bench(p.id, '
 const HERO_MACROS = ['gpu', 'cooler', 'ram', 'board', 'fan', 'cable', 'psu', 'storage'];
 for (const m of HERO_MACROS) SHOTS[`macro/night-rig-${m}`] = { steps: lit('night-rig', m) };
 
+// Every other preset: its card, its cooler, its 24 pin run and a close view of its case.
+for (const p of catalog.presets) {
+  if (p.id === 'night-rig') continue;
+  for (const m of ['gpu', 'cooler', 'cable', 'case-detail']) SHOTS[`macro/${p.id}-${m}`] = { steps: lit(p.id, m) };
+}
+
 // Each case in the finish its preset does not use, holding that preset's build, lit, from the hero view.
 for (const p of catalog.presets) {
   const c = catalog.cases.find((x) => x.id === p.build.case.id);

@@ -170,10 +170,11 @@ function makeMat(name: MatName): THREE.Material {
     case 'steelBare': return metal(0xa6a9af, 0.34, t.grainFine);
     case 'steelZinc': return metal(0x9a9da2, 0.42, t.grain, { bumpMap: t.mottle, bumpScale: 0.2 });
     case 'aluBlack': return metal(0x34363b, 0.42, t.bead, { bumpMap: t.bead, bumpScale: 0.08 });
-    case 'aluSilver': return metal(0xc4c7cd, 0.3, t.brushed, { anisotropy: 0.6 });
+    // Highlights held under the bloom threshold: a top face toward the key softbox bloomed into a white blob on the white board.
+    case 'aluSilver': return capHighlights(metal(0xa9adb4, 0.3, t.brushed, { anisotropy: 0.6 }), 1.3, 'alu-silver');
     case 'aluWhite': return physical({ color: 0xe8e9ec, metalness: 0.15, roughness: 0.38, roughnessMap: t.bead, clearcoat: 0.3, clearcoatRoughness: 0.3 });
     case 'aluRaw': return metal(0xbabdc2, 0.5, t.bead, { bumpMap: t.bead, bumpScale: 0.1 });
-    case 'aluBrushed': return metal(0xbfc2c8, 0.28, t.brushed, { anisotropy: 0.85, bumpMap: t.brushed, bumpScale: 0.08 });
+    case 'aluBrushed': return capHighlights(metal(0xbfc2c8, 0.28, t.brushed, { anisotropy: 0.85, bumpMap: t.brushed, bumpScale: 0.08 }), 1.4, 'alu-brushed');
     case 'aluBrushedDark': return metal(0x30333a, 0.3, t.brushed, { anisotropy: 0.8, bumpMap: t.brushed, bumpScale: 0.2 });
     case 'aluBrushedPlate': return metal(0x383b43, 0.68, t.brushedCoarse, { anisotropy: 0.3, bumpMap: t.brushedCoarse, bumpScale: 0.12 });
     // A dark coated casting: bare grey metal mirrored the key light as a lone hot point on the rounded corners.

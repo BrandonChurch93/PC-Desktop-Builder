@@ -10,6 +10,8 @@ import type { GenOpts, PartObject } from './parts/types';
 
 const MM = 0.001;
 const GLOW_GAIN = 0.55;
+/** LED diffusers are light sources: the occlusion pass darkened a strip set in a groove to near black. */
+const isEmitter = (o: THREE.Object3D) => o instanceof THREE.Mesh && typeof (o.material as THREE.Material).name === 'string' && (o.material as THREE.Material).name.startsWith('diffuser:');
 // A longer lens than the room camera, as product photography uses, so boxes keep their proportions.
 const FOV = 22;
 
@@ -269,7 +271,7 @@ export class Inspector {
    */
   noAO(): THREE.Object3D[] {
     const out: THREE.Object3D[] = [this.glow, this.shade];
-    this.part?.root.traverse((o) => { if (o.userData.noAO || o.userData.spill || o.userData.label || o.userData.glass) out.push(o); });
+    this.part?.root.traverse((o) => { if (o.userData.noAO || o.userData.spill || o.userData.label || o.userData.glass || isEmitter(o)) out.push(o); });
     return out;
   }
 

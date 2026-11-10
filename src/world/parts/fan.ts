@@ -267,7 +267,7 @@ export function buildFan(pb: PartBuilder, labels: Labels, look: FanLook, size: 1
 
   if (look.light === 'ring' || look.light === 'ring+hub') {
     // On a white frame the ring runs lower, or cyan washed toward white and bloomed past the frame.
-    const z = ring(`${zoneKey}`, hole + 1.3, 18, [-face - 0.2, face + 0.2], look.frame === 'plasticWhite' ? 0.68 : 0.9);
+    const z = ring(`${zoneKey}`, hole + 1.3, 18, [-face - 0.2, face + 0.2], look.frame === 'plasticWhite' ? 0.58 : 0.9);
     const inner = cyl(hole + 0.15, t - 2 * fl - 0.6, 'z', Math.round(96 * detail), hole + 0.15, true);
     inner.rotateZ(PI / 2);
     // The duct lining only glows; a lit material here mirrors the fan's own lamp, which sits in the same plane, as a white hot spot.

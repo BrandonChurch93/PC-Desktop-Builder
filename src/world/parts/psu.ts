@@ -115,9 +115,10 @@ export function psuPart(id: string, opts: GenOpts = {}): PartObject {
     pb.add(extrude(housing, 2.4, 0.4, 'zy', 6, 1), 'plasticDark', at(rear - 1.4, iy, iz));
     // A dark cavity behind the keyed opening, so the bright blades stand out; a grey floor read as a plain block.
     pb.add(rbox(1.2, 22, 28, 0.3, 1), 'plasticDark', xf({ p: [rear + 4.4, iy, iz] }));
-    // Three solid flat blades as an IEC inlet has them: line and neutral low, earth high in the middle, nickel plated.
+    // Three solid flat blades as an IEC inlet has them, set back inside the shroud: line and neutral low, earth high in the
+    // middle, nickel plated. Standing proud of the face, their sides overlapped into blocks seen at an angle.
     const blade = pb.own(new THREE.MeshPhysicalMaterial({ color: 0xb4b7bc, metalness: 1, roughness: 0.58 }));
-    for (const [dy, dz] of [[-2.6, -7], [-2.6, 7], [3.6, 0]] as [number, number][]) pb.add(rbox(5.0, 4.6, 0.9, 0.25, 2), blade, xf({ p: [rear + 1.6, iy + dy, iz + dz] }));
+    for (const [dy, dz] of [[-2.6, -7], [-2.6, 7], [3.6, 0]] as [number, number][]) pb.add(rbox(2.8, 4.6, 0.9, 0.25, 2), blade, xf({ p: [rear + 3.0, iy + dy, iz + dz] }));
   }
   // The four threaded holes the case screws go into, near the corners of the rear face.
   for (const hy of [7, H - 7]) for (const hz of [-W / 2 + 7, W / 2 - 7]) {

@@ -8,14 +8,18 @@
 // A shot is in order when all of these hold:
 //   its name is one of the required names (scripts/shot-rules.mjs) and it is defined in scripts/shot-list.mjs
 //   its image exists and the harness took it, or confirmed it unchanged, from the build that is in dist/ now
-//   the newest critic verdict on exactly that image is PASS, it came from a critic answer saved under kit/critics/,
-//   no more than two critics judged that image, and the critic was given the reference shot where one is required
-// or when it is listed as weak in kit/WEAK-SHOTS.json and meets the weak rule in kit/07-QUALITY-BAR.md.
-// Do not change the rules in this file. They are the gate.
-import fs from 'node:fs';
+//   the newest verdict on exactly that image is a PASS, and:
+//     in the 3D groups (CRITIC_GROUPS) it is a critic PASS, or a builder PASS when a critic has judged that shot
+//     before on any image (kit/addenda/01-less-judging.md, rule 1)
+//     in every other group, and for contact sheets, a builder or a critic PASS is enough (rule 2)
+//   a critic PASS counts only when the critic was given the reference shot where one is required
+// Critic verdicts count only when they come from an answer saved under kit/critics/.
+// The rules here are the gate. Addendum 01 rule 6 is the only change allowed to them.
 import process from 'node:process';
-import { CONTACT, EXACT_GROUPS, GROUP_COUNTS, PREFIX_COUNTS, REFERENCES, REQUIRED, WEAK_FILE, backedByAnswer, buildId, distIsStale, fileOf, groupOf, readLedger, readManifest, shaOfFile, weakRounds } from './shot-rules.mjs';
+import { CONTACT, EXACT_GROUPS, GROUP_COUNTS, PREFIX_COUNTS, REFERENCES, REQUIRED, backedByAnswer, buildId, distIsStale, fileOf, groupOf, readLedger, readManifest, shaOfFile } from './shot-rules.mjs';
 import { SHOTS } from './shot-list.mjs';
+
+const CRITIC_GROUPS = ['rig', 'bench', 'finish', 'macro', 'part', 'cable', 'light'];
 
 const wanted = process.argv.slice(2);
 const everything = wanted.length === 0;
@@ -45,45 +49,32 @@ for (const [group, need] of Object.entries(GROUP_COUNTS)) {
 for (const q of wanted) if (![...defined, ...REQUIRED, ...CONTACT].some((n) => n.startsWith(q))) problems.push(`${q}: no shot has this name or starts with it`);
 
 // Verdicts.
-const ledger = readLedger().filter(backedByAnswer);
-const weak = fs.existsSync(WEAK_FILE) ? JSON.parse(fs.readFileSync(WEAK_FILE, 'utf8')) : [];
+const ledger = readLedger().filter((v) => v.who === 'builder' || backedByAnswer(v));
 const stale = distIsStale();
 const build = stale ? '' : buildId();
 const manifest = readManifest();
 if (stale && defined.some(inScope)) problems.push('dist/ is missing or older than the source. Run npm run shots for these shots first, so they are taken from the current build');
 
-function verdictOn(name, sha) {
+function judge(name, sha, criticFirst) {
   const mine = ledger.filter((v) => v.shot === name);
   const current = mine.filter((v) => v.sha === sha);
   const last = current[current.length - 1];
-  const failedImages = new Set(mine.filter((v) => v.result === 'FAIL').map((v) => v.sha)).size;
-  return { current, last, failedImages };
+  if (!last) return `no verdict on the current image (${sha})`;
+  if (last.result !== 'PASS') return `the latest verdict on this image is FAIL (${sha}). Change the image`;
+  if (last.who === 'critic') return REFERENCES[name] && last.reference !== REFERENCES[name] ? 'a critic passed it without its reference shot. List it with scripts/critic-list.mjs --all and send it to one new critic' : null;
+  if (criticFirst && !mine.some((v) => v.who === 'critic')) return `only your own PASS so far. A 3D shot goes to one critic first (${sha})`;
+  return null;
 }
 
-let passed = 0; let weakCount = 0;
+let passed = 0;
 for (const name of defined.filter(inScope)) {
   const sha = shaOfFile(fileOf(name, SHOTS));
   if (!sha) { problems.push(`${name}: image missing`); continue; }
   if (stale) continue;
   const noted = manifest[name];
   if (!noted || noted.sha !== sha || noted.build !== build) { problems.push(`${name}: not taken from the current build. Run npm run shots -- ${name}`); continue; }
-  const { current, last, failedImages } = verdictOn(name, sha);
-  const ok = last && last.result === 'PASS' && current.length <= 2 && (!REFERENCES[name] || last.reference === REFERENCES[name]);
-  if (ok) { passed++; continue; }
-  const entry = Array.isArray(weak) ? weak.find((w) => w && w.shot === name) : null;
-  if (entry) {
-    const need = weakRounds(name);
-    const tried = Array.isArray(entry.tried) ? entry.tried.filter((t) => typeof t === 'string' && t.trim()).length : 0;
-    if (!last || last.result !== 'FAIL') problems.push(`${name}: listed as weak, but no critic has failed the current image (${sha})`);
-    else if (failedImages < need) problems.push(`${name}: listed as weak after critics failed ${failedImages} different images of it, ${need} required`);
-    else if (tried < 2 || typeof entry.why !== 'string' || !entry.why.trim()) problems.push(`${name}: a weak entry needs "why" and a "tried" list with at least two rebuilds`);
-    else weakCount++;
-    continue;
-  }
-  if (!last) problems.push(`${name}: no critic verdict on the current image (${sha})`);
-  else if (last.result === 'FAIL') problems.push(`${name}: the latest critic verdict on this image is FAIL (${sha}). Change the image`);
-  else if (current.length > 2) problems.push(`${name}: more than two critics judged this image. Change the image, do not ask again`);
-  else problems.push(`${name}: passed without its reference shot. List it with scripts/critic-list.mjs --all and send it to one new critic`);
+  const why = judge(name, sha, CRITIC_GROUPS.includes(groupOf(name)));
+  if (why) problems.push(`${name}: ${why}`); else passed++;
 }
 
 // Contact sheets.
@@ -92,11 +83,10 @@ if (everything || wanted.some((q) => 'contact'.startsWith(q) || q.startsWith('co
   for (const name of CONTACT.filter(inScope)) {
     const sha = shaOfFile(fileOf(name));
     if (!sha) { problems.push(`${name}: contact sheet missing`); continue; }
-    const { current, last } = verdictOn(name, sha);
-    if (last && last.result === 'PASS' && current.length <= 2) sheets++;
-    else problems.push(`${name}: ${last ? 'the latest critic verdict on this sheet is not a clean PASS' : 'no critic verdict on the current sheet'} (${sha})`);
+    const why = judge(name, sha, false);
+    if (why) problems.push(`${name}: ${why}`); else sheets++;
   }
 }
 
-console.log(`shots defined: ${defined.length} of 358 · passed: ${passed} · weak: ${weakCount} · contact sheets passed: ${sheets} · problems: ${problems.length}`);
+console.log(`shots defined: ${defined.length} of 358 · passed: ${passed} · contact sheets passed: ${sheets} · problems: ${problems.length}`);
 if (problems.length) { console.log(problems.join('\n')); process.exit(1); }

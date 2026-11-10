@@ -120,7 +120,8 @@ export class Rig {
   /** Objects the occlusion pass and the mirror must not see. */
   glassObjects(): THREE.Object3D[] {
     const out: THREE.Object3D[] = [];
-    this.group.traverse((o) => { if (o.userData.glass || o.userData.spill || o.userData.noAO || o.userData.label) out.push(o); });
+    // LED diffusers too: they are light sources, and the pass darkened strips set in grooves.
+    this.group.traverse((o) => { if (o.userData.glass || o.userData.spill || o.userData.noAO || o.userData.label || (o instanceof THREE.Mesh && typeof (o.material as THREE.Material).name === 'string' && (o.material as THREE.Material).name.startsWith('diffuser:'))) out.push(o); });
     return out;
   }
 

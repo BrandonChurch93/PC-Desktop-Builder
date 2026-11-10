@@ -137,7 +137,7 @@ export class Room {
     const kick = new THREE.SpotLight(0xd6dbff, this.base.kick, 5, 0.2, 1, 2);
     kick.position.set(-1.45, 0.3, -0.03); kick.target.position.set(-0.23, 0.19, -0.03);
     kick.shadow.camera.layers.enable(FLAG_LAYER);
-    kick.castShadow = true; kick.shadow.mapSize.set(1024, 1024); kick.shadow.bias = -0.0002; kick.shadow.normalBias = 0.0015;
+    kick.castShadow = true; kick.shadow.mapSize.set(1024, 1024); kick.shadow.bias = 0; kick.shadow.normalBias = 0.0003;
     kick.shadow.radius = 8; kick.shadow.blurSamples = 16; kick.shadow.camera.near = 0.6; kick.shadow.camera.far = 3.2;
     kick.shadow.autoUpdate = false; kick.shadow.needsUpdate = true;
     const rim = new THREE.SpotLight(0xb8c2ff, this.base.rim, 6, 0.85, 1, 2);
@@ -164,13 +164,14 @@ export class Room {
     L.rim.intensity = b.rim * (0.6 + 0.4 * k); L.kick.intensity = b.kick * (0.6 + 0.4 * k); L.back.intensity = b.back * (0.7 + 0.3 * k); L.hemi.intensity = b.hemi * (0.7 + 0.3 * k);
   }
 
-  /** The flag covers the rear face of the case from the top of the supply up. */
+  /** The flag covers the rear face of the case from the top of the supply up. It stands inside the rear panel's thickness:
+   * the shadow map holds back faces, so a part touching the panel's inner face sat at the stored depth and the kicker lit it in dashes. */
   setRearFlag(caseBox: THREE.Box3 | null, supplyBox: THREE.Box3 | null) {
     if (!caseBox || caseBox.isEmpty()) { this.flag.visible = false; this.sideFlag.visible = false; return; }
     const y0 = supplyBox && !supplyBox.isEmpty() ? supplyBox.max.y + 0.002 : caseBox.min.y + 0.01; const y1 = caseBox.max.y - 0.006;
     const z0 = caseBox.min.z + 0.006; const z1 = caseBox.max.z - 0.006;
     this.flag.visible = true;
-    this.flag.position.set(caseBox.min.x + 0.008, (y0 + y1) / 2, (z0 + z1) / 2);
+    this.flag.position.set(caseBox.min.x + 0.001, (y0 + y1) / 2, (z0 + z1) / 2);
     this.flag.rotation.set(0, Math.PI / 2, 0);
     this.flag.scale.set(z1 - z0, y1 - y0, 1);
     // And one just inside the glass, so the kicker cannot reach into the case through it.

@@ -140,12 +140,15 @@ function braid(size: number, lo = 0.25, hi = 1): HTMLCanvasElement {
 }
 
 export type TextureSet = {
-  grain: THREE.Texture; grainFine: THREE.Texture; peel: THREE.Texture; brushed: THREE.Texture; bead: THREE.Texture; orange: THREE.Texture; stipple: THREE.Texture;
+  grain: THREE.Texture; grainFine: THREE.Texture; peel: THREE.Texture; brushed: THREE.Texture; bead: THREE.Texture; orange: THREE.Texture; stipple: THREE.Texture; mottleSoft: THREE.Texture; mottleMid: THREE.Texture;
   perf: THREE.Texture; braid: THREE.Texture; braidTone: THREE.Texture; braidToneHi: THREE.Texture; brushedCoarse: THREE.Texture; lap: THREE.Texture; mottle: THREE.Texture; soft: THREE.Texture;
 };
 
 /** Every texture is mapped in millimeters: a repeat of 1/tile makes one tile cover that many mm. */
-export const TILE_MM = { grain: 24, grainFine: 9, peel: 18, brushed: 48, bead: 10, orange: 16, stipple: 5, perf: 3.2, braid: 2.2, lap: 14, mottle: 160, soft: 60 } as const;
+/** Hole diameter of the fine perforation as a share of its tile width. */
+export const PERF_HOLE = 0.76;
+
+export const TILE_MM = { grain: 24, grainFine: 9, peel: 18, brushed: 48, bead: 10, orange: 36, stipple: 5, mottleSoft: 220, mottleMid: 120, perf: 3.2, braid: 2.2, lap: 14, mottle: 160, soft: 60 } as const;
 
 let cached: TextureSet | null = null;
 let cachedScale = 0;
@@ -161,9 +164,14 @@ export function textures(scale = 1): TextureSet {
     brushed: tile(wrap(brushed(s(1024), 7)), TILE_MM.brushed),
     bead: tile(wrap(grain(s(512), 31, 60, 196)), TILE_MM.bead),
     // Smooth height fields for world scaled bumps: an orange peel for powder coat and a finer one for molded plastic.
-    orange: tile(wrap(fromValues(s(512), fbm(s(512), 9, 4, seeded(63), 0.5), 0, 255)), TILE_MM.orange),
+    // The same 0.45 mm peel features over a 36 mm tile: a 4 mm tile repeated every few pixels as a woven crosshatch.
+    orange: tile(wrap(fromValues(s(1024), fbm(s(1024), 80, 4, seeded(63), 0.5), 0, 255)), TILE_MM.orange),
     stipple: tile(wrap(fromValues(s(512), fbm(s(512), 9, 4, seeded(67), 0.55), 0, 255)), TILE_MM.stipple),
-    perf: tile(wrap(perforation(64, 0.76)), TILE_MM.perf),
+    // A slow, faint drift in roughness for large painted panels; the full contrast mottle read as smudges on a side panel.
+    mottleSoft: tile(wrap(fromValues(s(256), fbm(s(256), 4, 3, seeded(57), 0.5), 116, 140)), TILE_MM.mottleSoft),
+    // Powder coat: between the faint drift (read as a flat slab) and the full mottle (read as smudges).
+    mottleMid: tile(wrap(fromValues(s(512), fbm(s(1024), 16, 4, seeded(59), 0.6), 84, 172)), TILE_MM.mottleMid),
+    perf: tile(wrap(perforation(64, PERF_HOLE)), TILE_MM.perf),
     braid: tile(wrap(braid(s(256))), TILE_MM.braid),
     braidTone: tile(wrap(braid(s(256), 0.5, 1), { srgb: true }), TILE_MM.braid),
     braidToneHi: tile(wrap(braid(s(256), 0.22, 1), { srgb: true }), TILE_MM.braid),

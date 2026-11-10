@@ -137,14 +137,13 @@ function hdd(pb: PartBuilder, labels: Labels, mounted: boolean): Record<string, 
   const field = roundedPoly([[-w / 2 + 9, -l / 2 + 9], [w / 2 - 9, -l / 2 + 9], [w / 2 - 9, l / 2 - 30], [w / 2 - 19, l / 2 - 9], [-w / 2 + 9, l / 2 - 9]], 3);
   pb.add(extrude(field, 0.35, 0.25, 'xz', 6), 'aluLid', xf({ p: [0, h - 0.9, 0] }));
   const lid = h - 0.55;
-  // A shallow pressing in the lid's own brushed sheet: a tall smooth dome read as a clear lens laid on the lid.
+  // The spindle screw sits on a small, low boss pressed into the lid's own brushed sheet, with soft shoulders and the lid's
+  // brushing running across it. A wide raised disc with a crisp rim read as a coaster laid on the lid, whatever its finish.
   {
-    // The pressed spindle cover carries a spun finish, centered on the spindle.
-    // A pressed collar with a crisp rim step, so it reads as formed in the lid and not laid on it.
-    const dome = lathe([[17.4, 0], [17, 0.06], [16.5, 0.5], [16, 0.62], [11.6, 0.62], [11, 0.9], [0, 0.92]], 96);
+    const dome = lathe([[11.5, 0], [11.1, 0.05], [10.2, 0.3], [9.3, 0.44], [8.4, 0.48], [0, 0.48]], 96);
     const dp = dome.getAttribute('position'); const duv = dome.getAttribute('uv');
-    for (let i = 0; i < dp.count; i++) duv.setXY(i, dp.getX(i) / 34.8 + 0.5, dp.getY(i) / 34.8 + 0.5);
-    pb.add(dome, 'aluLidStamp', xf({ p: [-8, lid, 24], r: [-Math.PI / 2, 0, 0] }), { uv: 'keep' });
+    for (let i = 0; i < dp.count; i++) duv.setXY(i, -8 + dp.getX(i), 24 - dp.getY(i));
+    pb.add(dome, 'aluLid', xf({ p: [-8, lid, 24], r: [-Math.PI / 2, 0, 0] }), { uv: 'keep' });
   }
   {
     const ok = (x: number, z: number) => z > 12 && x > -w / 2 + 11 && x < w / 2 - 11 && z < l / 2 - 11 && !(x > w / 2 - 22 && z > l / 2 - 32);
@@ -160,17 +159,19 @@ function hdd(pb: PartBuilder, labels: Labels, mounted: boolean): Record<string, 
   const sm = pb.own(new THREE.MeshPhysicalMaterial({ color: 0x8d9097, metalness: 1, roughness: 0.58, vertexColors: true }));
   const pts: [number, number][] = [[-w / 2 + 6, -l / 2 + 6], [w / 2 - 6, -l / 2 + 6], [-w / 2 + 6, l / 2 - 6], [w / 2 - 18, l / 2 - 6], [-w / 2 + 6, 0], [w / 2 - 6, 0]];
   for (const [x, z] of pts) pb.add(sg.clone(), sm, xf({ p: [x, h - 0.9, z], r: [-Math.PI / 2, 0, 0] }), { uv: 'keep' });
-  pb.add(sg.clone(), sm, xf({ p: [-8, lid + 0.92, 24], r: [-Math.PI / 2, 0, 0] }), { uv: 'keep' });
+  pb.add(sg.clone(), sm, xf({ p: [-8, lid + 0.48, 24], r: [-Math.PI / 2, 0, 0] }), { uv: 'keep' });
   const pcbW = w - 13; const pcbL = l - 33; const pcbZ = -l / 2 + 7 + pcbL / 2;
-  const pcb = smallBoardMaterial('hdd', pcbW, pcbL, { mask: 'rgba(15,56,37,1)', trace: 'rgba(28,80,54,1)', pad: 'rgba(168,158,118,1)', body: 'rgba(46,42,36,1)' }, [-pcbW / 2, pcbZ - pcbL / 2]);
+  const pcb = smallBoardMaterial('hdd', pcbW, pcbL, { mask: 'rgba(15,56,37,1)', trace: 'rgba(28,80,54,1)', pad: 'rgba(168,158,118,1)', body: 'rgba(46,42,36,1)' }, [-pcbW / 2, pcbZ - pcbL / 2], 2, true);
   pb.add(rbox(pcbW, 1.2, pcbL, 0.4, 1), pcb, xf({ p: [0, 1.4, pcbZ] }));
-  // The spindle motor's stepped steel base, and the threaded bottom mounting holes of a 3.5 inch drive.
-  pb.add(lathe([[3.6, 0], [10.6, 0], [10.6, 0.9], [9.6, 1.6], [3.6, 1.6]], 64), 'aluSatin', xf({ p: [-8, 0, l / 2 - 13], r: [-Math.PI / 2, 0, 0] }));
+  // The spindle motor seen from below: a hub boss stepped down from a flange, with rounded edges and a bearing cap, standing
+  // 0.8 mm proud of the casting. Flush, it read as a flat disc. Then the threaded bottom mounting holes of a 3.5 inch drive.
+  pb.add(lathe([[3.4, -0.8], [7.9, -0.8], [8.4, -0.72], [8.7, -0.5], [9.2, -0.4], [10.8, -0.4], [11.2, -0.28], [11.5, 0]], 72), 'aluSatin', xf({ p: [-8, 0, l / 2 - 13], r: [-Math.PI / 2, 0, 0] }));
+  pb.add(cyl(3.5, 0.12, 'y', 40), 'steelZinc', xf({ p: [-8, -0.86, l / 2 - 13] }));
+  pb.add(cyl(1.3, 0.1, 'y', 24), 'darkVoid', xf({ p: [-8, -0.94, l / 2 - 13] }), { uv: 'keep' });
   for (const sx of [1, -1]) for (const z of [-l / 2 + 41.3, -l / 2 + 85.7, -l / 2 + 117.5]) {
     pb.add(cyl(1.75, 0.5, 'y', 16), 'darkVoid', xf({ p: [sx * 47.6, 2.0, z] }), { uv: 'keep' });
     pb.add(torus(2.1, 0.28, 6, 24), 'steelZinc', xf({ p: [sx * 47.6, 2.15, z], r: [Math.PI / 2, 0, 0] }));
   }
-  pb.add(cyl(3.6, 0.6, 'y', 32), 'darkVoid', xf({ p: [-8, 0.1, l / 2 - 13] }), { uv: 'keep' });
   for (const sx of [1, -1]) for (const sz of [1, -1]) pb.add(sg.clone(), sm, xf({ p: [sx * (pcbW / 2 - 4), 0.8, pcbZ + sz * (pcbL / 2 - 4)], r: [Math.PI / 2, 0, 0] }), { uv: 'keep' });
   sg.dispose();
   // Chips on the board's underside: package, marking, and a row of leads on each side that has them.

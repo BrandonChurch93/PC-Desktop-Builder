@@ -67,7 +67,7 @@ function facetGlow(relief: THREE.BufferGeometry, barZ: number, u0: number, u1: n
   for (let i = 0; i < pos.count; i++) {
     const nx = nrm.getX(i); const ny = nrm.getY(i); const nz = nrm.getZ(i);
     pos.setXYZ(i, pos.getX(i) + nx * 0.03, pos.getY(i) + ny * 0.03, pos.getZ(i) + nz * 0.03);
-    const k = Math.exp(-Math.max(0, barZ - pos.getY(i)) / 14) * (0.18 + 2.4 * Math.max(0, ny));
+    const k = Math.exp(-Math.max(0, barZ - pos.getY(i)) / 9) * (0.12 + 2.4 * Math.max(0, ny));
     col.push(k, k, k);
     uv.push(Math.min(1, Math.max(0, (pos.getX(i) - u0) / (u1 - u0))), 0.5);
   }
@@ -177,7 +177,7 @@ export function ramPart(id: string, opts: GenOpts = {}): PartObject {
     const barW = 2 * (gap + plateT) - 0.6;
     const z0 = plateTop - 1.6; const z1 = height;
     const zone = new Zone(key, 'ram', false, stripLeds(new THREE.Vector3(0, -HALF + 3, z1 - 2), new THREE.Vector3(0, HALF - 3, z1 - 2), 7.4), 0.2 + (key.length % 7) * 0.09);
-    const diff = zone.diffuser(line === 'crown' ? 0.42 : 0.48, frost ? 0xd9dbe0 : 0x2a2b31, 0.42);
+    const diff = zone.diffuser(line === 'crown' ? 0.5 : 0.48, frost ? 0xd9dbe0 : 0x1d1e23, 0.7);
     // The bar follows the notch in the spreader's top line, so the notch reads with the light on.
     const half = (DIMS.dimmLength - 2) / 2;
     const barProfile: [number, number][] = line === 'facet'
@@ -188,13 +188,13 @@ export function ramPart(id: string, opts: GenOpts = {}): PartObject {
     bar.translate(-barW / 2, 0, -(z0 + z1) / 2);
     uvAlong(bar, 'y');
     pb.mesh(bar, diff, xf({ p: [0, 0, (z0 + z1) / 2] }), { uv: 'keep' });
-    const spill = zone.spill(frost ? 0.2 : 0.34);
+    const spill = zone.spill(frost ? 0.2 : 0.22);
     // The bar's light on the plate, under the facets, which take it through their own skin below.
     // One strip from the rim's top edge down, the whole length: split strips met in a visible seam at the notch.
     const total = DIMS.dimmLength - 3; const outer = (DIMS.dimmLength - 14) / 2;
     for (const sd of [1, -1]) {
       const m = new THREE.Matrix4().makeBasis(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1), new THREE.Vector3(sd, 0, 0)).setPosition(sd * (gap + plateT + 0.05), 0, z0 + 1.1);
-      pb.mesh(spillStripRange(total, -outer, outer, 20, 16), spill, m, { uv: 'keep' }).userData.spill = true;
+      pb.mesh(spillStripRange(total, -outer, outer, 6, 16), spill, m, { uv: 'keep' }).userData.spill = true;
     }
     // The white kit label on the back takes the bar's light as well, fading down from its top edge.
     if (line !== 'mono') {
@@ -204,7 +204,7 @@ export function ramPart(id: string, opts: GenOpts = {}): PartObject {
       // Drawn after the label's print, which is blended and was covering it.
       ls.userData.spill = true; ls.renderOrder = 6;
     }
-    const glow = pb.own(new THREE.MeshBasicMaterial({ map: zone.tex, vertexColors: true, color: new THREE.Color(0.5, 0.5, 0.5), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -4 }));
+    const glow = pb.own(new THREE.MeshBasicMaterial({ map: zone.tex, vertexColors: true, color: new THREE.Color(0.4, 0.4, 0.4), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -4 }));
     for (const r of reliefs) pb.mesh(facetGlow(r, z0, -HALF + 3, HALF - 3), glow, TO_STICK, { uv: 'keep' }).userData.spill = true;
     if (line === 'crown') {
       for (let i = 0; i < 9; i++) pb.add(rbox(barW + 0.4, 0.8, 1.2, 0.3, 1), 'aluWhite', xf({ p: [0, -HALF + 10 + i * 14.2, z0 + 0.6] }));

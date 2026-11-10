@@ -220,8 +220,8 @@ export class Inspector {
       // A part that stands on a thin edge, such as a memory stick, still gets a shade band a few centimeters wide.
       // A stick that lies flat, such as an M.2 drive, needs a wider shade to show past its edges.
       const flat = category === 'storage' && id === 'nvme' ? 1.5 : 1;
-      this.shade.scale.set(this.size.x * sk * flat, Math.max(this.size.z * sk * flat, category === 'ram' ? 0.05 : 0), 1);
-      (this.shade.material as THREE.MeshBasicMaterial).opacity = flat > 1 || category === 'ram' ? 0.92 : 0.75;
+      this.shade.scale.set(this.size.x * sk * flat, Math.max(this.size.z * sk * flat, category === 'ram' ? 0.07 : 0), 1);
+      (this.shade.material as THREE.MeshBasicMaterial).opacity = flat > 1 ? 0.92 : category === 'ram' ? 0.96 : 0.75;
       const gs = Math.max(this.size.x, this.size.z) * 2.6;
       this.glow.scale.set(gs, gs, 1);
       this.holder.updateMatrixWorld(true);
@@ -243,16 +243,23 @@ export class Inspector {
     this.flip = flip;
     // A case is large and black: as a studio would, it gets more light than a small part so its frame separates from the backdrop.
     const big = category === 'case';
-    this.lights.key.intensity = big ? 6.6 : 4.6; this.lights.fill.intensity = big ? 4.6 : 3.2; this.lights.rim.intensity = big ? 4.4 : 2.2; this.lights.sheen.intensity = big ? 3.2 : 0;
+    // A card is long and dark too: a stronger rim and the sheen softbox trace its edges against the backdrop.
+    const long = category === 'gpu';
+    this.lights.key.intensity = big ? 6.6 : 4.6; this.lights.fill.intensity = big ? 4.6 : 3.2; this.lights.rim.intensity = big ? 4.4 : long ? 3.6 : 2.2; this.lights.sheen.intensity = big ? 3.2 : long ? 1.6 : 0;
     this.scene.environmentIntensity = big ? 1.7 : 1.25;
     // A card's hero surfaces are its backplate and its glass facing edge, so the camera stands higher to show that edge.
     this.elevation = category === 'cpu' || category === 'storage' ? 0.62 : category === 'board' ? 0.2 : category === 'gpu' ? 0.5 : 0.32;
   }
 
   /** Sub-pixel geometry the occlusion pass must not see in the Inspector. */
+  /**
+   * Meshes the occlusion pass must not see: sub-pixel fins, and every decal (labels, LED spill, the turntable glow and
+   * shade). A decal lies a fraction of a millimeter over its surface, and the pass read its edge as a step and drew a straight
+   * line across flat faces.
+   */
   noAO(): THREE.Object3D[] {
-    const out: THREE.Object3D[] = [];
-    this.part?.root.traverse((o) => { if (o.userData.noAO) out.push(o); });
+    const out: THREE.Object3D[] = [this.glow, this.shade];
+    this.part?.root.traverse((o) => { if (o.userData.noAO || o.userData.spill || o.userData.label || o.userData.glass) out.push(o); });
     return out;
   }
 

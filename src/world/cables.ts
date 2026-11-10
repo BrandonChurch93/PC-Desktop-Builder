@@ -185,7 +185,7 @@ export function buildRun(run: Run, group: THREE.Group, detail = 1) {
   }
   if (holes.length) {
     const merged = mergeGeometries(holes.map((x) => x.toNonIndexed()), false);
-    if (merged) { const mesh = new THREE.Mesh(merged, combMat); mesh.castShadow = true; mesh.userData.flexible = true; group.add(mesh); }
+    if (merged) { const mesh = new THREE.Mesh(merged, combMat); mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.flexible = true; group.add(mesh); }
   }
   for (const g of holes) g.dispose();
   comb.dispose();
@@ -207,7 +207,7 @@ export function buildRun(run: Run, group: THREE.Group, detail = 1) {
     clip.applyMatrix4(new THREE.Matrix4().multiplyMatrices(m, new THREE.Matrix4().makeTranslation(0, ch / 2 + 0.8, 0)));
     const merged = mergeGeometries([housing.toNonIndexed(), clip.toNonIndexed()], false);
     housing.dispose(); clip.dispose();
-    if (merged) { const mesh = new THREE.Mesh(merged, mat('plasticDark')); mesh.castShadow = true; mesh.userData.flexible = true; group.add(mesh); }
+    if (merged) { const mesh = new THREE.Mesh(merged, mat('plasticDark')); mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.flexible = true; group.add(mesh); }
   }
 }
 

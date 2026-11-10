@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { LightTarget } from '../../data/catalog';
 import { flowPosition, ledColor, profileFor, zoneTemp, type Led, type RGB } from '../../engine/lighting';
 import type { Lighting, Temps } from '../../engine/types';
+import type { Patch } from './patches';
 import type { Zone } from './zones';
 
 const MM = 0.001;
@@ -69,6 +70,7 @@ export class RgbEngine {
   lampGain = 1;
 
   private pools: Pool[] = [];
+  patches: Patch[] = [];
   private poolAlpha: THREE.Texture | null = null;
   readonly poolGroup = new THREE.Group();
 
@@ -250,6 +252,11 @@ export class RgbEngine {
       const m = p.mesh.material as THREE.MeshBasicMaterial;
       saturate(r, g, b, m.color);
       m.color.multiplyScalar(Math.max(r, g, b) * POOL_GAIN * Math.sqrt(p.share));
+    }
+    for (const p of this.patches) {
+      const a = p.zone.avg; const m = p.mesh.material as THREE.MeshBasicMaterial;
+      saturate(a.r, a.g, a.b, m.color);
+      m.color.multiplyScalar(Math.max(a.r, a.g, a.b) * p.gain);
     }
   }
 

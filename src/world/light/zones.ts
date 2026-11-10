@@ -63,6 +63,21 @@ export class Zone {
     return m;
   }
 
+  /**
+   * Light glowing through a frosted white surface beside a zone: the surface takes the LED color over its own white, as
+   * much as the LEDs are lit. An added spill cannot tint white, which already reflects every channel of the studio light.
+   */
+  tint(gain: number, cover: number, fade = true): THREE.MeshBasicMaterial {
+    const m = new THREE.MeshBasicMaterial({ map: this.tex, ...(fade ? { alphaMap: falloff() } : {}), color: new THREE.Color(gain, gain, gain), transparent: true, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -4 });
+    m.name = `tint:${this.key}`;
+    m.onBeforeCompile = (sh) => {
+      // The tint takes the LEDs' hue at full value and their brightness as its cover.
+      sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>\nfloat tintMax = max(max(diffuseColor.r, diffuseColor.g), diffuseColor.b);\nfloat tintLed = tintMax / ${gain.toFixed(3)};\ndiffuseColor.rgb *= 0.9 / max(tintLed, 1e-4);\ndiffuseColor.a *= ${cover.toFixed(3)} * smoothstep(0.0, 0.35, tintLed);`);
+    };
+    m.customProgramCacheKey = () => `zone-tint-${gain}-${cover}`;
+    return m;
+  }
+
   /** The same colors on the second uv set, for lit marks whose shape comes from an alpha map. */
   secondary(): THREE.Texture {
     if (!this.second) { this.second = this.tex.clone(); this.second.channel = 1; }

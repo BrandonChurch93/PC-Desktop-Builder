@@ -36,14 +36,14 @@ export class Labels {
         const fpx = (h / planeH) * hMm * 1.38;
         drawText(g, text, style, (hMm * 0.45 * w) / wMm, h / 2, fpx, opts.lit ? 'rgba(250,250,250,1)' : opts.color ?? '#d8dade');
       },
-      m: mm, target: opts.to ?? null, lit: opts.lit ? { ...opts.lit, uAxis: 'x' } : null, rough: opts.rough ?? 0.45,
+      m: mm, target: opts.to ?? null, lit: opts.lit ? { ...opts.lit, uAxis: 'x' } : null, rough: opts.rough ?? 0.65,
     });
     return { w: wMm, h: planeH };
   }
 
   /** Any drawing on a wMm by hMm plane centered at the matrix origin, facing +z. */
   draw(wMm: number, hMm: number, fn: (g: CanvasRenderingContext2D, w: number, h: number) => void, m: THREE.Matrix4, opts: LabelOpts = {}) {
-    this.items.push({ wMm, hMm, draw: fn, m, target: opts.to ?? null, lit: opts.lit ? { ...opts.lit, uAxis: 'x' } : null, rough: opts.rough ?? 0.45 });
+    this.items.push({ wMm, hMm, draw: fn, m, target: opts.to ?? null, lit: opts.lit ? { ...opts.lit, uAxis: 'x' } : null, rough: opts.rough ?? 0.65 });
   }
 
   finish() {
@@ -110,7 +110,7 @@ export class Labels {
     const first = list[0]!;
     const material = first.lit
       // A lit mark is a frosted diffuser: its letters stay visible as pale grey when its LEDs are low or off.
-      ? new THREE.MeshStandardMaterial({ color: 0x3e4046, roughness: 0.55, metalness: 0, alphaMap: tex, emissive: 0xffffff, emissiveMap: first.lit.tex, emissiveIntensity: first.lit.intensity, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -6, polygonOffsetUnits: -6 })
+      ? new THREE.MeshStandardMaterial({ color: 0x2f3136, roughness: 0.6, metalness: 0, alphaMap: tex, emissive: 0xffffff, emissiveMap: first.lit.tex, emissiveIntensity: first.lit.intensity, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -6, polygonOffsetUnits: -6 })
       : new THREE.MeshStandardMaterial({ map: tex, roughness: first.rough, metalness: 0, transparent: true, premultipliedAlpha: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -6, polygonOffsetUnits: -6 });
     if (first.lit) { tex.colorSpace = THREE.NoColorSpace; }
     material.name = first.lit ? 'label-lit' : 'label';

@@ -64,6 +64,7 @@ export function installHook(world: World) {
     tier: () => ({ setting: store.getState().quality, active: world.tier }),
     sheet: () => sheet(store.getState().build),
     zones: () => world.rgb.snapshot(),
+    probe: (x: number, y: number) => world.probe(x, y),
     bounds: async (category: Category, id: string, o: { size?: 120 | 140; finish?: string } = {}) => world.bounds(category, id, o),
   };
   (window as unknown as { __pcb: typeof api; __world: World }).__pcb = api;

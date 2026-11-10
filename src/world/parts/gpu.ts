@@ -278,8 +278,24 @@ function veltrin(pb: PartBuilder, labels: Labels, c: Card): { zones: Zone[]; rot
   const ventX0 = c.back + 120; const ventX1 = (flow ? cutX0 : c.end) - 12;
   for (let x = ventX0; x + 10 < ventX1; x += 13) bp.holes.push(polyHole([[x, c.H - 30], [x + 6, c.H - 30], [x + 14, c.H - 10], [x + 8, c.H - 10]]));
   pb.add(extrude(bp, bpT, 0.6, 'xy', 8, 2), c.frost ? 'aluBrushed' : 'aluBrushedPlate', xzAt(bpY + bpT));
+  // Behind the GPU the board's back is packed with ceramic capacitors in rows, which is why the plate is vented there; seen
+  // through the vents their tin ends catch light and the vents read as openings, not lines drawn on the plate.
+  {
+    const rr = seededFor(`mlcc-${c.key}`);
+    // Matte tin: bright plated ends caught the key light through the vents as a row of white specks.
+    const tinEnd = pb.own(new THREE.MeshPhysicalMaterial({ color: 0x6f7277, metalness: 1, roughness: 0.62 }));
+    const zTop = Math.min(c.H - 9, c.pcbTop - 1.5);
+    for (let x = ventX0 - 2; x < Math.min(ventX1 + 6, c.pcbEnd - 3); x += 2.3) for (let z = c.H - 31; z < zTop; z += 1.7) {
+      if (rr() < 0.18) continue;
+      const big = rr() < 0.15; const lx = big ? 1.6 : 1.0; const lw = big ? 0.8 : 0.5;
+      const p = [x + (rr() - 0.5) * 0.3, 0.8 + lw / 2, z];
+      pb.add(rbox(lx * 0.62, lw, lw, 0.08, 1), rr() > 0.3 ? 'ceramic' : 'chip', xf({ p: [p[0]!, p[1]!, p[2]!] }));
+      for (const s of [-1, 1]) pb.add(rbox(lx * 0.2, lw + 0.02, lw + 0.02, 0.06, 1), tinEnd, xf({ p: [p[0]! + s * lx * 0.41, p[1]!, p[2]!] }));
+    }
+  }
   const sg = screwGeometry(1.9, 1.0, 'button');
-  const sm = pb.own(new THREE.MeshPhysicalMaterial({ color: c.frost ? 0xd0d2d6 : 0x1d1e22, metalness: 1, roughness: 0.32, vertexColors: true }));
+  // Zinc plated backplate screws: black ones vanished into the dark plate, so the plate read as unfastened.
+  const sm = pb.own(new THREE.MeshPhysicalMaterial({ color: c.frost ? 0xd0d2d6 : 0x8a8d94, metalness: 1, roughness: 0.34, vertexColors: true }));
   const core: [number, number] = [c.back + 78, (c.clear + c.H) / 2 - 4];
   const armEnd = 18.6;
   for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]] as [number, number][]) pb.add(sg.clone(), sm, xf({ p: [core[0] + sx * armEnd, bpY + bpT + 1.2, core[1] + sz * armEnd], r: [-PI / 2, 0, 0] }), { uv: 'keep' });
@@ -293,8 +309,8 @@ function veltrin(pb: PartBuilder, labels: Labels, c: Card): { zones: Zone[]; rot
   pb.add(extrude(xb, 1.2, 0.3, 'xy', 4, 1), c.frost ? 'powderWhite' : 'aluAnodized', xzAt(bpY + bpT + 1.2).multiply(new THREE.Matrix4().makeTranslation(core[0], core[1], 0)));
   const bpPrint = c.frost ? '#5e626b' : '#c0c4cc';
   // The backplate print reads the right way up through the side glass with the card installed, as real backplates do.
-  labels.text(brandName(c.spec.brand), BRAND_TYPE[c.spec.brand] ?? SPEC_TYPE, 6.5, xf({ p: [c.back + 150, bpY + bpT + 0.06, c.clear + 12], r: [-PI / 2, 0, 0] }), { color: bpPrint, align: 'left' });
-  labels.text(c.spec.name, MODEL_TYPE, 3.2, xf({ p: [c.back + 150, bpY + bpT + 0.06, c.clear + 22], r: [-PI / 2, 0, 0] }), { color: c.frost ? '#7d818a' : '#878b94', align: 'left' });
+  labels.text(brandName(c.spec.brand), BRAND_TYPE[c.spec.brand] ?? SPEC_TYPE, 6.5, xf({ p: [c.back + 150, bpY + bpT + 0.06, c.clear + 15], r: [-PI / 2, 0, 0] }), { color: bpPrint, align: 'left' });
+  labels.text(c.spec.name, MODEL_TYPE, 3.2, xf({ p: [c.back + 150, bpY + bpT + 0.06, c.clear + 25], r: [-PI / 2, 0, 0] }), { color: c.frost ? '#7d818a' : '#878b94', align: 'left' });
 
   const barZ = c.H + 0.1;
   const barX0 = c.back + 16; const barX1 = c.end - ch * 0.9 - 6;
@@ -324,7 +340,7 @@ function veltrin(pb: PartBuilder, labels: Labels, c: Card): { zones: Zone[]; rot
   const wordX = c.back + 78; const wordV = 0.56;
   if (lit >= 2) {
     const word = new Zone(`${c.key}:word`, 'gpu', false, Array.from({ length: 11 }, (_, i) => new THREE.Vector3(wordX - 35 + i * 7, wallY0 + sideH * wordV, barZ)), 0.9);
-    labels.text(brandName(c.spec.brand), BRAND_TYPE[c.spec.brand] ?? SPEC_TYPE, 6.2, xf({ p: [wordX, wallY0 + sideH * wordV, c.H + 0.05], r: [0, 0, 0] }), { lit: { tex: word.secondary(), intensity: 0.6 } });
+    labels.text(brandName(c.spec.brand), BRAND_TYPE[c.spec.brand] ?? SPEC_TYPE, 6.2, xf({ p: [wordX, wallY0 + sideH * wordV, c.H + 0.05], r: [0, 0, 0] }), { lit: { tex: word.secondary(), intensity: 0.85 } });
     word.emit(new THREE.Vector3(wordX, wallY0 + sideH * wordV, c.H + 1), new THREE.Vector3(0, 0, 1), 60, 10, 0.6, new THREE.Vector3(1, 0, 0));
     zones2.push(word);
   } else {

@@ -149,6 +149,7 @@ export class World {
   private onRigChange() {
     const box = this.rig.bounds();
     this.rgb.setZones(this.rig.zones, box);
+    this.rgb.patches = this.rig.patches;
     this.computeViews(box);
     if (this.viewName && this.views[this.viewName]) this.jump(this.viewName);
     this.room?.updateShadow();
@@ -180,7 +181,7 @@ export class World {
     this.inspector.focus = (i as { focus?: [number, number, number] }).focus ?? null;
     this.showingInspector = true;
     setGlassStage('studio');
-    this.post.setScene(this.inspector.scene, this.inspector.camera);
+    this.post.setScene(this.inspector.scene, this.inspector.camera, true);
     this.dirty = true;
   }
 
@@ -405,6 +406,20 @@ export class World {
   cameraInfo() {
     if (this.showingInspector) return { distance: this.inspector.distance, target: [0, 0, 0], view: 'inspector' };
     return { distance: this.camera.position.distanceTo(this.controls.target), target: this.controls.target.toArray(), view: this.viewName, position: this.camera.position.toArray() };
+  }
+
+  /** What the camera sees at a pixel: the nearest hits with their object path and material, for finding a stray highlight. */
+  probe(x: number, y: number) {
+    const el = this.renderer.domElement;
+    const [scene, camera] = this.showingInspector ? [this.inspector.scene, this.inspector.camera] : [this.scene, this.camera];
+    const ray = new THREE.Raycaster();
+    ray.setFromCamera(new THREE.Vector2((x / el.clientWidth) * 2 - 1, 1 - (y / el.clientHeight) * 2), camera);
+    return ray.intersectObject(scene, true).filter((h) => h.object.visible).slice(0, 6).map((h) => {
+      const names: string[] = [];
+      for (let o: THREE.Object3D | null = h.object; o && o !== scene; o = o.parent) names.unshift(o.name || o.type);
+      const m = h.object instanceof THREE.Mesh ? (Array.isArray(h.object.material) ? h.object.material[0] : h.object.material) as THREE.Material : null;
+      return { path: names.join('/'), material: m?.name ?? '', mm: Math.round(h.distance * 10000) / 10, at: h.point.toArray().map((v) => Math.round(v * 10000) / 10), normal: h.face ? h.face.normal.toArray().map((v) => Math.round(v * 100) / 100) : null };
+    });
   }
 
   markDirty() { this.dirty = true; }

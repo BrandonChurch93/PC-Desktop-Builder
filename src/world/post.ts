@@ -57,6 +57,9 @@ class CountPass extends Pass {
   render(renderer: THREE.WebGLRenderer) { this.calls = renderer.info.render.calls; this.triangles = renderer.info.render.triangles; }
 }
 
+/** Occlusion reach in meters for the room views. */
+export const AO_RADIUS = 0.03;
+
 export class Post {
   readonly composer: EffectComposer;
   readonly render: RenderPass;
@@ -81,7 +84,7 @@ export class Post {
     if (s.ao !== 'off') {
       const gtao = new GTAOPass(scene, camera, 4, 4);
       gtao.blendIntensity = 1;
-      gtao.updateGtaoMaterial({ radius: 0.03, distanceExponent: 1.3, thickness: 1.0, scale: 1.0, samples: 16, distanceFallOff: 0.85, screenSpaceRadius: false });
+      gtao.updateGtaoMaterial({ radius: AO_RADIUS, distanceExponent: 1.3, thickness: 1.0, scale: 1.0, samples: 16, distanceFallOff: 0.85, screenSpaceRadius: false });
       gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 16 });
       const noise = seededNoise();
       gtao.pdMaterial.uniforms.tNoise!.value = noise;
@@ -107,9 +110,17 @@ export class Post {
     if (s.msaa === 0) { this.smaa = new SMAAPass(); this.composer.addPass(this.smaa); }
   }
 
-  setScene(scene: THREE.Scene, camera: THREE.PerspectiveCamera) {
+  /**
+   * The Inspector shows one part close, where 16 occlusion samples left a visible dither on pale curved plastic; it takes 32
+   * and a wider denoise. The room keeps 16 for its frame time.
+   */
+  setScene(scene: THREE.Scene, camera: THREE.PerspectiveCamera, close = false) {
     this.render.scene = scene; this.render.camera = camera;
-    if (this.gtao) { this.gtao.scene = scene; this.gtao.camera = camera; }
+    if (this.gtao) {
+      this.gtao.scene = scene; this.gtao.camera = camera;
+      this.gtao.updateGtaoMaterial({ samples: close ? 32 : 16 });
+      this.gtao.updatePdMaterial({ radius: close ? 10 : 6, samples: close ? 32 : 16 });
+    }
   }
 
   setSize(w: number, h: number) {

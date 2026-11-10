@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { canvas, textures, TILE_MM, wrap, type TextureSet } from './textures';
+import { canvas, PERF_HOLE, textures, TILE_MM, wrap, type TextureSet } from './textures';
 import { seededFor } from './rng';
 
 /** A spun finish: fine concentric rings of varying tone, for a round part pressed or turned on a lathe. Uv 0..1 across it. */
@@ -24,7 +24,7 @@ export type MatName =
   | 'aluBlack' | 'aluSilver' | 'aluWhite' | 'aluRaw' | 'aluBrushed' | 'aluBrushedDark' | 'aluBrushedPlate' | 'aluAnodized' | 'aluCast' | 'aluSatin' | 'aluSatinDark' | 'aluGunmetal' | 'aluFacet'
   | 'nickel' | 'nickelLapped' | 'pipeNickel' | 'copper' | 'gold' | 'solder'
   | 'plasticMatte' | 'plasticSatin' | 'plasticSoft' | 'plasticGloss' | 'plasticWhite' | 'plasticWhiteGloss' | 'plasticGrey' | 'plasticDark' | 'plasticNylon'
-  | 'rubber' | 'rubberWhite'
+  | 'rubber' | 'rubberWhite' | 'rubberPad'
   | 'pcbBlack' | 'pcbWhite' | 'pcbGreen' | 'pcbEdge' | 'chip' | 'chipWhite' | 'ceramic' | 'ferrite'
   | 'glassTint' | 'glassSpec' | 'glassEdge' | 'frit'
   | 'bladeSmoke' | 'bladeFrost' | 'bladeBlack' | 'bladeWhite'
@@ -67,8 +67,8 @@ function physical(o: THREE.MeshPhysicalMaterialParameters): THREE.MeshPhysicalMa
 }
 
 /** Powder coat: a slow roughness drift and a fine orange peel, its height in meters per unit of the map. */
-const powder = (color: number, rough: number, coat: number, peel = 3.6e-5) => worldBump(physical({
-  color, metalness: 0, roughness: rough, roughnessMap: tex().mottle, bumpMap: tex().orange, bumpScale: peel,
+const powder = (color: number, rough: number, coat: number, peel = 1.5e-5) => worldBump(physical({
+  color, metalness: 0, roughness: rough, roughnessMap: tex().mottleMid, bumpMap: tex().orange, bumpScale: peel,
   clearcoat: coat, clearcoatRoughness: 0.42, specularIntensity: 0.6,
 }));
 
@@ -83,19 +83,61 @@ const plastic = (color: number, rough: number, extra: THREE.MeshPhysicalMaterial
 /** Mean coverage of the perforation tile: two holes of radius 0.38 tile in a 1 by root 3 cell leave 52 percent open. */
 const PERF_MEAN = 0.48;
 
+/** Thickness of a fine perforated sheet. The sheet is drawn as one plane at its middle and the shader adds the thickness. */
+export const PERF_SHEET_MM = 0.6;
+
 /**
- * Perforated sheet: crisp holes up close, and where a hole spans less than about two pixels the coverage
- * blends to the sheet's mean, so a grazing or distant panel reads as fine mesh and not as moire.
+ * Perforated sheet, drawn as one plane at the middle of a sheet with real thickness. For each pixel the view ray is
+ * followed through the sheet: where it enters on metal it shows the face, where it enters a hole and leaves through the
+ * same hole it shows what lies behind, and otherwise it shows the hole's wall, shaded with the wall's own normal. So a
+ * sheet seen at an angle shows round holes with lit and shaded walls, as stamped steel does. Edges are smoothed over one
+ * pixel along the screen gradient of each distance. Where a pixel reaches across about half a hole, the coverage blends
+ * to the sheet's mean, so a distant panel reads as fine mesh and not as moire.
  */
 function perforatedSheet(m: THREE.MeshPhysicalMaterial): THREE.MeshPhysicalMaterial {
+  const tw = TILE_MM.perf; const th = TILE_MM.perf * Math.sqrt(3); const d = TILE_MM.perf * PERF_HOLE; const r = d / 2;
+  const f = (x: number) => x.toFixed(4);
   m.onBeforeCompile = (sh) => {
     sh.fragmentShader = sh.fragmentShader.replace('#include <alphatest_fragment>', [
       '#ifdef USE_ALPHAMAP',
-      '  float perfFar = 0.65 * smoothstep(0.35, 0.9, length(fwidth(vAlphaMapUv)));',
-      '  float perfEdge = max(fwidth(diffuseColor.a), 1e-4);',
-      '  float perfSharp = smoothstep(0.5 - perfEdge, 0.5 + perfEdge, diffuseColor.a);',
-      `  diffuseColor.a = mix(perfSharp, ${PERF_MEAN.toFixed(2)}, perfFar);`,
+      `  vec2 perfT = vec2(${f(tw)}, ${f(th)});`,
+      '  vec2 perfP = vAlphaMapUv * perfT;',
+      '  vec2 perfS0 = dFdx(perfP); vec2 perfS1 = dFdy(perfP);',
+      '  vec3 perfN = normalize(vNormal) * (gl_FrontFacing ? 1.0 : -1.0);',
+      '  vec3 perfQ0 = dFdx(-vViewPosition); vec3 perfQ1 = dFdy(-vViewPosition);',
+      '  vec3 perfQ1p = cross(perfQ1, perfN); vec3 perfQ0p = cross(perfN, perfQ0);',
+      '  vec3 perfTu = normalize(perfQ1p * perfS0.x + perfQ0p * perfS1.x + 1e-9);',
+      '  vec3 perfTv = normalize(perfQ1p * perfS0.y + perfQ0p * perfS1.y + 1e-9);',
+      '  vec3 perfV = normalize(vViewPosition);',
+      '  vec3 perfVt = vec3(dot(perfV, perfTu), dot(perfV, perfTv), max(dot(perfV, perfN), 0.08));',
+      `  vec2 perfShift = perfVt.xy * (${f(PERF_SHEET_MM / 2)} / perfVt.z);`,
+      '  vec2 perfNear = perfP + perfShift; vec2 perfFarP = perfP - perfShift;',
+      '  vec2 perfQn = mod(perfNear, perfT); vec2 perfBase = perfNear - perfQn;',
+      '  vec2 perfCa = perfBase + perfT * floor(perfQn / perfT + 0.5);',
+      '  vec2 perfCb = perfBase + 0.5 * perfT;',
+      '  vec2 perfC = length(perfNear - perfCa) < length(perfNear - perfCb) ? perfCa : perfCb;',
+      `  float perfDn = length(perfNear - perfC) - ${f(r)};`,
+      `  float perfDx = length(perfFarP - perfC) - ${f(r)};`,
+      '  float perfFace = clamp(perfDn / max(length(vec2(dFdx(perfDn), dFdy(perfDn))), 1e-4) + 0.5, 0.0, 1.0);',
+      '  float perfWallA = clamp(perfDx / max(length(vec2(dFdx(perfDx), dFdy(perfDx))), 1e-4) + 0.5, 0.0, 1.0);',
+      '  float perfSharp = perfFace + (1.0 - perfFace) * perfWallA;',
+      '  float perfFoot = max(length(perfS0), length(perfS1));',
+      `  float perfFarK = smoothstep(${f(0.45 * d)}, ${f(0.9 * d)}, perfFoot);`,
+      '  float perfWall = (1.0 - perfFarK) * (1.0 - perfFace) * perfWallA / max(perfSharp, 1e-3);',
+      '  vec2 perfRa = perfFarP - perfNear; vec2 perfRb = perfNear - perfC;',
+      '  float perfAa = max(dot(perfRa, perfRa), 1e-6); float perfAb = dot(perfRa, perfRb);',
+      `  float perfK = clamp((-perfAb + sqrt(max(perfAb * perfAb - perfAa * (dot(perfRb, perfRb) - ${f(r * r)}), 0.0))) / perfAa, 0.0, 1.0);`,
+      '  vec2 perfHit = perfRb + perfRa * perfK;',
+      '  vec2 perfDir = perfHit / max(length(perfHit), 1e-4);',
+      '  vec3 perfWallN = normalize(-(perfTu * perfDir.x + perfTv * perfDir.y));',
+      `  diffuseColor.a = mix(perfSharp, ${PERF_MEAN.toFixed(2)}, perfFarK);`,
+      '  diffuseColor.rgb *= 1.0 - perfWall * (0.2 + 0.6 * perfK);',
       '  if (diffuseColor.a < 0.02) discard;',
+      '#endif',
+    ].join('\n')).replace('#include <normal_fragment_maps>', [
+      '#include <normal_fragment_maps>',
+      '#ifdef USE_ALPHAMAP',
+      '  normal = normalize(mix(normal, perfWallN, perfWall));',
       '#endif',
     ].join('\n'));
   };
@@ -107,12 +149,12 @@ function makeMat(name: MatName): THREE.Material {
   const t = tex();
   switch (name) {
     case 'powderBlack': return powder(0x28292e, 0.58, 0.14);
-    case 'powderBlackInner': return powder(0x222327, 0.74, 0, 3e-5);
+    case 'powderBlackInner': return powder(0x222327, 0.74, 0, 1e-5);
     // The socket panel is seen close up: an orange peel that reads at that range, which on the whole shell read as leather.
     case 'panelPowder': return physical({ color: 0x323439, metalness: 0, roughness: 0.42, roughnessMap: t.grain, bumpMap: t.peel, bumpScale: 2.4, clearcoat: 0.15, clearcoatRoughness: 0.45, specularIntensity: 0.6 });
     case 'powderPanel': return physical({ color: 0x34363c, metalness: 0, roughness: 0.5, roughnessMap: t.peel, bumpMap: t.grainFine, bumpScale: 0.22, clearcoat: 0.2, clearcoatRoughness: 0.45, specularIntensity: 0.6 });
     case 'powderWhite': return powder(0xe4e5e9, 0.42, 0.35);
-    case 'powderWhiteInner': return powder(0xcfd1d6, 0.5, 0.2, 3e-5);
+    case 'powderWhiteInner': return powder(0xcfd1d6, 0.5, 0.2, 1e-5);
     case 'powderGunmetal': return physical({ color: 0x45484f, metalness: 0.55, roughness: 0.4, roughnessMap: t.grainFine, bumpMap: t.peel, bumpScale: 0.25, clearcoat: 0.55, clearcoatRoughness: 0.22 });
     case 'powderGunmetalInner': return physical({ color: 0x2e3036, metalness: 0.45, roughness: 0.5, roughnessMap: t.grainFine, bumpMap: t.peel, bumpScale: 0.25, clearcoat: 0.25, clearcoatRoughness: 0.35 });
     case 'steelBare': return metal(0xa6a9af, 0.34, t.grainFine);
@@ -162,6 +204,7 @@ function makeMat(name: MatName): THREE.Material {
     case 'plasticNylon': return plastic(0xd8d4c8, 0.6);
     case 'rubber': return physical({ color: 0x18181b, metalness: 0, roughness: 0.94, roughnessMap: t.grainFine, specularIntensity: 0.3 });
     case 'rubberWhite': return physical({ color: 0xd6d7db, metalness: 0, roughness: 0.92, specularIntensity: 0.3 });
+    case 'rubberPad': return physical({ color: 0x3a3c42, metalness: 0, roughness: 0.86, roughnessMap: t.grainFine, specularIntensity: 0.34, sheen: 0.25, sheenRoughness: 0.6, sheenColor: 0x5a5d66 });
     case 'pcbBlack': return physical({ color: 0x14181d, metalness: 0.05, roughness: 0.5, clearcoat: 0.25, clearcoatRoughness: 0.4, roughnessMap: t.grainFine });
     case 'pcbWhite': return physical({ color: 0xe6e7ea, metalness: 0.05, roughness: 0.38, clearcoat: 0.6, clearcoatRoughness: 0.2, roughnessMap: t.grainFine });
     case 'pcbGreen': return physical({ color: 0x0f3a24, metalness: 0.05, roughness: 0.48, clearcoat: 0.3, clearcoatRoughness: 0.35 });
@@ -180,7 +223,8 @@ function makeMat(name: MatName): THREE.Material {
     case 'glassTint': return new THREE.MeshPhysicalMaterial({ color: 0x0b0c12, metalness: 0, roughness: 1, transparent: true, opacity: 0.16, depthWrite: false, specularIntensity: 0 });
     case 'glassSpec': return clampGlass(physical({ color: 0x000000, metalness: 0, roughness: 0.03, ior: 1.52, specularIntensity: 1, envMapIntensity: 1, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
     case 'glassEdge': return physical({ color: 0x5f9a8c, metalness: 0, roughness: 0.06, transparent: true, opacity: 0.9, clearcoat: 1, clearcoatRoughness: 0.02, emissive: 0x0b1714 });
-    case 'frit': return physical({ color: 0x07080a, metalness: 0, roughness: 0.32, clearcoat: 0.6, clearcoatRoughness: 0.1 });
+    // Ceramic black paint fired on the glass's inner face: matte itself, its gloss comes from the glass in front of it.
+    case 'frit': return physical({ color: 0x050506, metalness: 0, roughness: 0.72, specularIntensity: 0.3 });
     case 'bladeSmoke': return physical({ color: 0x141519, metalness: 0, roughness: 0.4, roughnessMap: t.grainFine, specularIntensity: 0.45, transparent: true, opacity: 0.78, clearcoat: 0.1, clearcoatRoughness: 0.35, side: THREE.DoubleSide, emissive: 0x000000 });
     case 'bladeFrost': return physical({ color: 0xe9ebf0, metalness: 0, roughness: 0.55, transparent: true, opacity: 0.92, side: THREE.DoubleSide, emissive: 0x000000 });
     case 'bladeBlack': return physical({ color: 0x1f2024, metalness: 0, roughness: 0.42, side: THREE.DoubleSide, roughnessMap: t.grainFine });
@@ -197,9 +241,10 @@ function makeMat(name: MatName): THREE.Material {
     case 'meshGunmetal': return perforatedSheet(physical({ color: 0x45484f, metalness: 0.5, roughness: 0.42, alphaMap: t.perf, alphaTest: 0.5, alphaToCoverage: true, side: THREE.DoubleSide }));
     case 'meshRaw': return perforatedSheet(physical({ color: 0xb6b9be, metalness: 1, roughness: 0.48, alphaMap: t.perf, alphaTest: 0.5, alphaToCoverage: true, side: THREE.DoubleSide }));
     case 'labelPaper': return physical({ color: 0xc4c5c8, metalness: 0, roughness: 0.7, specularIntensity: 0.25 });
-    case 'sticker': return physical({ color: 0x1a1b1f, metalness: 0, roughness: 0.5, roughnessMap: t.grain, bumpMap: t.bead, bumpScale: 0.07, clearcoat: 0.25, clearcoatRoughness: 0.34 });
+    case 'sticker': return worldBump(physical({ color: 0x1a1b1f, metalness: 0, roughness: 0.5, roughnessMap: t.grain, bumpMap: t.stipple, bumpScale: 6e-6, clearcoat: 0.25, clearcoatRoughness: 0.34 }));
     // Molded hub plastic with the fine texture an injection mold leaves.
-    case 'plasticMolded': return plastic(0x232428, 0.62, { roughnessMap: t.bead, bumpMap: t.bead, bumpScale: 0.12 });
+    // Injection molded with a fine mold texture, held to scale up close.
+    case 'plasticMolded': return worldBump(plastic(0x232428, 0.62, { roughnessMap: t.bead, bumpMap: t.stipple, bumpScale: 1.2e-5 }));
     case 'thermalPad': return physical({ color: 0x5f6670, metalness: 0, roughness: 0.8 });
     case 'diffuserOff': return physical({ color: 0x2a2b31, metalness: 0, roughness: 0.4, transmission: 0, clearcoat: 0.2 });
     case 'darkVoid': return new THREE.MeshBasicMaterial({ color: 0x050507 });

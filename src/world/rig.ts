@@ -9,6 +9,7 @@ import { place, type Placed } from './layout/place';
 import type { Zone } from './light/zones';
 import { generate } from './parts';
 import { wellShades } from './well';
+import { interiorPatches, type Patch } from './light/patches';
 import type { GenOpts, PartObject, Rotor } from './parts/types';
 
 const MM = 0.001;
@@ -55,6 +56,7 @@ export class Rig {
 
   caseId: string | null = null;
   cables: THREE.Group | null = null;
+  patches: Patch[] = [];
   private cableSig = '';
 
   sync(build: Build): void {
@@ -96,6 +98,10 @@ export class Rig {
       const layout = build.case ? CASE_LAYOUTS[build.case.id] : undefined;
       const shades = layout ? wellShades(layout, this.items) : null;
       if (shades) this.cables.add(shades);
+      const tubes = this.cables.children.filter((o): o is THREE.Mesh => o instanceof THREE.Mesh && o.name === 'tube');
+      const inner = layout ? interiorPatches(layout, this.items, tubes) : null;
+      if (inner) this.cables.add(inner.group);
+      this.patches = inner?.patches ?? [];
       this.group.add(this.cables);
       this.cableSig = sig;
     }
@@ -114,7 +120,7 @@ export class Rig {
   /** Objects the occlusion pass and the mirror must not see. */
   glassObjects(): THREE.Object3D[] {
     const out: THREE.Object3D[] = [];
-    this.group.traverse((o) => { if (o.userData.glass || o.userData.spill || o.userData.noAO) out.push(o); });
+    this.group.traverse((o) => { if (o.userData.glass || o.userData.spill || o.userData.noAO || o.userData.label) out.push(o); });
     return out;
   }
 

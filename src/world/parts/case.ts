@@ -20,8 +20,7 @@ function perforated(pb: PartBuilder, F: CaseFinish, w: number, h: number, m: THR
   frame.holes.push(rrectHole(w - 2 * border, h - 2 * border, 2.5));
   pb.add(extrude(frame, 1.0, 0.3, 'xy', 8, 1), F.shell, m, to ? { to } : {});
   const plane = new THREE.PlaneGeometry(w - 2 * border + 0.4, h - 2 * border + 0.4);
-  for (const z of [0.15, 0.85]) pb.add(plane.clone(), F.mesh, m.clone().multiply(at(0, 0, z)), to ? { to } : {});
-  plane.dispose();
+  pb.add(plane, F.mesh, m.clone().multiply(at(0, 0, 0.5)), to ? { to } : {});
 }
 
 function glassPanel(pb: PartBuilder, L: CaseLayout, F: CaseFinish) {
@@ -47,7 +46,8 @@ function glassPanel(pb: PartBuilder, L: CaseLayout, F: CaseFinish) {
   frit.userData.glass = true;
   const caps = new THREE.Group(); group.add(caps);
   for (const [sx, sy] of [[1, 1], [1, -1], [-1, 1], [-1, -1]] as [number, number][]) {
-    const x = cx + sx * (w / 2 - 7.5); const y = cy + sy * (h / 2 - 7.5);
+    // Seated well inside the glass edge, on the painted border, clear of the frame pillars beside it.
+    const x = cx + sx * (w / 2 - 12); const y = cy + sy * (h / 2 - 12);
     pb.add(lathe([[0, 0], [5.4, 0], [5.8, 0.4], [5.8, 2.6], [5.0, 3.6], [0, 3.8]], 40), F.accent, at(x, y, g.outer), { to: group });
     pb.add(cyl(3.6, 0.6, 'z', 32), F.accent, at(x, y, g.inner - 0.3), { to: group });
   }

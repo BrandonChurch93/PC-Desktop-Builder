@@ -245,7 +245,15 @@ function heatsink(pb: PartBuilder, look: Look, x0: number, x1: number, y0: numbe
 
 function choke(pb: PartBuilder, x: number, y: number, labels?: Labels) {
   pb.add(rbox(7.2, 7.2, 5.2, 0.6, 2), 'ferrite', at(x, y, T + 2.6));
-  if (labels) labels.text('R22', TINY_TYPE, 1.3, at(x, y, T + 5.22), { color: '#8d9199' });
+  // One phase array uses one part, so every choke prints R22; each also carries a lot code and the pad printing sits a
+  // little unevenly, as it does on real parts.
+  if (labels) {
+    const r = seededFor(`choke-${Math.round(x * 10)}-${Math.round(y * 10)}`);
+    const dx = (r() - 0.5) * 0.5; const dy = (r() - 0.5) * 0.4;
+    const lot = `${'ABCDEHK'[Math.floor(r() * 7)]}${1 + Math.floor(r() * 9)}${'0123456789'[Math.floor(r() * 10)]}`;
+    labels.text('R22', TINY_TYPE, 1.3, at(x + dx, y + 0.9 + dy, T + 5.22), { color: '#8d9199' });
+    labels.text(lot, TINY_TYPE, 0.8, at(x + dx, y - 1.1 + dy, T + 5.22), { color: '#6f737b' });
+  }
   pb.add(rbox(7.6, 1.2, 0.6, 0.2, 1), 'nickel', at(x, y - 3.3, T + 0.3));
 }
 
@@ -538,7 +546,8 @@ export function boardPart(id: string, opts: GenOpts = {}): PartObject {
     const mx = (cs.x0 + cs.x1) / 2; const my = (cs.y0 + cs.y1) / 2;
     pb.add(extrude(roundedPoly([[mx - 16, my - 16], [mx + 16, my - 16], [mx + 16, my + 16], [mx - 16, my + 16]], 2), 1.6, 0.5, 'xy', 3, 1), look.sinkDark, at(0, 0, chipZ - 2));
     labels.draw(16, 16, (g, W, H) => {
-      g.fillStyle = look.frost ? 'rgba(90,94,104,1)' : 'rgba(214,218,226,1)';
+      // Laser etched into black anodizing: a light grey, not paint white, so a glimpse through the front mesh is no sparkle.
+      g.fillStyle = look.frost ? 'rgba(90,94,104,1)' : 'rgba(116,120,128,1)';
       g.beginPath(); g.moveTo(W * 0.14, H * 0.1); g.lineTo(W * 0.36, H * 0.1); g.lineTo(W * 0.36, H * 0.42); g.lineTo(W * 0.66, H * 0.1); g.lineTo(W * 0.92, H * 0.1); g.lineTo(W * 0.56, H * 0.5); g.lineTo(W * 0.92, H * 0.9); g.lineTo(W * 0.66, H * 0.9); g.lineTo(W * 0.36, H * 0.58); g.lineTo(W * 0.36, H * 0.9); g.lineTo(W * 0.14, H * 0.9); g.closePath(); g.fill();
     }, at(mx, my, chipZ - 0.35), {});
     labels.text(bn, BRAND_TYPE[b.brand] ?? SPEC_TYPE, 2.6, at(mx, cs.y1 + 6, chipZ + 0.02 - 2), { color: look.print });

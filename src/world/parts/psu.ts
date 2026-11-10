@@ -157,27 +157,40 @@ export function psuPart(id: string, opts: GenOpts = {}): PartObject {
       { name: 'atx10', label: 'MB 10', cols: 5, rows: 2, pitch: 4.2, y: H * 0.72, z: -W / 2 + 66 },
       { name: 'eps', label: 'CPU 1', cols: 4, rows: 2, pitch: 4.2, y: H * 0.42, z: -W / 2 + 20 },
       { name: 'eps2', label: 'CPU 2', cols: 4, rows: 2, pitch: 4.2, y: H * 0.42, z: -W / 2 + 46 },
-      { name: 'pcie1', label: 'PCIE 1', cols: 4, rows: 2, pitch: 4.2, y: H * 0.16, z: -W / 2 + 20 },
-      { name: 'pcie2', label: 'PCIE 2', cols: 4, rows: 2, pitch: 4.2, y: H * 0.16, z: -W / 2 + 46 },
-      { name: 'pcie3', label: 'PCIE 3', cols: 4, rows: 2, pitch: 4.2, y: H * 0.16, z: -W / 2 + 72 },
+      { name: 'pcie1', label: 'PCIE 1', cols: 4, rows: 2, pitch: 4.2, y: H * 0.19, z: -W / 2 + 20 },
+      { name: 'pcie2', label: 'PCIE 2', cols: 4, rows: 2, pitch: 4.2, y: H * 0.19, z: -W / 2 + 46 },
+      { name: 'pcie3', label: 'PCIE 3', cols: 4, rows: 2, pitch: 4.2, y: H * 0.19, z: -W / 2 + 72 },
       { name: 'hpwr', label: '12V-2x6', cols: 6, rows: 2, pitch: 3.0, y: H * 0.72, z: W / 2 - 26 },
       { name: 'sata1', label: 'SATA 1', cols: 3, rows: 2, pitch: 4.2, y: H * 0.42, z: W / 2 - 40 },
       { name: 'sata2', label: 'SATA 2', cols: 3, rows: 2, pitch: 4.2, y: H * 0.42, z: W / 2 - 18 },
-      { name: 'sata3', label: 'SATA 3', cols: 3, rows: 2, pitch: 4.2, y: H * 0.16, z: W / 2 - 18 },
+      { name: 'sata3', label: 'SATA 3', cols: 3, rows: 2, pitch: 4.2, y: H * 0.19, z: W / 2 - 18 },
     ];
   for (const s of sockets) {
     const sense = s.name === 'hpwr';
     const sw = s.cols * s.pitch + 2.4; const sh = s.rows * s.pitch + 2.4 + (sense ? 2.8 : 0);
     const gy = s.y - (sense ? 1.4 : 0);
-    pb.add(rbox(6, sh, sw, 0.5, 1), 'plasticDark', xf({ p: [front - 4.2, s.y, s.z] }));
+    // A header set through a cutout in the panel: the body behind, a front frame with recessed keyed cavities (square and
+    // chamfered, as power headers key their pins), a tin terminal deep in each, and the latch ramp on top.
+    pb.add(rbox(0.1, sh + 1.4, sw + 1.4, 0.05, 1), 'darkVoid', xf({ p: [front - 2.45, s.y, s.z] }), { uv: 'keep' });
+    pb.add(rbox(4.6, sh, sw, 0.5, 1), 'plasticDark', xf({ p: [front - 4.9, s.y, s.z] }));
+    const face = rrectShape(sw, sh, 0.6);
+    const cell = s.pitch * 0.68; const cut = cell * 0.32;
     for (let r = 0; r < s.rows; r++) for (let c = 0; c < s.cols; c++) {
       const cy = gy + (r - (s.rows - 1) / 2) * s.pitch; const cz = s.z + (c - (s.cols - 1) / 2) * s.pitch;
-      const keyed = (r + c) % 3 === 0;
-      pb.add(keyed ? rbox(1, s.pitch * 0.62, s.pitch * 0.62, s.pitch * 0.18, 2) : new THREE.BoxGeometry(1, s.pitch * 0.62, s.pitch * 0.62), 'darkVoid', xf({ p: [front - 1.6, cy, cz] }), { uv: 'keep' });
-      pb.add(new THREE.BoxGeometry(0.3, s.pitch * 0.2, s.pitch * 0.2), 'nickel', xf({ p: [front - 1.0, cy, cz] }));
+      const u = -(cz - s.z); const v = cy - s.y; const h = cell / 2;
+      const chamfer = (c + r * 2) % 3 !== 1;
+      const k = r === 0 ? -1 : 1;
+      face.holes.push(chamfer
+        ? polyHole([[u - h, v - k * h], [u + h, v - k * h], [u + h, v + k * (h - cut)], [u + h - cut, v + k * h], [u - h + cut, v + k * h], [u - h, v + k * (h - cut)]])
+        : rrectHole(cell, cell, 0.15, u, v));
+      pb.add(rbox(0.5, s.pitch * 0.42, s.pitch * 0.42, 0.08, 1), 'solder', xf({ p: [front - 2.2, cy, cz] }));
+      pb.add(new THREE.BoxGeometry(0.1, s.pitch * 0.22, s.pitch * 0.22), 'darkVoid', xf({ p: [front - 1.93, cy, cz] }), { uv: 'keep' });
     }
-    if (sense) for (let c = 0; c < 4; c++) pb.add(new THREE.BoxGeometry(1, 1.1, 1.1), 'darkVoid', xf({ p: [front - 1.6, s.y + sh / 2 - 1.5, s.z + (c - 1.5) * s.pitch] }), { uv: 'keep' });
-    labels.text(s.label, TINY_TYPE, 2.0, xf({ p: [front - 0.48, s.y + sh / 2 + 1.8, s.z], r: [0, PI / 2, 0] }), { color: frost ? '#4c5058' : '#b5b9c2' });
+    if (sense) for (let c = 0; c < 4; c++) face.holes.push(rrectHole(1.1, 1.1, 0.2, -((c - 1.5) * s.pitch), sh / 2 - 1.5));
+    pb.add(extrude(face, 1.4, 0.3, 'zy', 6, 1), 'plasticDark', xf({ p: [front - 2.6, s.y, s.z] }));
+    pb.add(new THREE.BoxGeometry(0.1, sh - 0.6, sw - 0.6), 'darkVoid', xf({ p: [front - 2.5, s.y, s.z] }), { uv: 'keep' });
+    pb.add(rbox(2.4, 1.0, 3.6, 0.3, 1), 'plasticDark', xf({ p: [front - 2.2, s.y + sh / 2 + 0.45, s.z] }));
+    labels.text(s.label, TINY_TYPE, 2.0, xf({ p: [front - 2.44, s.y + sh / 2 + 2.6, s.z], r: [0, PI / 2, 0] }), { color: frost ? '#4c5058' : '#b5b9c2' });
     anchors[s.name] = { pos: [front - 1, s.y, s.z], dir: [1, 0, 0] };
   }
   const bigLabel = (side: 1 | -1) => {
@@ -199,11 +212,14 @@ export function psuPart(id: string, opts: GenOpts = {}): PartObject {
       g.strokeStyle = frost ? 'rgba(120,122,128,1)' : 'rgba(110,114,122,1)'; g.lineWidth = Math.max(1, 0.15 * s);
       g.font = `500 ${2.1 * s}px "DM Sans Variable"`;
       const rows = [['AC INPUT', '100-240 V'], ['FREQ', '50/60 Hz'], ['+12V', `${Math.round((spec?.capacity ?? 850) / 12.2)} A`], ['+5V', '20 A'], ['+3.3V', '20 A'], ['FORM', sfx ? 'SFX' : 'ATX 3.1'], ['MODEL', `TH-${cap}${sfx ? 'S' : ''}`]];
+      // Every other row shaded and the columns divided, so each value reads with its own label at any angle.
       rows.forEach(([a, b], i) => {
         const y = (5 + i * 4.6) * s;
+        if (i % 2 === 0) { g.save(); g.fillStyle = frost ? 'rgba(214,216,221,1)' : 'rgba(44,46,52,1)'; g.fillRect(colX, y - 0.6 * s, lw * 0.34 * s, 4.6 * s); g.restore(); }
         g.strokeRect(colX, y - 0.6 * s, lw * 0.34 * s, 4.6 * s);
-        g.fillText(a!, colX + 1 * s, y + 2.6 * s); g.fillText(b!, colX + lw * 0.17 * s, y + 2.6 * s);
+        g.fillText(a!, colX + 1 * s, y + 2.6 * s); g.fillText(b!, colX + lw * 0.135 * s, y + 2.6 * s);
       });
+      g.beginPath(); g.moveTo(colX + lw * 0.125 * s, 4.4 * s); g.lineTo(colX + lw * 0.125 * s, (4.4 + rows.length * 4.6) * s); g.stroke();
       g.font = `600 ${2.4 * s}px "DM Sans Variable"`;
       g.fillText(spec?.name ? `${brandName(spec.brand)} ${spec.name}` : '', 4 * s, 6 * s);
     }, xf({ p: [-L * 0.04, H / 2, side * (W / 2 + 0.15)], r: [0, side > 0 ? 0 : PI, 0] }));

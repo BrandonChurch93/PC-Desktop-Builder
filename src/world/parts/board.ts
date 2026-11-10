@@ -18,7 +18,7 @@ const T = DIMS.boardT;
 
 type Look = { frost: boolean; mask: string; mask2: string; silk: string; copper: string; sink: MatName; sinkDark: MatName; plastic: MatName; plasticAlt: MatName; armor: MatName; print: string };
 const lookOf = (b: BoardSpec): Look => (b.finish === 'frost'
-  ? { frost: true, mask: 'rgba(226,228,233,1)', mask2: 'rgba(214,216,222,1)', silk: 'rgba(70,74,84,1)', copper: 'rgba(196,198,204,1)', sink: 'aluSilver', sinkDark: 'aluBrushed', plastic: 'plasticWhite', plasticAlt: 'plasticGrey', armor: 'steelBare', print: '#5a5e67' }
+  ? { frost: true, mask: 'rgba(226,228,233,1)', mask2: 'rgba(214,216,222,1)', silk: 'rgba(70,74,84,1)', copper: 'rgba(196,198,204,1)', sink: 'aluPale', sinkDark: 'aluRaw', plastic: 'plasticWhite', plasticAlt: 'plasticGrey', armor: 'steelBare', print: '#5a5e67' }
   : { frost: false, mask: 'rgba(20,24,30,1)', mask2: 'rgba(28,33,41,1)', silk: 'rgba(205,210,220,1)', copper: 'rgba(176,150,98,1)', sink: 'aluAnodized', sinkDark: 'aluBlack', plastic: 'plasticDark', plasticAlt: 'plasticGrey', armor: 'aluGunmetal', print: '#c6cad3' });
 
 // ---- the circuit surface ---------------------------------------------------------------------
@@ -246,7 +246,7 @@ function heatsink(pb: PartBuilder, look: Look, x0: number, x1: number, y0: numbe
   }
   // One mesh that skips the occlusion pass: fins thinner than a pixel came out of it as grey speckle.
   // Coated fins: black on graphite, pale on white; bare metal fins seen edge on broke into bright stripes.
-  const fins = pb.mesh(mergeGeometries(finGeos), mat(look.frost ? 'finPale' : 'finCoated'), undefined, { uv: 'box' });
+  const fins = pb.mesh(mergeGeometries(finGeos), mat(look.frost ? 'finSilverPale' : 'finCoated'), undefined, { uv: 'box' });
   fins.userData.noAO = true; fins.castShadow = true;
   for (const fg of finGeos) fg.dispose();
   const top = h - 4;
@@ -439,12 +439,17 @@ export function boardPart(id: string, opts: GenOpts = {}): PartObject {
 
   // power delivery
   const vr = L.vrmRear; const vt = L.vrmTop;
-  for (let y = vr.y0 - 6; y > vr.y1 + 4; y -= 8.6) { choke(pb, vr.x1 + 5, y, labels); capacitor(pb, vr.x1 + 12.5, y, 7.5, 2.4); }
+  // Nothing stands on the socket, its load plate or the lever beside it. On the ITX board the regulator ran onto the plate.
+  const clearOfSocket = (x: number, y: number, r: number) => x + r < sx - sw / 2 - 1 || x - r > sx + sw / 2 + 8 || y + r < sy - sh / 2 - 1 || y - r > sy + sh / 2 + 3;
+  for (let y = vr.y0 - 6; y > vr.y1 + 4; y -= 8.6) {
+    if (clearOfSocket(vr.x1 + 5, y, 3.6)) choke(pb, vr.x1 + 5, y, labels);
+    if (clearOfSocket(vr.x1 + 12.5, y, 2.6)) capacitor(pb, vr.x1 + 12.5, y, 7.5, 2.4);
+  }
   // The top row skips any choke that would meet the rear column at the corner.
   const clearOfRear = (x: number, y: number, r: number) => !(Math.abs(x - (vr.x1 + 5)) < r && y <= vr.y0 + 2 && y >= vr.y1 - 2) && !(Math.abs(x - (vr.x1 + 12.5)) < r && y <= vr.y0 + 2 && y >= vr.y1 - 2);
-  for (let x = vt.x0 + 4; x < vt.x1 - 4; x += 8.6) { if (clearOfRear(x, vt.y1 - 5, 8)) choke(pb, x, vt.y1 - 5, labels); }
+  for (let x = vt.x0 + 4; x < vt.x1 - 4; x += 8.6) { if (clearOfRear(x, vt.y1 - 5, 8) && clearOfSocket(x, vt.y1 - 5, 3.6)) choke(pb, x, vt.y1 - 5, labels); }
   // Solid capacitors under the top regulator row and beside the memory slots, and an audio section by the rear edge.
-  for (let x = vt.x0 + 16; x < vt.x1 - 6; x += 8.6) if (clearOfRear(x, vt.y1 - 11.5, 8)) capacitor(pb, x, vt.y1 - 11.5, 7.5, 2.4);
+  for (let x = vt.x0 + 16; x < vt.x1 - 6; x += 8.6) if (clearOfRear(x, vt.y1 - 11.5, 8) && clearOfSocket(x, vt.y1 - 11.5, 2.6)) capacitor(pb, x, vt.y1 - 11.5, 7.5, 2.4);
   const lastDimm = L.dimms[L.dimms.length - 1];
   if (lastDimm) for (const [dx, dy] of [[13, -22], [13, -30.5], [20.5, -22]] as [number, number][]) capacitor(pb, lastDimm.x + dx, dy, 7, 2.2);
   if (L.size !== 'itx') {
@@ -567,11 +572,12 @@ export function boardPart(id: string, opts: GenOpts = {}): PartObject {
     const ph = stacked ? (m.level === 0 ? 7.2 : 6) : DIMS.m2PlateHeight - 1.4;
     const pz = stacked ? (m.level === 0 ? T + 9.4 : T + 15.4) - ph : T + 1.4;
     const plate = pb.group(`m2-plate:${i + 1}`, pb.root, at(m.x0 - 4, m.y, pz));
-    // In a two tier heatsink the upper tier is a little smaller, so the lower tier's ledge and its own label show.
-    const upper = stacked && m.level === 1; const pw = upper ? 86 : 94; const pd = upper ? 21 : 25;
+    // In a two tier heatsink the upper tier is shorter and narrower, so the lower tier shows as its own plate: a ledge down each
+    // side and a full step at the end, with its own label and screw. With a 2 mm ledge it read as one plate, one slot.
+    const upper = stacked && m.level === 1; const pw = upper ? 68 : 94; const pd = upper ? 19 : 25;
     const shape = roundedPoly([[0, -pd / 2], [pw - 8, -pd / 2], [pw, -pd / 2 + 8], [pw, pd / 2], [8, pd / 2], [0, pd / 2 - 8]], 1.4);
     pb.add(extrude(shape, ph, 0.9, 'xy', 3, 2), stacked && m.level === 0 ? look.sinkDark : look.sink, undefined, { to: plate });
-    for (let k = 0; k < 7; k++) pb.add(rbox(1.1, pd - 4, 0.8, 0.3, 1), look.sinkDark, xf({ p: [18 + k * 9, 0, ph + 0.2], r: [0, 0, 0.5] }), { to: plate });
+    for (let k = 0; k < (upper ? 5 : 7); k++) pb.add(rbox(1.1, pd - 4, 0.8, 0.3, 1), look.sinkDark, xf({ p: [18 + k * 9, 0, ph + 0.2], r: [0, 0, 0.5] }), { to: plate });
     pb.add(rbox(pw - 10, pd - 4, 1.2, 0.3, 1), 'thermalPad', at(pw / 2, 0, -0.5), { to: plate });
     if (stacked && m.level === 0) labels.text(`M.2_${i + 1}`, MODEL_TYPE, 1.8, at(pw - 3, -pd / 2 + 2.6, ph + 0.06), { color: look.print, to: plate, align: 'right' });
     else labels.text(`M.2_${i + 1}`, MODEL_TYPE, 2.0, at(8, -pd / 2 + 4.5, ph + 0.06), { color: look.print, to: plate, align: 'left' });
@@ -683,7 +689,7 @@ export function boardPart(id: string, opts: GenOpts = {}): PartObject {
       }
       const fg = new THREE.BufferGeometry();
       fg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); fg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); fg.computeVertexNormals();
-      pb.mesh(fg, z.spill(look.frost ? 0.7 : 1.4), undefined, { uv: 'keep' }).userData.spill = true;
+      pb.mesh(fg, look.frost ? pb.own(z.tint(1.0, 0.55)) : z.spill(1.4), undefined, { uv: 'keep' }).userData.spill = true;
     }
     z.emit(new THREE.Vector3(28, -76, T + ioTop), new THREE.Vector3(0.55, 0, 0.84), 80, 10, 0.8, new THREE.Vector3(0, 1, 0));
     zones.push(z);
@@ -698,7 +704,8 @@ export function boardPart(id: string, opts: GenOpts = {}): PartObject {
     // And on the board beside the chipset, toward the SATA ports.
     const onBoard = new THREE.Matrix4().makeBasis(new THREE.Vector3(0, -1, 0), new THREE.Vector3(-1, 0, 0), new THREE.Vector3(0, 0, -1));
     // Spills beside the accent fade out past its ends; a strip lit to its ends read as a pasted rectangle.
-    const faded = pb.own(z.spill(look.frost ? 0.5 : 1.0).clone()); faded.vertexColors = true;
+    // A white board cannot be tinted by added light: it takes the accent's hue over its own white, as the white memory does.
+    const faded = pb.own(look.frost ? z.tint(1.0, 0.6, 'soft') : z.spill(1.0).clone()); faded.vertexColors = true;
     pb.mesh(fadeEnds(spillStrip(p0.y - p1.y, 44, 32), 14), faded, onBoard.setPosition(cs.x1 + 0.3, (p0.y + p1.y) / 2, T + 0.1), { uv: 'keep' }).userData.spill = true;
     // On the faces of the SATA ports that look back at the accent.
     const sata = L.sata.slice(0, b.sataPorts);
@@ -707,7 +714,7 @@ export function boardPart(id: string, opts: GenOpts = {}): PartObject {
       const toMinusXUp = new THREE.Matrix4().makeBasis(new THREE.Vector3(0, -1, 0), new THREE.Vector3(0, 0, 1), new THREE.Vector3(-1, 0, 0));
       const mid = (p0.y + p1.y) / 2;
       // One sided: from behind the board it glowed past the board's edge.
-      const front = pb.own(faded.clone()); front.side = THREE.FrontSide;
+      const front = pb.own(faded.clone()); front.side = THREE.FrontSide; front.onBeforeCompile = faded.onBeforeCompile; front.customProgramCacheKey = faded.customProgramCacheKey;
       pb.mesh(fadeEnds(spillStripRange(p0.y - p1.y, mid - sy0, mid - sy1, 13, 24), 6), front, toMinusXUp.setPosition(sx, mid, T + 13), { uv: 'keep' }).userData.spill = true;
     }
     z.emit(new THREE.Vector3(p0.x, (p0.y + p1.y) / 2, chipZ + 1), new THREE.Vector3(0, 0, 1), p0.y - p1.y, 10, 0.7, new THREE.Vector3(0, 1, 0));
@@ -718,7 +725,14 @@ export function boardPart(id: string, opts: GenOpts = {}): PartObject {
     const z = new Zone(`${key}:underglow`, 'board', false, stripLeds(new THREE.Vector3(L.w - 2, -10, -1), new THREE.Vector3(L.w - 2, -L.h + 10, -1), 7), 0.8);
     const g = rbox(2.4, L.h - 20, 1.4, 0.6, 2); uvAlong(g, 'y'); g.scale(1, -1, 1);
     pb.mesh(g, z.diffuser(0.8, 0x7d8189, 0.88), at(L.w - 2.2, -L.h / 2, -0.8), { uv: 'keep' });
+    // The strip's light pipe wraps the board's right edge, so the zone shows from the front as a lit edge, and it tints the
+    // white board face beside it. Hidden behind the board, the zone the catalog lists could not be seen from the front.
+    const edge = rbox(1.2, L.h - 20, T + 2.1, 0.5, 2); uvAlong(edge, 'y'); edge.scale(1, -1, 1);
+    pb.mesh(edge, z.diffuser(0.6, 0x7d8189, 0.88), at(L.w + 0.5, -L.h / 2, (T - 0.9) / 2), { uv: 'keep' });
+    const alongEdge = new THREE.Matrix4().makeBasis(new THREE.Vector3(0, -1, 0), new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0, 1)).setPosition(L.w - 0.2, -L.h / 2, T + 0.06);
+    pb.mesh(fadeEnds(spillStrip(L.h - 20, 9, 24), 14), pb.own(z.tint(1.0, 0.7, 'soft')), alongEdge, { uv: 'keep' }).userData.spill = true;
     z.emit(new THREE.Vector3(L.w, -L.h / 2, -2), new THREE.Vector3(0.3, 0, -1), L.h - 20, 12, 0.8, new THREE.Vector3(0, 1, 0));
+    z.emit(new THREE.Vector3(L.w + 1.1, -L.h / 2, T / 2), new THREE.Vector3(1, 0, 0), L.h - 20, 3, 0.5, new THREE.Vector3(0, 1, 0));
     zones.push(z);
   }
   labels.finish();

@@ -1,5 +1,8 @@
 import * as THREE from 'three';
 
+/** How far a blade edge's shading turns toward the edge. */
+const RIM_TILT = 0.35;
+
 export type BladeSpec = {
   r0: number; r1: number;
   /** chord at root and tip */
@@ -62,27 +65,42 @@ export function bladeGeometry(o: BladeSpec): THREE.BufferGeometry {
     const t0 = push(top[a]!); const t1 = push(top[a + 1]!); const b0 = push(bot[a]!); const b1 = push(bot[a + 1]!);
     idx.push(t0, b0, t1, t1, b0, b1);
   }
-  // The rounded leading and trailing edges: a half round from the top face over the edge to the bottom face.
+  // The rounded leading and trailing edges: a half round from the top face over the edge to the bottom face. Each half keeps
+  // its own apex vertex and shades like the face it continues, turning only slightly toward the edge. A full turn of the normal
+  // left a sideways facing apex that drew a dark line under a pixel wide, which broke into dashes along every blade outline.
   const K = 4;
+  const rimNormals: [number, THREE.Vector3][] = [];
   for (const [j, inner, flip] of [[0, 1, false], [nv, nv - 1, true]] as [number, number, boolean][]) {
     const ring: number[][] = [];
     for (let i = 0; i <= nu; i++) {
       const a = i * row + j;
       const out = mid[a]!.clone().sub(mid[i * row + inner]!); out.addScaledVector(nrm[a]!, -out.dot(nrm[a]!)).normalize();
       const pts = [tb[a]!];
-      for (let k = 1; k < K; k++) { const th = (Math.PI * k) / K; pts.push(push(mid[a]!.clone().addScaledVector(nrm[a]!, half[a]! * Math.cos(th)).addScaledVector(out, half[a]! * Math.sin(th)))); }
+      for (let k = 1; k < K; k++) {
+        const th = (Math.PI * k) / K;
+        const p = mid[a]!.clone().addScaledVector(nrm[a]!, half[a]! * Math.cos(th)).addScaledVector(out, half[a]! * Math.sin(th));
+        const sides = k * 2 === K ? [1, -1] : [k * 2 < K ? 1 : -1];
+        for (const side of sides) {
+          const id = push(p);
+          rimNormals.push([id, nrm[a]!.clone().multiplyScalar(side).addScaledVector(out, RIM_TILT * Math.sin(th)).normalize()]);
+          pts.push(id);
+        }
+      }
       pts.push(bb[a]!);
       ring.push(pts);
     }
-    for (let i = 0; i < nu; i++) for (let k = 0; k < K; k++) {
+    for (let i = 0; i < nu; i++) for (let k = 0; k < K + 1; k++) {
+      if (k === K / 2) continue;
       const p = ring[i]![k]!; const q = ring[i]![k + 1]!; const r = ring[i + 1]![k]!; const s = ring[i + 1]![k + 1]!;
-      if (flip) idx.push(p, q, r, q, s, r); else idx.push(p, r, q, q, r, s);
+      if (flip) idx.push(p, r, q, q, r, s); else idx.push(p, q, r, q, s, r);
     }
   }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   g.setIndex(idx);
   g.computeVertexNormals();
+  const n = g.getAttribute('normal');
+  for (const [id, v] of rimNormals) n.setXYZ(id, v.x, v.y, v.z);
   return g;
 }
 

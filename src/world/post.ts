@@ -35,14 +35,15 @@ function seededNoise(size = 64): THREE.DataTexture {
 }
 
 const AO_MIX = {
-  uniforms: { tDiffuse: { value: null as THREE.Texture | null }, tAO: { value: null as THREE.Texture | null }, intensity: { value: 1.0 } },
+  uniforms: { tDiffuse: { value: null as THREE.Texture | null }, tAO: { value: null as THREE.Texture | null }, tExempt: { value: null as THREE.Texture | null }, intensity: { value: 1.0 } },
   vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
   fragmentShader: [
-    'uniform sampler2D tDiffuse; uniform sampler2D tAO; uniform float intensity; varying vec2 vUv;',
+    'uniform sampler2D tDiffuse; uniform sampler2D tAO; uniform sampler2D tExempt; uniform float intensity; varying vec2 vUv;',
     'void main() {',
     '  vec4 src = texture2D(tDiffuse, vUv); vec3 c = src.rgb;',
     '  float ao = texture2D(tAO, vUv).r;',
     '  if (isnan(ao) || isinf(ao)) ao = 1.0;',
+    '  ao = mix(ao, 1.0, texture2D(tExempt, vUv).r);',
     '  if (any(isnan(c)) || any(isinf(c))) c = vec3(0.0);',
     '  gl_FragColor = vec4(min(c, vec3(6.0)) * mix(1.0, clamp(ao, 0.0, 1.0), intensity), 1.0);',
     '}',
@@ -60,6 +61,9 @@ class CountPass extends Pass {
 /** Occlusion reach in meters for the room views. */
 export const AO_RADIUS = 0.03;
 
+/** Camera layer used only to draw the occlusion exempt mask. */
+const AO_EXEMPT_LAYER = 7;
+
 export class Post {
   readonly composer: EffectComposer;
   readonly render: RenderPass;
@@ -71,6 +75,13 @@ export class Post {
   readonly output: OutputPass;
   /** objects hidden while the occlusion pass renders depth and normals */
   hideForAO: () => THREE.Object3D[] = () => [];
+  /**
+   * LED diffusers. They stay in the depth the occlusion pass reads, and their own pixels take no occlusion. Hidden from that
+   * pass instead, the occlusion of the part behind a bar was printed over the bar, so the bars read as clear plastic.
+   */
+  aoExempt: () => THREE.Object3D[] = () => [];
+  private exemptTarget = new THREE.WebGLRenderTarget(4, 4);
+  private exemptMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, depthWrite: false, depthFunc: THREE.LessEqualDepth, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 });
   private tier: Tier;
 
   constructor(private renderer: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.PerspectiveCamera, tier: Tier) {
@@ -96,9 +107,11 @@ export class Post {
         for (const o of hidden) o.visible = false;
         base(r, w, rd, dt, mask);
         for (const o of hidden) o.visible = true;
+        this.renderExempt(r, gtao);
       };
       const mix = new ShaderPass(AO_MIX);
       mix.uniforms.tAO!.value = gtao.gtaoMap;
+      mix.uniforms.tExempt!.value = this.exemptTarget.texture;
       this.composer.addPass(gtao);
       this.composer.addPass(mix);
       this.gtao = gtao; this.aoMix = mix;
@@ -108,6 +121,31 @@ export class Post {
     this.output = new OutputPass();
     this.composer.addPass(this.output);
     if (s.msaa === 0) { this.smaa = new SMAAPass(); this.composer.addPass(this.smaa); }
+  }
+
+  private renderExempt(renderer: THREE.WebGLRenderer, gtao: GTAOPass) {
+    const t = this.exemptTarget;
+    const depth = gtao.depthTexture;
+    if (t.depthTexture !== depth || t.width !== gtao.width || t.height !== gtao.height) {
+      t.dispose();
+      t.depthTexture = depth;
+      t.setSize(gtao.width, gtao.height);
+    }
+    const objects = this.aoExempt().filter((o) => o.visible);
+    const color = renderer.getClearColor(new THREE.Color()); const alpha = renderer.getClearAlpha(); const auto = renderer.autoClear;
+    renderer.setRenderTarget(t);
+    renderer.setClearColor(0x000000, 1);
+    renderer.clear(true, false, false);
+    if (objects.length) {
+      const scene = gtao.scene; const camera = gtao.camera;
+      for (const o of objects) o.layers.enable(AO_EXEMPT_LAYER);
+      const mask = camera.layers.mask; const bg = scene.background;
+      camera.layers.set(AO_EXEMPT_LAYER); scene.background = null; scene.overrideMaterial = this.exemptMaterial;
+      renderer.autoClear = false;
+      renderer.render(scene, camera);
+      scene.overrideMaterial = null; scene.background = bg; camera.layers.mask = mask;
+    }
+    renderer.autoClear = auto; renderer.setClearColor(color, alpha);
   }
 
   /**
@@ -133,6 +171,7 @@ export class Post {
   dispose() {
     this.composer.dispose();
     this.gtao?.dispose();
+    this.exemptTarget.dispose(); this.exemptMaterial.dispose();
     this.bloom.dispose();
   }
 }

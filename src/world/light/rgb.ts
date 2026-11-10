@@ -6,6 +6,8 @@ import type { Patch } from './patches';
 import type { Zone } from './zones';
 
 const MM = 0.001;
+/** How far apart emitters of one kit (memory sticks, stacked fans) can be and still push their shared lamp outward. */
+const KIT_REACH = 0.04;
 
 type Lamp = { light: THREE.RectAreaLight; zones: Zone[]; gain: number };
 type Pool = { mesh: THREE.Mesh; weights: { zone: Zone; w: number }[]; share: number };
@@ -74,7 +76,8 @@ export class RgbEngine {
   private poolAlpha: THREE.Texture | null = null;
   readonly poolGroup = new THREE.Group();
 
-  constructor(private scene: THREE.Object3D, private wallWash = true, private deskPools = false) {
+  /** lampParent: what the LED lamps hang from. The Inspector turns its table after the lamps are laid out, so its lamps ride the table. */
+  constructor(scene: THREE.Object3D, private wallWash = true, private deskPools = false, private lampParent: THREE.Object3D = scene) {
     this.wall = new THREE.RectAreaLight(0xffffff, 0, 0.5, 0.46);
     this.wall.visible = wallWash;
     this.wall.name = 'lamp:wall';
@@ -159,11 +162,14 @@ export class RgbEngine {
     this.lamps = [];
     type E = { c: THREE.Vector3; n: THREE.Vector3; r: THREE.Vector3; w: number; h: number; weight: number; zone: Zone };
     const all: E[] = [];
+    this.lampParent.updateWorldMatrix(true, false);
+    const toParent = this.lampParent.matrixWorld.clone().invert();
+    const parentQ = new THREE.Quaternion(); this.lampParent.getWorldQuaternion(parentQ); parentQ.invert();
     for (const z of this.zones) {
       if (!z.owner) continue;
-      const q = new THREE.Quaternion(); z.owner.getWorldQuaternion(q);
+      const q = new THREE.Quaternion(); z.owner.getWorldQuaternion(q); q.premultiply(parentQ);
       for (const e of z.emitters) {
-        const c = e.center.clone().applyMatrix4(z.owner.matrixWorld);
+        const c = e.center.clone().applyMatrix4(z.owner.matrixWorld).applyMatrix4(toParent);
         const n = e.normal.clone().applyQuaternion(q).normalize();
         const rr = e.right.clone().applyQuaternion(q).normalize();
         const s = new THREE.Vector3(); z.owner.getWorldScale(s);
@@ -202,13 +208,17 @@ export class RgbEngine {
         u0 = Math.min(u0, d.dot(right) - ew / 2); u1 = Math.max(u1, d.dot(right) + ew / 2);
         v0 = Math.min(v0, d.dot(up) - eh / 2); v1 = Math.max(v1, d.dot(up) + eh / 2);
       }
+      // A lamp stands in front of every close member facing its way. On the anchor's plane it cut through the next memory
+      // stick of a kit, and the horizon clip drew a hard edge across that stick's bar.
+      let out = 0;
+      for (const m of g.members) if (m.c.distanceTo(g.anchor.c) < KIT_REACH && m.n.dot(n) > 0.8) out = Math.max(out, m.c.clone().sub(g.anchor.c).dot(n));
       const center = g.anchor.c.clone().addScaledVector(right, (u0 + u1) / 2).addScaledVector(up, (v0 + v1) / 2);
       const light = new THREE.RectAreaLight(0xffffff, 0, Math.min(Math.max(u1 - u0, 0.01), 0.45), Math.min(Math.max(v1 - v0, 0.01), 0.45));
-      light.position.copy(center).addScaledVector(n, 0.004);
+      light.position.copy(center).addScaledVector(n, out + 0.004);
       light.up.copy(up);
       light.lookAt(center.clone().add(n));
       light.name = `lamp:${g.members[0]!.zone.key}`;
-      this.scene.add(light);
+      this.lampParent.add(light);
       const zones = [...new Set(g.members.map((m) => m.zone))];
       const gain = g.members.reduce((s, m) => s + m.weight, 0) / Math.max(1, g.members.length);
       this.lamps.push({ light, zones, gain });

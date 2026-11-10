@@ -168,7 +168,7 @@ export class Inspector {
     // The contact shade draws over the LED glow: occlusion darkens every light near the part's base, the glow included.
     this.shade.rotation.x = -Math.PI / 2; this.shade.position.y = 0.0006; this.shade.renderOrder = 2;
     this.table.add(this.glow, this.shade);
-    this.rgb = new RgbEngine(this.scene, false);
+    this.rgb = new RgbEngine(this.scene, false, false, this.table);
     this.rgb.lampCount = 4;
     this.rgb.lampGain = 1.7;
     this.rgb.power = 1;
@@ -226,10 +226,10 @@ export class Inspector {
       // A part that stands on a thin edge, such as a memory stick, still gets a shade band a few centimeters wide.
       // A stick that lies flat, such as an M.2 drive, needs a wider shade to show past its edges.
       const flat = category === 'storage' && id === 'nvme' ? 1.5 : 1;
-      // A card stands on its long thin edge, so its shade needs a minimum width to show past it.
+      // A card stands on its long thin edge, so its shade needs a minimum width to show past it. A board stands the same way.
       // A lit card throws its own pool on the disc, so its shade reaches further past its foot to seat it in that pool.
-      this.shade.scale.set(this.size.x * sk * flat, Math.max(this.size.z * (category === 'gpu' ? 1.6 : sk * flat), category === 'ram' ? 0.07 : category === 'gpu' ? 0.11 : 0), 1);
-      (this.shade.material as THREE.MeshBasicMaterial).opacity = flat > 1 ? 0.92 : category === 'ram' || category === 'gpu' ? 0.96 : 0.75;
+      this.shade.scale.set(this.size.x * sk * flat, Math.max(this.size.z * (category === 'gpu' ? 1.6 : sk * flat), category === 'ram' ? 0.07 : category === 'gpu' || category === 'board' ? 0.11 : 0), 1);
+      (this.shade.material as THREE.MeshBasicMaterial).opacity = flat > 1 ? 0.92 : category === 'ram' || category === 'gpu' || category === 'board' ? 0.96 : 0.75;
       const gs = Math.max(this.size.x, this.size.z) * 2.6;
       this.glow.scale.set(gs, gs, 1);
       this.holder.updateMatrixWorld(true);
@@ -255,8 +255,10 @@ export class Inspector {
     const big = category === 'case' && !FINISHES[caseFinish ?? 'onyx']?.light;
     // A card is long and dark too, as is an unlit black memory kit: a stronger rim and the sheen softbox trace their edges
     // against the backdrop and light the disc around them, so their contact shade reads.
-    // So is an air cooler, whose fans sit between dark fin stacks and went black from behind.
-    const long = category === 'gpu' || (category === 'ram' && getRam(id)?.lit === false) || (category === 'cooler' && getCooler(id)?.type !== 'aio');
+    // So is an air cooler, whose fans sit between dark fin stacks and went black from behind, and a liquid cooler whose only
+    // light is its pump: its black radiator and unlit fans melted into the backdrop.
+    const cooler = category === 'cooler' ? getCooler(id) : undefined;
+    const long = category === 'gpu' || (category === 'ram' && getRam(id)?.lit === false) || (!!cooler && (cooler.type !== 'aio' || cooler.lightZones <= 1));
     this.lights.key.intensity = big ? 6.6 : 4.6; this.lights.fill.intensity = big ? 4.6 : 3.2; this.lights.rim.intensity = big ? 4.4 : long ? 3.6 : 2.2; this.lights.sheen.intensity = big ? 3.2 : long ? 1.6 : 0;
     this.scene.environmentIntensity = big ? 1.7 : 1.25;
     // A card's hero surfaces are its backplate and its glass facing edge, so the camera stands higher to show that edge.
@@ -271,7 +273,14 @@ export class Inspector {
    */
   noAO(): THREE.Object3D[] {
     const out: THREE.Object3D[] = [this.glow, this.shade];
-    this.part?.root.traverse((o) => { if (o.userData.noAO || o.userData.spill || o.userData.label || o.userData.glass || isEmitter(o)) out.push(o); });
+    this.part?.root.traverse((o) => { if (o.userData.noAO || o.userData.spill || o.userData.label || o.userData.glass) out.push(o); });
+    return out;
+  }
+
+  /** LED diffusers: in the occlusion depth, but their own pixels take none. */
+  emitters(): THREE.Object3D[] {
+    const out: THREE.Object3D[] = [];
+    this.part?.root.traverse((o) => { if (isEmitter(o)) out.push(o); });
     return out;
   }
 

@@ -21,14 +21,14 @@ function spun(): THREE.Texture {
 export type MatName =
   | 'powderBlack' | 'powderBlackInner' | 'powderWhite' | 'powderWhiteInner' | 'powderGunmetal' | 'powderGunmetalInner' | 'powderPanel' | 'panelPowder' | 'finAnodized' | 'capTop' | 'capBody' | 'pcbCore' | 'stickerMatte' | 'chipTop' | 'plasticMolded' | 'finGraphite' | 'aluLidStamp' | 'aluLid' | 'aluStamp'
   | 'steelBare' | 'steelZinc'
-  | 'aluBlack' | 'aluSilver' | 'aluWhite' | 'aluRaw' | 'aluBrushed' | 'aluBrushedDark' | 'aluBrushedPlate' | 'aluAnodized' | 'aluCast' | 'aluSatin' | 'aluSatinDark' | 'aluGunmetal' | 'aluFacet'
+  | 'aluBlack' | 'aluSilver' | 'aluPale' | 'aluWhite' | 'aluRaw' | 'aluBrushed' | 'aluBrushedDark' | 'aluBrushedPlate' | 'aluAnodized' | 'aluCast' | 'aluSatin' | 'aluSatinDark' | 'aluGunmetal' | 'aluFacet'
   | 'nickel' | 'nickelLapped' | 'pipeNickel' | 'copper' | 'gold' | 'solder'
   | 'plasticMatte' | 'plasticSatin' | 'plasticSoft' | 'plasticGloss' | 'plasticWhite' | 'plasticWhiteGloss' | 'plasticGrey' | 'plasticDark' | 'plasticNylon'
   | 'rubber' | 'rubberWhite' | 'rubberPad' | 'aluSatinBlack' | 'aluWhiteSatin' | 'finCoated' | 'finCoatedWhite' | 'finPale' | 'aluWhiteBrushed' | 'aluBeadGunmetal' | 'paintWhiteCard' | 'paintBlackCard'
   | 'pcbBlack' | 'pcbWhite' | 'pcbGreen' | 'pcbEdge' | 'chip' | 'chipWhite' | 'ceramic' | 'ferrite'
   | 'glassTint' | 'glassSpec' | 'glassEdge' | 'frit'
   | 'bladeSmoke' | 'bladeFrost' | 'bladeBlack' | 'bladeWhite'
-  | 'finDark' | 'finGrey' | 'finSilver' | 'finNickel' | 'radCore' | 'radCoreWhite'
+  | 'finDark' | 'finGrey' | 'finSilver' | 'finSilverPale' | 'finNickel' | 'radCore' | 'radCoreWhite'
   | 'meshBlack' | 'meshWhite' | 'meshGunmetal' | 'meshRaw'
   | 'labelPaper' | 'sticker'
   | 'thermalPad' | 'diffuserOff' | 'darkVoid'
@@ -172,6 +172,9 @@ function makeMat(name: MatName): THREE.Material {
     case 'aluBlack': return metal(0x34363b, 0.42, t.bead, { bumpMap: t.bead, bumpScale: 0.08 });
     // Highlights held under the bloom threshold: a top face toward the key softbox bloomed into a white blob on the white board.
     case 'aluSilver': return capHighlights(metal(0xa9adb4, 0.3, t.brushed, { anisotropy: 0.6 }), 1.3, 'alu-silver');
+    // Pale silver board heatsinks: rougher and a shade darker than aluSilver, so a broad face spreads the softbox into a gradient
+    // and stands apart from the white board. As aluSilver, the capped highlight lay flat over the face and read as white plastic.
+    case 'aluPale': return capHighlights(metal(0x9a9ea6, 0.44, t.brushedCoarse, { anisotropy: 0.45, bumpMap: t.brushed, bumpScale: 0.07 }), 1.25, 'alu-pale');
     case 'aluWhite': return physical({ color: 0xe8e9ec, metalness: 0.15, roughness: 0.38, roughnessMap: t.bead, clearcoat: 0.3, clearcoatRoughness: 0.3 });
     case 'aluRaw': return metal(0xbabdc2, 0.5, t.bead, { bumpMap: t.bead, bumpScale: 0.1 });
     case 'aluBrushed': return capHighlights(metal(0xbfc2c8, 0.28, t.brushed, { anisotropy: 0.85, bumpMap: t.brushed, bumpScale: 0.08 }), 1.4, 'alu-brushed');
@@ -261,6 +264,9 @@ function makeMat(name: MatName): THREE.Material {
     // Coated, so it reads behind the supply's honeycomb: bare metal mirrored the dark inside of the box.
     case 'finGrey': return physical({ color: 0x6e717a, metalness: 0.35, roughness: 0.6, roughnessMap: t.mottle });
     case 'finSilver': return metal(0xb8bbc1, 0.32, t.mottle);
+    // Pale anodized fins on a white board: part metallic, so they keep a light diffuse body and still carry a metal sheen.
+    // Fully metallic, the fins facing the dark studio went black against the white board; barely metallic, they read as plastic.
+    case 'finSilverPale': return physical({ color: 0xc4c7cd, metalness: 0.55, roughness: 0.4, roughnessMap: t.mottle });
     case 'finNickel': return metal(0xc9cbcf, 0.24, t.mottle);
     case 'radCore': return physical({ color: 0x1f2024, metalness: 0.5, roughness: 0.55, roughnessMap: t.grain });
     case 'radCoreWhite': return physical({ color: 0xdcdde1, metalness: 0.2, roughness: 0.5, roughnessMap: t.grain });

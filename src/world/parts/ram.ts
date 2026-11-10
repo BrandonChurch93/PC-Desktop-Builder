@@ -228,14 +228,17 @@ export function ramPart(id: string, opts: GenOpts = {}): PartObject {
     const notched = (lo: number, hi: number): [number, number][] => [[-half, lo], [half, lo], [half, hi - 1.2], [half - 1.2, hi], [9.5, hi], [5.5, hi - 2.6], [-5.5, hi - 2.6], [-9.5, hi], [-half + 1.2, hi], [-half, hi - 1.2]];
     // A frosted bar glows brightest near the LEDs at its top and falls off toward the spreader, so it reads as a lit diffuser
     // with depth and not as an evenly painted slab.
-    const depthDiff = frost ? diff : pb.own(diff.clone());
-    if (!frost) {
-      depthDiff.onBeforeCompile = (sh) => {
-        // The bar's v carries its height (the LED texture is one texel tall, so v does not change the color).
-        sh.fragmentShader = sh.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance *= 0.45 + 0.6 * vEmissiveMapUv.y * vEmissiveMapUv.y;');
-      };
-      depthDiff.customProgramCacheKey = () => 'ram-bar-depth';
-    }
+    // Faces turned away from the eye dim, as frosted acrylic does at grazing angles, so a bar's rounded rim keeps a darker
+    // outline against the bar behind it: lit evenly, the stacked bars merged and read as clear plastic.
+    // The bar's v carries its height (the LED texture is one texel tall, so v does not change the color).
+    const depthDiff = diff;
+    const rise = frost ? '1.0' : '(0.45 + 0.6 * vEmissiveMapUv.y * vEmissiveMapUv.y)';
+    depthDiff.onBeforeCompile = (sh) => {
+      sh.fragmentShader = sh.fragmentShader.replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+float barFacing = abs(dot(normal, normalize(vViewPosition)));
+totalEmissiveRadiance *= ${rise} * (0.4 + 0.6 * smoothstep(0.06, 0.65, barFacing));`);
+    };
+    depthDiff.customProgramCacheKey = () => (frost ? 'ram-bar-frost' : 'ram-bar-depth');
     const barPiece = (profile: [number, number][], w: number, lo: number, hi: number) => {
       const bar = extrude(roundedPoly(profile, 0.8), w, 0.6, 'xy', 4, 2);
       bar.applyMatrix4(new THREE.Matrix4().makeBasis(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1), new THREE.Vector3(1, 0, 0)));

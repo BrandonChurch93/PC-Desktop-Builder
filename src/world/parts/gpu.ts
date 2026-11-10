@@ -15,6 +15,8 @@ import type { Anchor, GenOpts, PartObject, Rotor } from './types';
 const PI = Math.PI;
 /** Spacing of side by side power sockets: their cutouts keep a solid web between them. */
 const SOCKET_PITCH = 30;
+// Cyan and lime went pale toward white on the bar end nearest the close camera at 0.52.
+const CARD_BAR_GLOW = 0.44;
 /** Maps a shape drawn in (card x, card z) to the card: extrusion goes toward -y. */
 const XZ = new THREE.Matrix4().set(1, 0, 0, 0, 0, 0, -1, 0, 0, 1, 0, 0, 0, 0, 0, 1);
 const xzAt = (y: number) => new THREE.Matrix4().makeTranslation(0, y, 0).multiply(XZ);
@@ -380,13 +382,13 @@ function veltrin(pb: PartBuilder, labels: Labels, c: Card): { zones: Zone[]; rot
       const seg = rbox(b - a, 3.4, 2.4, 1.0, 3);
       const sp = seg.getAttribute('position'); const su = seg.getAttribute('uv');
       for (let i = 0; i < sp.count; i++) su.setXY(i, ((sp.getX(i) + (a + b) / 2) - barX0) / (barX1 - barX0), 0.5);
-      pb.mesh(seg, zone.diffuser(0.52, 0x1a1b20, 0.86), xf({ p: [(a + b) / 2, wallY0 + sideH * 0.78, barZ] }), { uv: 'keep' });
+      pb.mesh(seg, zone.diffuser(CARD_BAR_GLOW, 0x1a1b20, 0.86), xf({ p: [(a + b) / 2, wallY0 + sideH * 0.78, barZ] }), { uv: 'keep' });
       if (c.spec.lightZones >= 3) {
         // The flagship's bar is doubled: a slimmer second line runs just below the first.
         const s2 = rbox(b - a, 1.4, 1.8, 0.6, 2);
         const p2 = s2.getAttribute('position'); const u2 = s2.getAttribute('uv');
         for (let i = 0; i < p2.count; i++) u2.setXY(i, ((p2.getX(i) + (a + b) / 2) - barX0) / (barX1 - barX0), 0.5);
-        pb.mesh(s2, zone.diffuser(0.52, 0x1a1b20, 0.86), xf({ p: [(a + b) / 2, wallY0 + sideH * 0.78 - 5.4, barZ] }), { uv: 'keep' });
+        pb.mesh(s2, zone.diffuser(CARD_BAR_GLOW, 0x1a1b20, 0.86), xf({ p: [(a + b) / 2, wallY0 + sideH * 0.78 - 5.4, barZ] }), { uv: 'keep' });
         pb.add(rbox(b - a + 3, 3.0, 1.2, 0.5, 2), trim, xf({ p: [(a + b) / 2, wallY0 + sideH * 0.78 - 5.4, barZ - 1] }));
       }
       pb.add(rbox(b - a + 4, 5.6, 1.2, 0.5, 2), trim, xf({ p: [(a + b) / 2, wallY0 + sideH * 0.78, barZ - 1] }));

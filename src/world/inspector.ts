@@ -229,7 +229,7 @@ export class Inspector {
       // A card stands on its long thin edge, so its shade needs a minimum width to show past it. A board stands the same way.
       // A lit card throws its own pool on the disc, so its shade reaches further past its foot to seat it in that pool.
       this.shade.scale.set(this.size.x * sk * flat, Math.max(this.size.z * (category === 'gpu' ? 1.6 : sk * flat), category === 'ram' ? 0.07 : category === 'gpu' || category === 'board' ? 0.11 : 0), 1);
-      (this.shade.material as THREE.MeshBasicMaterial).opacity = flat > 1 ? 0.92 : category === 'ram' || category === 'gpu' || category === 'board' ? 0.96 : 0.75;
+      (this.shade.material as THREE.MeshBasicMaterial).opacity = flat > 1 ? 0.92 : category === 'ram' || category === 'gpu' || category === 'board' ? 0.96 : category === 'case' ? 0.92 : 0.75;
       const gs = Math.max(this.size.x, this.size.z) * 2.6;
       this.glow.scale.set(gs, gs, 1);
       this.holder.updateMatrixWorld(true);
@@ -252,7 +252,8 @@ export class Inspector {
     // A case is large and black: as a studio would, it gets more light than a small part so its frame separates from the backdrop.
     // A white or raw case takes the standard light: boosted, its interior went far past white and hid the glass in front of it.
     const caseFinish = category === 'case' ? (getCase(id)?.finishes.find((f) => f === opts.finish) ?? getCase(id)?.finishes[0]) : undefined;
-    const big = category === 'case' && !FINISHES[caseFinish ?? 'onyx']?.light;
+    // Gunmetal is a mid tone: boosted like black, it read as flat light grey paint (critic 269).
+    const big = category === 'case' && !FINISHES[caseFinish ?? 'onyx']?.light && caseFinish !== 'gunmetal';
     // A card is long and dark too, as is an unlit black memory kit: a stronger rim and the sheen softbox trace their edges
     // against the backdrop and light the disc around them, so their contact shade reads.
     // So is an air cooler, whose fans sit between dark fin stacks and went black from behind, and a liquid cooler whose only

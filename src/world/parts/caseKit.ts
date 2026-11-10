@@ -34,6 +34,8 @@ function panelFrame(g: GlassPanel): { m: THREE.Matrix4; u0: number; u1: number }
   return { m: new THREE.Matrix4(), u0: g.rect.min[0], u1: g.rect.max[0] };
 }
 
+const capCorners = (g: GlassPanel): [number, number][] => (g.caps === 'top' ? [[1, 1], [-1, 1]] : [[1, 1], [1, -1], [-1, 1], [-1, -1]]);
+
 /** Corner caps sit this far in from each corner of a glass panel. */
 const CAP_INSET = 12;
 
@@ -50,8 +52,8 @@ function glassPanel(pb: PartBuilder, g: GlassPanel, F: CaseFinish, group: THREE.
   const spec = pb.mesh(new THREE.PlaneGeometry(w - 1.2, h - 1.2), mat('glassSpec'), at(cx, cy, g.outer + 0.02), { to: frame });
   spec.renderOrder = 11; spec.userData.glass = true; spec.userData.glassSpec = true;
   const edge = mat('glassEdge');
-  // The edge strips end under the corner standoffs: their end faces showed at the corners and caught the key light as a teal point.
-  for (const [ex, ey, ew, eh] of [[cx, g.rect.min[1] + 0.25, w - 20, 0.5], [cx, g.rect.max[1] - 0.25, w - 20, 0.5], [u0 + 0.25, cy, 0.5, h - 20], [u1 - 0.25, cy, 0.5, h - 20]] as [number, number, number, number][]) {
+  // The edge strips run to within a millimeter of each corner, so the glass edge reads unbroken around the panel (critic 269).
+  for (const [ex, ey, ew, eh] of [[cx, g.rect.min[1] + 0.25, w - 2, 0.5], [cx, g.rect.max[1] - 0.25, w - 2, 0.5], [u0 + 0.25, cy, 0.5, h - 2], [u1 - 0.25, cy, 0.5, h - 2]] as [number, number, number, number][]) {
     const e = pb.mesh(rbox(ew, eh, t - 0.2, 0.15, 1), edge, at(ex, ey, (g.inner + g.outer) / 2), { to: frame });
     e.userData.glass = true; e.renderOrder = 9;
   }
@@ -60,7 +62,7 @@ function glassPanel(pb: PartBuilder, g: GlassPanel, F: CaseFinish, group: THREE.
   fr.holes.push(rrectHole(w - 2 * border, h - 2 * border, 5, cx, cy));
   const frit = pb.mesh(extrude(fr, 0.25, 0, 'xy', 8), mat('frit'), at(0, 0, g.inner + 0.05), { to: frame });
   frit.userData.glass = true;
-  for (const [sx, sy] of [[1, 1], [1, -1], [-1, 1], [-1, -1]] as [number, number][]) {
+  for (const [sx, sy] of capCorners(g)) {
     // Seated well inside the glass edge, on the painted border, clear of the frame pillars beside it.
     const x = cx + sx * (w / 2 - CAP_INSET); const y = cy + sy * (h / 2 - CAP_INSET);
     pb.add(lathe([[0, 0], [5.4, 0], [5.8, 0.4], [5.8, 2.6], [5.0, 3.6], [0, 3.8]], 40), F.light ? 'capSilver' : 'capDark', at(x, y, g.outer), { to: frame });
@@ -82,7 +84,7 @@ export function glassCapBoxes(L: CaseLayout): Box[] {
     const { m, u0, u1 } = panelFrame(g);
     const w = u1 - u0; const h = g.rect.max[1] - g.rect.min[1];
     const cx = (u0 + u1) / 2; const cy = (g.rect.min[1] + g.rect.max[1]) / 2;
-    for (const [sx, sy] of [[1, 1], [1, -1], [-1, 1], [-1, -1]] as [number, number][]) {
+    for (const [sx, sy] of capCorners(g)) {
       const lo = new THREE.Vector3(cx + sx * (w / 2 - CAP_INSET) - 6, cy + sy * (h / 2 - CAP_INSET) - 6, g.outer).applyMatrix4(m);
       const hi = new THREE.Vector3(cx + sx * (w / 2 - CAP_INSET) + 6, cy + sy * (h / 2 - CAP_INSET) + 6, g.outer + 4).applyMatrix4(m);
       out.push({ min: [Math.min(lo.x, hi.x), Math.min(lo.y, hi.y), Math.min(lo.z, hi.z)], max: [Math.max(lo.x, hi.x), Math.max(lo.y, hi.y), Math.max(lo.z, hi.z)], tag: 'glass-cap' });

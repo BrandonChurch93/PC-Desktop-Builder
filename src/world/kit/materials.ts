@@ -175,8 +175,11 @@ function makeMat(name: MatName): THREE.Material {
     // No clearcoat, and highlights held under the bloom threshold: the frame's rounded corners bloomed into a halo.
     case 'powderWhite': return capHighlights(worldBump(physical({ color: 0xe0e1e5, metalness: 0, roughness: 0.6, roughnessMap: tex().mottleMid, bumpMap: tex().orange, bumpScale: 2.2e-5, specularIntensity: 0.4 })), 1.4, 'powder-white');
     case 'powderWhiteInner': return powder(0x8f939a, 0.5, 0.12, 1.8e-5);
-    case 'powderGunmetal': return physical({ color: 0x45484f, metalness: 0.55, roughness: 0.4, roughnessMap: t.grainFine, bumpMap: t.peel, bumpScale: 0.25, clearcoat: 0.55, clearcoatRoughness: 0.22 });
-    case 'powderGunmetalInner': return physical({ color: 0x2e3036, metalness: 0.45, roughness: 0.5, roughnessMap: t.grainFine, bumpMap: t.peel, bumpScale: 0.25, clearcoat: 0.25, clearcoatRoughness: 0.35 });
+    // Dark grey metallic with a fine flake: a lighter base and a modest metalness, so in a dark room it keeps a grey body
+    // and the flake shows as sparkle in the clearcoat. At 0.55 metal on 0x45484f it mirrored the room and read black.
+    // The flake is a fine metalness grain under the clearcoat: points of metal among the paint, so the finish sparkles.
+    case 'powderGunmetal': return capHighlights(physical({ color: 0x51545c, metalness: 0.6, metalnessMap: t.grainFine, roughness: 0.42, roughnessMap: t.grainFine, bumpMap: t.peel, bumpScale: 0.25, clearcoat: 0.55, clearcoatRoughness: 0.22 }), 1.3, 'powder-gunmetal');
+    case 'powderGunmetalInner': return physical({ color: 0x41444b, metalness: 0.5, metalnessMap: t.grainFine, roughness: 0.5, roughnessMap: t.grainFine, bumpMap: t.peel, bumpScale: 0.25, clearcoat: 0.25, clearcoatRoughness: 0.35 });
     case 'steelBare': return metal(0xa6a9af, 0.34, t.grainFine);
     case 'steelZinc': return metal(0x9a9da2, 0.42, t.grain, { bumpMap: t.mottle, bumpScale: 0.2 });
     case 'aluBlack': return metal(0x34363b, 0.42, t.bead, { bumpMap: t.bead, bumpScale: 0.08 });
@@ -218,7 +221,9 @@ function makeMat(name: MatName): THREE.Material {
     case 'aluStamp': return metal(0xc0c3c8, 0.44, t.mottle);
     case 'aluWhiteSatin': return worldBump(physical({ color: 0xe6e7ea, metalness: 0.15, roughness: 0.42, roughnessMap: t.mottleMid, bumpMap: t.orange, bumpScale: 6e-5, clearcoat: 0.12, clearcoatRoughness: 0.35 }));
     // Black coated cooler fins: the coating is a dielectric, so only a dim sheen comes off the fin faces and their edges.
-    case 'finCoated': return physical({ color: 0x0d0e10, metalness: 0, roughness: 0.66, roughnessMap: t.mottle, specularIntensity: 0.3 });
+    // A shade lighter with a little more sheen, so the fin edges catch the room's light inside a dark case; at 0x0d0e10 and
+    // 0.3 specular the towers read as solid black slabs there (critic 268).
+    case 'finCoated': return physical({ color: 0x17181c, metalness: 0, roughness: 0.55, roughnessMap: t.mottle, specularIntensity: 0.5 });
     case 'finPale': return physical({ color: 0xcfd2d7, metalness: 0.15, roughness: 0.5, roughnessMap: t.mottle });
     // Satin white paint on a card: a molded stipple and a bead roughness drift, so the white face shows its finish up close.
     // Satin black paint on a slab card: a fine stipple and a slow sheen drift under a light clearcoat, read as coated metal.

@@ -21,7 +21,8 @@ function base(pb: PartBuilder) {
   pb.add(rbox(40, 40, 6, 0.8, 2), 'nickel', at(0, 0, 3));
   // Direct contact: the pipes' flattened faces show as bands across the underside, with the base's machined rings around them.
   for (let i = -2; i <= 2; i++) pb.add(rbox(36, 5.4, 0.3, 0.2, 1), 'copper', at(0, i * 6.6, -0.05));
-  const A = 64; const hw = 6.5;
+  // Arms end just past the thumbscrews at 47 mm out, clear of a board's top regulator heatsink, which starts 48 mm above the socket.
+  const A = 60; const hw = 6.5;
   const arm = roundedPoly([[-A, -hw], [-14, -hw], [-hw, -14], [-hw, -A], [hw, -A], [hw, -14], [14, -hw], [A, -hw], [A, hw], [14, hw], [hw, 14], [hw, A], [-hw, A], [-hw, 14], [-14, hw], [-A, hw]], 2.6);
   pb.add(extrude(arm, 2.4, 0.5, 'xy', 8), 'aluGunmetal', at(0, 0, 6).multiply(new THREE.Matrix4().makeRotationZ(PI / 4)));
   // The bracket is screwed to the base at four points round its middle.
@@ -50,11 +51,20 @@ function pipeNickel(pb: PartBuilder): THREE.MeshPhysicalMaterial {
   return m;
 }
 
+let capMat: { pb: PartBuilder; m: THREE.MeshPhysicalMaterial } | null = null;
+function capNickel(pb: PartBuilder): THREE.MeshPhysicalMaterial {
+  if (capMat?.pb === pb) return capMat.m;
+  const m = pb.own((mat('nickel') as THREE.MeshPhysicalMaterial).clone()); m.roughness = 0.38; m.metalness = 0.55; m.color.setHex(0xc2c4c9);
+  capMat = { pb, m };
+  return m;
+}
+
 /** One heat pipe: a smooth nickel tube through its points, capped where it ends in the top of the stack. */
 function pipe(pb: PartBuilder, pts: Vec[], capAt: Vec[] = [], r = PIPE_R) {
   const curve = new THREE.CatmullRomCurve3(pts.map((p) => new THREE.Vector3(...p)), false, 'centripetal', 0.5);
   pb.add(tube(curve, r, Math.max(64, Math.round(curve.getLength() / 2)), 16), pipeNickel(pb), undefined, { uv: 'keep' });
-  for (const c of capAt) pb.add(lathe([[0, 0], [r, 0], [r, 0.6], [r * 0.8, 1.2], [0, 1.4]], 24), 'nickel', xf({ p: c, r: [PI / 2, 0, 0] }));
+  // Satin, part metallic caps: fully metallic, their domes mirrored a dark case interior and read as empty holes (critic 268).
+  for (const c of capAt) pb.add(lathe([[0, 0], [r, 0], [r, 0.6], [r * 0.8, 1.2], [0, 1.4]], 24), capNickel(pb), xf({ p: c, r: [PI / 2, 0, 0] }));
 }
 
 /** A stack of thin fins in the xy plane, with holes where the pipes pass, instanced from z0 to z1. */

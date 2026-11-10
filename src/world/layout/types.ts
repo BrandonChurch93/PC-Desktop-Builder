@@ -22,7 +22,8 @@ export type BayLayout = { pose: Pose; insert: V3 };
 
 export type Grommet = { id: string; center: V3; normal: V3; size: [number, number] };
 
-export type GlassPanel = { side: 'left' | 'front'; inner: number; outer: number; rect: { min: V3; max: V3 } };
+/** caps: standoffs at all four corners, or only the top two when a rail carries the bottom edge. */
+export type GlassPanel = { side: 'left' | 'front'; inner: number; outer: number; rect: { min: V3; max: V3 }; caps?: 'all' | 'top' };
 
 export type CaseLayout = {
   id: string;

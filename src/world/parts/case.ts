@@ -6,6 +6,7 @@ import type { CaseLayout } from '../layout/types';
 import { at, circleHole, cyl, extrude, lathe, PartBuilder, rbox, rrect, rrectHole, rrectShape, torus, xf } from '../kit/geometry';
 import { glassCapBoxes, glassPanels, HOLES4, hexStandoffs, perforated, screwsAt, trayGrommets, ZY } from './caseKit';
 import { atriumCase } from './caseAtrium';
+import { ventCase } from './caseVent';
 import type { Zone } from '../light/zones';
 import type { Box } from '../layout/math';
 import { Labels } from '../kit/labels';
@@ -202,6 +203,7 @@ function vitrineCase(pb: PartBuilder, labels: Labels, spec: CaseSpec, L: CaseLay
 const BUILDERS: Record<string, (pb: PartBuilder, labels: Labels, spec: CaseSpec, L: CaseLayout, F: CaseFinish, finish: string) => CaseBuild> = {
   vitrine: vitrineCase,
   atrium: atriumCase,
+  vent: ventCase,
 };
 
 export function casePart(id: string, opts: GenOpts = {}): PartObject {

@@ -109,7 +109,7 @@ export function airCoolerBoxes(id: string): Box[] {
   if (!k || k.type === 'aio') return [];
   const h = k.height ?? 60;
   // The base, and the X bracket with its sprung thumbscrews out to the socket's corner holes.
-  const plate = [box([-20, -20, 0], [20, 20, 6], 'plate'), box([-50, -50, 6], [50, 50, 12.6], 'bracket')];
+  const plate = [box([-20, -20, 0], [20, 20, 6], 'plate'), box([-47.5, -47.5, 6], [47.5, 47.5, 12.6], 'bracket')];
   if (k.type === 'lowprofile') {
     const under = overhangZ(k.ramClearance ?? 34);
     // Pipes leave the base flat toward its sides and rise near the stack's edges; the fan's screw heads sit on its pads.

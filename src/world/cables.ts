@@ -192,7 +192,8 @@ export function buildRun(run: Run, group: THREE.Group, detail = 1) {
   const cum: number[] = [0];
   for (let i = 1; i < run.path.length; i++) cum.push(cum[i - 1]! + run.path[i]!.distanceTo(run.path[i - 1]!));
   const total = cum[cum.length - 1]!;
-  const combMat = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(run.comb), roughness: 0.55, clearcoat: 0.12, clearcoatRoughness: 0.45 });
+  // Molded combs are glossier than the braid, so a black comb on black wires still reads by its sheen.
+  const combMat = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(run.comb), roughness: 0.4, clearcoat: 0.6, clearcoatRoughness: 0.25 });
   const cw = run.cols * run.pitch + 3; const ch = run.rows * run.pitch + 3;
   const comb = new THREE.ExtrudeGeometry(combProfile(run), { depth: 4.2, bevelEnabled: true, bevelThickness: 0.5, bevelSize: 0.4, bevelOffset: -0.4, bevelSegments: 2, curveSegments: 12 });
   comb.translate(0, 0, -2.1);

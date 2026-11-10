@@ -60,8 +60,8 @@ export const GANTRY: CaseLayout = {
   // The drive lies on the shelf in front of the supply; the two 2.5 inch drives hang on the plate's back, behind the board.
   bays35: [{ pose: { pos: [70, GANTRY_SHELF, GANTRY_PSU_Z], rot: [0, Q, 0] }, insert: [0, -1, 0] }],
   bays25: [
-    { pose: { pos: [-150, 300, GANTRY_TRAY_BACK - DIMS.bay25Standoff], rot: [-Q, 0, 0] }, insert: [0, 0, 1] },
-    { pose: { pos: [-150, 190, GANTRY_TRAY_BACK - DIMS.bay25Standoff], rot: [-Q, 0, 0] }, insert: [0, 0, 1] },
+    { pose: { pos: [-150, 300, GANTRY_TRAY_BACK - DIMS.bay25Standoff], rot: [-Q, 2 * Q, 0] }, insert: [0, 0, 1] },
+    { pose: { pos: [-150, 190, GANTRY_TRAY_BACK - DIMS.bay25Standoff], rot: [-Q, 2 * Q, 0] }, insert: [0, 0, 1] },
   ],
   // Numbered from the top: a 240 takes the upper two, so its fittings at the top end clear the fan left below it.
   fanMounts: [spine(1, 404), spine(2, 282), spine(3, 160)],

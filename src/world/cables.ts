@@ -104,7 +104,7 @@ export type Run = {
   rowAxis: V;
   colors: string[];
   comb: string;
-  plugAt: 'end' | 'start' | 'none';
+  plugAt: 'end' | 'start' | 'both' | 'none';
   /** a board plug with a latch arm over its header's ramp, or a plain housing with a clip */
   plug?: 'latch' | 'clip';
   /** sleeved runs carry combs; flat drive leads do not */
@@ -252,17 +252,22 @@ export function buildRun(run: Run, group: THREE.Group, detail = 1) {
   }
   for (const g of holes) g.dispose();
   comb.dispose();
-  if (run.plugAt !== 'none' && run.plug === 'latch') {
-    const i = run.plugAt === 'end' ? run.path.length - 1 : 0;
-    const out = run.plugAt === 'end' ? T[i]!.clone().negate() : T[i]!.clone();
+  const ends = run.plugAt === 'both' ? [false, true] : run.plugAt === 'none' ? [] : [run.plugAt === 'end'];
+  for (const atEnd of ends) plugAt(run, atEnd, T, N, ch, cw, group);
+}
+
+function plugAt(run: Run, atEnd: boolean, T: V[], N: V[], ch: number, cw: number, group: THREE.Group) {
+  if (run.plug === 'latch') {
+    const i = atEnd ? run.path.length - 1 : 0;
+    const out = atEnd ? T[i]!.clone().negate() : T[i]!.clone();
     const frame = new THREE.Matrix4().makeBasis(out, N[i]!, new THREE.Vector3().crossVectors(out, N[i]!)).setPosition(run.path[i]!);
     const parts = latchPlug(run, frame);
     const merged = mergeGeometries(parts.map((x) => x.toNonIndexed()), false);
     for (const g of parts) g.dispose();
     if (merged) { const mesh = new THREE.Mesh(merged, mat('plasticDark')); mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.flexible = true; group.add(mesh); }
-  } else if (run.plugAt !== 'none') {
-    const i = run.plugAt === 'end' ? run.path.length - 1 : 0;
-    const dir = run.plugAt === 'end' ? T[i]!.clone() : T[i]!.clone().negate();
+  } else {
+    const i = atEnd ? run.path.length - 1 : 0;
+    const dir = atEnd ? T[i]!.clone() : T[i]!.clone().negate();
     const m = new THREE.Matrix4().makeBasis(dir, N[i]!, new THREE.Vector3().crossVectors(dir, N[i]!)).setPosition(run.path[i]!.clone().addScaledVector(dir, -4.5));
     const housing = rbox(9, ch - 0.6, cw - 0.6, 0.8, 2);
     housing.applyMatrix4(m);
@@ -296,9 +301,11 @@ function openRouting(L: CaseLayout) {
   const zr = back - 19; const yr = gp.center[1];
   const x0 = gp.center[0] - gp.size[0] / 2;
   return {
-    zr, yr, mid,
+    zr, yr, mid, back,
     lane: { eps: x0 + 12, atx24: x0 + 56, gpu: [x0 + 92, x0 + 111] },
     psu: { eps: x0 + 16, atx24: x0 + 28, atx10: x0 + 40, gpu: [x0 + 52, x0 + 64] } as Record<string, number | number[]>,
+    /** right of every supply lane: where a supply lead to a higher grommet climbs the plate */
+    psuRise: x0 + 76,
     /** untwisted through the grommet, then flat on the plate's back on the way down */
     flat: (hold: V, x: number, y: number): Align[] => [{ at: hold }, { at: v(x, (y + yr) / 2, zr), normal: v(0, 0, 1) }],
     behind: (pts: V[], x: number, straight = DIMS.plugLength + 12) => filletPath([...pts, v(x, yr, zr), v(x, yr, mid)], 18, 2.5, straight, 4),
@@ -457,14 +464,57 @@ export function buildCables(build: Build, items: Map<string, RigItem>, detail = 
     ports.sort((a, b) => a.p.y - b.p.y || a.p.z - b.p.z);
     const tray = L.grommets.filter((g) => g.normal[2] === 1);
     const behind = (tray[0]?.center[2] ?? -75) - 24;
-    let used = 0; let socket = 1;
+    let used = 0; let socket = 1; let backDrives = 0;
     for (const [key, item] of items) {
       if (item.placed.kind !== 'storage') continue;
       const da = item.part.anchors.sataData; const pa = item.part.anchors.sataPower;
       if (!da || !pa) continue;
-      if (toCase(item, da).p.z < (tray[0]?.center[2] ?? -75)) continue;
       const thin = toCase(item, { pos: [0, 0, 0], dir: [0, 1, 0] }).d;
       const lead = (name: string, cols: number, pitch: number, wire: number, rowAxis: V, path: V[]): Run => ({ name, rows: 1, cols, pitch, wire, rowAxis, colors: ['rubber'], comb, plugAt: 'start', combs: false, path });
+      if (open) {
+        // Every lead is seen on an open frame. A drive on the shelf takes one lead from the supply and one to the board, each
+        // plugged at both ends; a drive on the plate's back runs its leads flat along the plate into the drive grommet, where
+        // the front halves from the board's port and the supply's socket meet them at the membrane.
+        const d = toCase(item, da); const pw = toCase(item, pa);
+        const s = psu?.part.anchors[`sata${socket}`] ?? psu?.part.anchors.sata;
+        const port = ports[used];
+        const gs = grommet('sata');
+        const ahead = (a: { p: V; d: V }, n: number) => a.p.clone().addScaledVector(a.d, n);
+        if (d.p.z > open.mid) {
+          if (psu && s) { socket++; const sk = toCase(psu, s); runs.push({ ...lead(`sata-power-${key}`, 4, 2.4, 1.0, v(0, 1, 0), filletPath([sk.p, ahead(sk, 22), ahead(pw, 22), pw.p], 12, 2.5, 8, 8)), plugAt: 'both' }); }
+          if (port && gs) {
+            // Back to the plate, up beside the supply grommet, under the board's edge and up to the port.
+            used++;
+            const gp = grommet('psu')!; const zf = gs.center[2] + 6;
+            const climb = gp.center[0] - gp.size[0] / 2 - 8; const hop = gp.center[1] + gp.size[1] / 2 + 20; const up = gs.center[0] - 14;
+            const a = ahead(d, 16); const b = ahead(port, 16);
+            runs.push({ ...lead(`sata-data-${key}`, 2, 3.0, 1.4, thin, filletPath([d.p, a, v(a.x, a.y, zf), v(climb, a.y, zf), v(climb, hop, zf), v(up, hop, zf), v(up, b.y, zf), b, port.p], 10, 2.5, 8, 8)), plugAt: 'both' });
+          }
+          continue;
+        }
+        if (!gs) continue;
+        const zb = open.back - 4; const zf = gs.center[2] + 6;
+        const back = (a: { p: V; d: V }, y: number, x: number) => filletPath([a.p, ahead(a, 14), v(ahead(a, 14).x, ahead(a, 14).y, zb), v(x, ahead(a, 14).y, zb), v(x, y, zb), v(x, y, open.mid)], 8, 2.5, 8, 2);
+        const front = (a: { p: V; d: V }, y: number, x: number, via = x) => filletPath([a.p, ahead(a, 16), v(via, ahead(a, 16).y, zf), v(via, y, zf), v(x, y, zf), v(x, y, open.mid)], 10, 2.5, 8, 2);
+        // Each drive on the back takes a power and a data slot across the grommet; the supply's lead climbs to the right of
+        // every supply lane before it turns in.
+        const slot = (k: number) => gs.center[1] - gs.size[1] / 2 + 6 + k * 8;
+        const i = backDrives++;
+        if (psu && s) {
+          socket++;
+          const sk = toCase(psu, s); const y = slot(2 * i);
+          runs.push(lead(`sata-power-${key}`, 4, 2.4, 1.0, thin, back(pw, y, gs.center[0] - 4)));
+          runs.push(lead(`sata-power-psu-${key}`, 4, 2.4, 1.0, v(0, 1, 0), front(sk, y, gs.center[0] - 4, open.psuRise)));
+        }
+        if (port) {
+          used++;
+          const y = slot(2 * i + 1);
+          runs.push(lead(`sata-data-${key}`, 2, 3.0, 1.4, thin, back(d, y, gs.center[0] + 4)));
+          runs.push(lead(`sata-data-board-${key}`, 2, 3.0, 1.4, v(0, 0, 1), front(port, y, gs.center[0] + 4)));
+        }
+        continue;
+      }
+      if (toCase(item, da).p.z < (tray[0]?.center[2] ?? -75)) continue;
       const s = psu?.part.anchors[`sata${socket}`];
       if (psu && s) {
         socket++;

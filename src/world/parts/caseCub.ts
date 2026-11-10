@@ -15,6 +15,9 @@ const PI = Math.PI;
 const PLATE = 4;
 /** Outer corner radius of the shell's plates. */
 const CORNER = 10;
+/** Front port centers. The plate's edge bevel grows every hole by its size at the face, so neighboring holes keep more
+ *  than twice that apart or their outlines cross and the face triangulates into a wedge across the opening. */
+const CUB_PORTS_Z = [36, 18];
 
 /**
  * Cub: Paleforge's small form factor. Six thick bead blasted plates with large outer radii held by visible standoffs at the
@@ -30,16 +33,25 @@ export function cubCase(pb: PartBuilder, labels: Labels, spec: CaseSpec, L: Case
   const light = F.light;
   const screwColor = light ? 0xc9ccd2 : 0x3a3d44;
   const anchor = CUB_ANCHOR;
+  const plate = light ? 'plateAnoWhite' : 'plateAnoBlack';
 
   // Front and rear plates: thick, with large radii on every outer corner.
   const front = rrectShape(D, y1, CORNER, 0, y1 / 2);
   // The supply's inlet and switch face out through the front plate.
   front.holes.push(rrectHole(127, 65.5, 3, -30, CUB_PSU_Y + 31.75));
-  pb.add(extrude(front, PLATE, 1.6, 'xy', 16, 3), F.shell, new THREE.Matrix4().makeTranslation(x1, 0, 0).multiply(ZY));
-  // The power button and two ports high on the front, a small engraved mark low.
-  pb.add(lathe([[0, 0], [6.2, 0], [6.2, 1.6], [5.6, 2.2], [0, 2.2]], 40), F.accent, xf({ p: [x1, 280, 60], r: [0, 0, -PI / 2] }));
-  pb.add(lathe([[6.3, 0], [7.0, 0], [7.0, 1.2], [6.3, 1.2]], 40), 'nickel', xf({ p: [x1, 280, 60], r: [0, 0, -PI / 2] }));
-  for (const z of [34, 18]) { pb.add(rbox(0.6, 6.4, 13.6, 0.5, 1), 'nickel', at(x1 + 0.3, 280, z)); pb.add(new THREE.BoxGeometry(0.5, 5, 12), 'darkVoid', at(x1 + 0.45, 280, z), { uv: 'keep' }); }
+  front.holes.push(circleHole(60, 280, 7.1));
+  for (const z of CUB_PORTS_Z) front.holes.push(rrectHole(13.8, 6.6, 1, z, 280));
+  pb.add(extrude(front, PLATE, 1.6, 'xy', 16, 3), plate, new THREE.Matrix4().makeTranslation(x1, 0, 0).multiply(ZY));
+  // The power button in a turned bezel and two ports in recesses milled into the front plate, high on the front; a small
+  // engraved mark low. Lathe axes are z, turned a quarter about y to face +x.
+  const faceX = { r: [0, PI / 2, 0] as [number, number, number] };
+  pb.add(lathe([[0, -2.6], [5.6, -2.6], [5.6, 0.6], [5.1, 1.2], [0, 1.2]], 40), F.accent, xf({ p: [x1, 280, 60], ...faceX }));
+  pb.add(lathe([[5.9, -3.2], [7.0, -3.2], [7.0, 0.3], [6.6, 0.6], [5.9, 0.6]], 40), 'nickel', xf({ p: [x1, 280, 60], ...faceX }));
+  for (const z of CUB_PORTS_Z) {
+    pb.add(rbox(6, 6.4, 13.6, 0.4, 1), 'nickel', at(x1 - 3, 280, z));
+    pb.add(new THREE.BoxGeometry(0.5, 5.2, 12), 'darkVoid', at(x1 - 5.4, 280, z), { uv: 'keep' });
+    pb.add(rbox(5, 1.6, 9, 0.3, 1), light ? 'plasticWhite' : 'plasticDark', at(x1 - 3.2, 279, z));
+  }
   labels.text(brandName(spec.brand).toUpperCase(), BRAND_TYPE[spec.brand] ?? SPEC_TYPE, 3.2, xf({ p: [x1 + 0.05, 22, 0], r: [0, PI / 2, 0] }), { color: light ? '#8a8e97' : '#7b7f88', rough: 0.4 });
   const rear = rrectShape(D, y1, CORNER, 0, y1 / 2);
   const ioZ = anchor[2] + 22.6; const ioY = anchor[1] - 78;
@@ -47,10 +59,13 @@ export function cubCase(pb: PartBuilder, labels: Labels, spec: CaseSpec, L: Case
   const sp = K.slotPitch; const slotTop = CUB_RISER[1] + 6;
   for (let k = 0; k < 3; k++) rear.holes.push(rrectHole(112, sp - 4.6, 1.2, CUB_RISER[2] + 55.1, slotTop - sp * (k + 0.5)));
   const fan = L.fanMounts.find((m) => m.id === 'rear-1')!;
-  rear.holes.push(circleHole(fan.center[2], fan.center[1], 57.5));
+  rear.holes.push(circleHole(fan.center[2], fan.center[1], 56));
   const fh = DIMS.fan[120].holes / 2;
   for (const [dy, dz] of [[fh, fh], [fh, -fh], [-fh, fh], [-fh, -fh]]) rear.holes.push(rrectHole(4.4, 4.4, 2.2, fan.center[2] + dz!, fan.center[1] + dy!));
-  pb.add(extrude(rear, PLATE, 1.6, 'xy', 16, 3), F.shell, new THREE.Matrix4().makeTranslation(x0 + PLATE, 0, 0).multiply(ZY));
+  pb.add(extrude(rear, PLATE, 1.6, 'xy', 16, 3), plate, new THREE.Matrix4().makeTranslation(x0 + PLATE, 0, 0).multiply(ZY));
+  // A dark rolled frame lines the connector opening so its rectangle reads against whatever sits behind it.
+  const ioFrame = rrectShape(46.6, 152.6, 2.3, ioZ, ioY); ioFrame.holes.push(rrectHole(44.2, 150.2, 1.2, ioZ, ioY));
+  pb.add(extrude(ioFrame, PLATE + 2.4, 0.4, 'xy', 8, 2), 'plasticDark', new THREE.Matrix4().makeTranslation(x0 + PLATE + 2.4, 0, 0).multiply(ZY).multiply(at(0, 0, -0.3)));
   // A machined grille over the exhaust: concentric slots.
   for (const rr of [16, 28, 40, 52]) pb.add(lathe([[rr - 1.2, -1.5], [rr + 1.2, -1.5], [rr + 1.2, 1.5], [rr - 1.2, 1.5]], 72), F.shell, xf({ p: [x0 + 2, fan.center[1], fan.center[2]], r: [0, PI / 2, 0] }));
   for (let i = 0; i < 2; i++) pb.add(rbox(3, 112, 2.4, 0.8, 1), F.shell, xf({ p: [x0 + 2, fan.center[1], fan.center[2]], r: [i * PI / 2, 0, 0] }));
@@ -67,22 +82,22 @@ export function cubCase(pb: PartBuilder, labels: Labels, spec: CaseSpec, L: Case
   // Top and right: thick plates with perforated fields, the right one over the board's back and the supply.
   const topPlate = rrectShape(W - 2 * PLATE, D, CORNER, 0, 0);
   topPlate.holes.push(rrectHole(W - 2 * PLATE - 36, D - 40, 6, 0, -6));
-  pb.add(extrude(topPlate, PLATE, 1.6, 'xz', 16, 3), F.shell, at(0, y1 - PLATE, 0));
-  perforated(pb, F, W - 2 * PLATE - 34, D - 38, xf({ p: [0, y1 - 1.4, 6], r: [-PI / 2, 0, 0] }), 2, undefined, 1.6);
+  pb.add(extrude(topPlate, PLATE, 1.6, 'xz', 16, 3), plate, at(0, y1 - PLATE, 0));
+  perforated(pb, F, W - 2 * PLATE - 34, D - 38, xf({ p: [0, y1 - 1.4, 6], r: [-PI / 2, 0, 0] }), 2, undefined, 2.6);
   const right = rrectShape(W - 2 * PLATE, y1 - 2 * PLATE, 6, 0, y1 / 2);
   right.holes.push(rrectHole(W - 2 * PLATE - 36, y1 - 2 * PLATE - 36, 6, 0, y1 / 2));
-  pb.add(extrude(right, PLATE, 1.6, 'xy', 12, 3), F.shell, at(0, 0, z0));
+  pb.add(extrude(right, PLATE, 1.6, 'xy', 12, 3), plate, at(0, 0, z0));
   perforated(pb, F, W - 2 * PLATE - 34, y1 - 2 * PLATE - 34, xf({ p: [0, y1 / 2, z0 + 1.4], r: [0, PI, 0] }), 2, undefined, 1.6);
   // Floor plate with an intake under the card's fans.
   const floor = rrectShape(W - 2 * PLATE, D, CORNER, 0, 0);
   floor.holes.push(rrectHole(270, 110, 6, 0, -2));
-  pb.add(extrude(floor, PLATE, 1.2, 'xz', 16, 3), F.shell, at(0, CUB_FLOOR - PLATE, 0));
+  pb.add(extrude(floor, PLATE, 1.2, 'xz', 16, 3), plate, at(0, CUB_FLOOR - PLATE, 0));
   perforated(pb, F, 272, 112, xf({ p: [0, CUB_FLOOR - 2, 2], r: [-PI / 2, 0, 0] }), 2, undefined, 1.6);
   // Visible standoffs: the machined posts that tie the plates together at the corners, with their caps on the outside.
   for (const [sx, sz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]] as [number, number][]) {
-    const px = sx * (x1 - PLATE - 7); const pz = sz * (z1 - 7);
-    pb.add(cyl(4.5, y1 - 2 * PLATE, 'y', 24), F.accent, at(px, y1 / 2, pz));
-    for (const py of [y1 - 0.2, CUB_FLOOR - PLATE - 0.2]) pb.add(lathe([[0, 0], [4.2, 0], [4.6, 0.5], [4.6, 1.4], [0, 1.6]], 24), F.accent, xf({ p: [px, py, pz], r: [py > 100 ? 0 : PI, 0, 0] }));
+    const px = sx * (x1 - PLATE - 4.7); const pz = sz * (z1 - 7);
+    pb.add(cyl(4.5, y1 - 2 * PLATE, 'y', 24), plate, at(px, y1 / 2, pz));
+    for (const py of [y1 - 0.2, CUB_FLOOR - PLATE - 0.2]) pb.add(lathe([[0, 0], [4.2, 0], [4.6, 0.5], [4.6, 1.4], [0, 1.6]], 24), plate, xf({ p: [px, py, pz], r: [py > 100 ? 0 : PI, 0, 0] }));
   }
   // Small feet under the floor.
   for (const [fx, fz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]] as [number, number][]) pb.add(cyl(9, CUB_FLOOR - PLATE, 'y', 28), F.foot, at(fx * 135, (CUB_FLOOR - PLATE) / 2, fz * 68));

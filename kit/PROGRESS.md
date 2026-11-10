@@ -1,4 +1,4 @@
-PHASE 4 IN PROGRESS · cub
+PHASE 4 IN PROGRESS · gantry
 
 <!-- Builder: this file is your memory. Read it first in every session and after every compaction. Keep it current. Replace the first line as you go: "PHASE N IN PROGRESS · step k", "BLOCKED: ...", and at the very end "BUILD COMPLETE" with nothing else on that line. -->
 
@@ -7,9 +7,9 @@ PHASE 4 IN PROGRESS · cub
 ## Where things stand
 
 - Current phase: 4 · Cases and layouts
-- Current step: cub (vitrine frost, atrium, vent, bulwark done)
-- Next action: Bulwark (Flagship), then Cub (Pocket) and Gantry (Open Frame), each: layout, both finishes, preset build, rig/bench/finish/macro/part shots, one critic round, commit. Then the layout test log per case, case thumbnails, the three case brand contact sheets, Gate 4. Do not end the turn with a status report: updates go here.
-- Last commit: phase 4: bulwark and flagship
+- Current step: gantry (vitrine frost, atrium, vent, bulwark, cub done)
+- Next action: Gantry (Open Frame): layout, both finishes, preset build, rig/bench/finish/macro/part shots, one critic round, commit. Then the layout test log per case, case thumbnails, the three case brand contact sheets, Gate 4. Do not end the turn with a status report: updates go here.
+- Last commit: phase 4: cub and pocket
 
 ## Phases
 
@@ -183,8 +183,10 @@ One line each: the question, what you chose, which step of the decision rule set
 - Windbreak uses the catalog's Blackout lighting preset (brightness 0): its card seams and fans stay dark with the power on, by the preset's data (07-QUALITY-BAR: dark diffusers are correct under Blackout).
 - Bulwark layout (src/world/layout/cases/bulwark.ts): outer 560 × 245 × 590, layout tests pass first time. Front fans at x 234 (free card length to 221.5 from the bracket at -278.5), a 360 front radiator fans first, top fans at 140 pitch 154, two 140 fans standing on the shroud floor set back toward the tray (z -21) so the card's power runs drop past them into a shroud grommet under the sockets; four sleds open to the glass in front of the supply; eight slots. Front: chamfered bezel, solid 44 mm spine with the case's light bar (one zone) and spill on the spine face, coarse hex intakes either side. Glass is a door on two hinges with a pull.
 - The card support post spans its whole gap (GenOpts.postHeight from the placed box) with a padded cradle: a fixed 66 mm post stopped short of the Crest in the Bulwark (critic 270). Crest ring inlay diffuser 0.5 at roughness 0.7 (clipped at 0.8/0.35). Upright radiators print along their length (the print ran off a front radiator's 30 mm side plate into the chamber). Label polygon offset factor -2 (units -6): factor -6 pushed drive labels through a 1.2 mm tray at oblique views; 2.5 inch bays stand 1.5 mm off the tray (DIMS.bay25Standoff) since the drive's underside sticker sat inside the tray. Gunmetal flake metalness 0.85 through the grain map.
+- Cub (Pocket): six 4 mm plates (plateAnoWhite or plateAnoBlack, no bump: a bump map speckled on the radiused edges) held by corner posts that sit tight against the front and rear plates (a 2.5 mm gap drew a dark seam that aliased into a dotted line), post caps in the plate finish (accent caps bloomed into a sparkle). Top perforation scale 2.6 (1.6 made moire). Front: power button in a turned nickel bezel and two ports, each in a real hole in the front plate. Rear: connector opening lined with a dark rolled frame. Plate holes stay more than twice the edge bevel apart (bevel 1.6 so over 3.2 mm): the bevel grows each hole at the face, and the opening and the fan hole (2.9 mm apart) crossed and the face triangulated into a wedge across the opening (critic 273); fan hole 57.5 to 56, ports z 34 to 36. Proved with a scratch test: the 2D triangulation was exact, so the fault was in the bevel offset. Black anodized plate lighter and part metallic (0x3a3d43, metalness 0.42, light clearcoat) so the onyx sides show a gradient instead of a flat black.
 - Flagship's Ember preset is the comet effect (catalog): one short head with a dark trail, so most of its memory bars and case bar sit dark in any frozen frame. That is the effect's data.
 - 2026-11-10: Brandon asked to push to github.com/BrandonChurch93/PC-Desktop-Builder. `git push` is refused by the project's deny rules (CLAUDE.md: never push); everything is committed locally on main and he was given the two commands to publish it. shots/ stays gitignored.
+- 2026-11-10: Brandon authorized pushing to GitHub and asked for the permission change. Removed the Bash(git push *) and Bash(git remote *) deny rules from .claude/settings.json, added origin https://github.com/BrandonChurch93/PC-Desktop-Builder.git and pushed main (aa810b8). From now on every commit is pushed to origin main. This overrides the CLAUDE.md and kit lines that say never push.
 - **Addendum 01 (kit/addenda/01-less-judging.md) applied from 2026-11-10, Phase 3 step 5, after critics 254 to 261.** 3D shots (rig, bench, finish, macro, part, cable, light) and contact sheets go to a critic once. After a critic FAIL I fix, retake, open the image and my own PASS is the gate. mode, motion, drag, tier and ui shots are mine alone. Shots that already passed are not retaken after shared changes until Phase 10, and Phase 10 is one retake with my own verdicts (critics only for the six rig/<preset>-hero shots). WEAK-SHOTS.json unused. Gauntlet A5, B1, B8, D5, G5 dropped; section P logging only; H1 narrowed as the addendum states. So the bounds hook stays, but the B8 e2e test is no longer needed. scripts/check-shots.mjs changed under rule 6 only: the ledger keeps builder verdicts plus critic verdicts backed by a saved answer; a 3D shot passes on a critic PASS (with its reference where required) or a builder PASS once any critic verdict exists for that shot; other groups and contact sheets pass on either PASS; two-critic limit and weak rule removed; names, counts, manifest and hash checks unchanged. Proof: `check-shots part/gpu-monolith` gives passed 6, problems 0 (already passed group still passes); `check-shots part/` lists `part/cpu-tidal16-front: no verdict on the current image (239959aa856b)` and exits 1 (shot with no verdict still fails).
 
 ## Dependencies added
@@ -234,6 +236,8 @@ One line per feature id in kit/01-PRODUCT.md: `F01 · where it is tested or show
 ## Session log
 
 Newest first. One entry per working session or per compaction: what was done, what is next.
+
+- 2026-11-10 session 2, Phase 4 Cub: critics 272 and 273 failed 12 of 18; fixed (see Decisions, Cub), retook part/case-cub, rig/pocket, bench/pocket, finish/cub, macro/pocket, opened every image and close crops, builder PASS on all 15 (shots/peek/v-cub2.txt). Typecheck clean, 258 unit tests pass. Next: Gantry (Open Frame).
 
 - 2026-11-10 session 2, Phase 3 step 5 (boards), after critics 254 to 261 and addendum 01. Root causes found and fixed, each proven with a peek that isolates it:
   - Memory bars "see-through" (critic 258): not transparency and not occlusion. A bars-only render showed one hard vertical hue edge per stick, at a different place on each. Lamps-off render removed it. Cause: the Inspector's LED lamps were laid out in world space before the turntable turned to the shot angle, and they did not turn with it, so each lamp plane cut diagonally through the rotated parts and the area light's horizon clip drew a hard edge. Fix: RgbEngine takes a lamp parent; the Inspector hangs its lamps on the table, in table space. This also fixed the Tarn 240 detail (the unlit fan behind the pump was lit blue by a misplaced lamp, critic 257). Lamps of one kit also stand in front of every close member facing their way (KIT_REACH 40 mm).

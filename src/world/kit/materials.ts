@@ -21,7 +21,7 @@ function spun(): THREE.Texture {
 export type MatName =
   | 'powderBlack' | 'powderBlackInner' | 'powderWhite' | 'powderPanelWhite' | 'powderWhiteInner' | 'powderGunmetal' | 'powderGunmetalInner' | 'powderPanel' | 'panelPowder' | 'panelPowderWhite' | 'finAnodized' | 'capTop' | 'capBody' | 'pcbCore' | 'stickerMatte' | 'chipTop' | 'plasticMolded' | 'finGraphite' | 'aluLidStamp' | 'aluLidBrushed' | 'aluLid' | 'aluStamp'
   | 'steelBare' | 'steelZinc'
-  | 'aluBlack' | 'aluSilver' | 'aluPale' | 'aluPaleBead' | 'capSilver' | 'capDark' | 'aluWhite' | 'aluRaw' | 'aluBrushed' | 'aluBrushedDark' | 'aluBrushedPlate' | 'aluAnodized' | 'aluCast' | 'aluSatin' | 'aluSatinDark' | 'aluGunmetal' | 'aluFacet'
+  | 'aluBlack' | 'plateAnoWhite' | 'plateAnoBlack' | 'aluSilver' | 'aluPale' | 'aluPaleBead' | 'capSilver' | 'capDark' | 'aluWhite' | 'aluRaw' | 'aluBrushed' | 'aluBrushedDark' | 'aluBrushedPlate' | 'aluAnodized' | 'aluCast' | 'aluSatin' | 'aluSatinDark' | 'aluGunmetal' | 'aluFacet'
   | 'nickel' | 'nickelLapped' | 'pipeNickel' | 'copper' | 'gold' | 'solder'
   | 'plasticMatte' | 'plasticSatin' | 'plasticSoft' | 'plasticGloss' | 'plasticWhite' | 'plasticWhiteGloss' | 'plasticGrey' | 'plasticDark' | 'plasticNylon'
   | 'rubber' | 'rubberWhite' | 'rubberPad' | 'aluSatinBlack' | 'aluWhiteSatin' | 'finCoated' | 'finCoatedWhite' | 'finPale' | 'aluWhiteBrushed' | 'aluBeadGunmetal' | 'paintWhiteCard' | 'paintBlackCard'
@@ -182,6 +182,10 @@ function makeMat(name: MatName): THREE.Material {
     case 'powderGunmetalInner': return physical({ color: 0x41444b, metalness: 0.5, metalnessMap: t.grainFine, roughness: 0.5, roughnessMap: t.grainFine, bumpMap: t.peel, bumpScale: 0.25, clearcoat: 0.25, clearcoatRoughness: 0.35 });
     case 'steelBare': return metal(0xa6a9af, 0.34, t.grainFine);
     case 'steelZinc': return metal(0x9a9da2, 0.42, t.grain, { bumpMap: t.mottle, bumpScale: 0.2 });
+    // Thick bead blasted anodized plates (Paleforge): a slow roughness drift and no bump, so their large radiused edges hold a
+    // clean rolled highlight; a bump speckled at grazing angles (critic 272).
+    case 'plateAnoWhite': return capHighlights(physical({ color: 0xe4e5e9, metalness: 0.2, roughness: 0.5, roughnessMap: t.mottle, clearcoat: 0.1, clearcoatRoughness: 0.5 }), 1.3, 'plate-ano-white');
+    case 'plateAnoBlack': return metal(0x3a3d43, 0.46, t.mottle, { metalness: 0.42, clearcoat: 0.12, clearcoatRoughness: 0.55 });
     case 'aluBlack': return metal(0x34363b, 0.42, t.bead, { bumpMap: t.bead, bumpScale: 0.08 });
     // Highlights held under the bloom threshold: a top face toward the key softbox bloomed into a white blob on the white board.
     case 'aluSilver': return capHighlights(metal(0xa9adb4, 0.3, t.brushed, { anisotropy: 0.6 }), 1.3, 'alu-silver');

@@ -108,6 +108,15 @@ export function place(build: Build): Placed[] {
   if (gpu && (board || L.riser)) {
     const pose = gpuPose(L, board?.id ?? null);
     out.push(place1({ key: 'gpu', kind: 'gpu', category: 'gpu', id: gpu.id, part: 'gpu', pose, local: gpuBoxes(gpu.id), insert: [0, 0, -1], meta: {} }));
+    if (gpu.id === 'crest' && spec.open) {
+      // An open frame has no floor under the card: a short arm swings out from the backplate to the far end's underside.
+      const x = pose.pos[0] + gpu.length - DIMS.fingerOffset - 34;
+      const bottom = pose.pos[1] - (gpu.thickness - DIMS.backplateRise);
+      const plate = L.boardAnchor[2] - DIMS.standoff;
+      const reach = pose.pos[2] + gpu.height * 0.55 - plate;
+      const local = [box([-9, -16, 0], [9, 0, reach], 'support')];
+      out.push(place1({ key: 'gpu-support', kind: 'gpu-support', category: 'gpu', id: gpu.id, part: 'gpu', pose: { pos: [x, bottom, plate], rot: R0 }, local, insert: [0, 0, -1], meta: { arm: true } }));
+    }
     if (gpu.id === 'crest' && !spec.open) {
       const x = pose.pos[0] + gpu.length - DIMS.fingerOffset - 34;
       const bottom = pose.pos[1] - (gpu.thickness - DIMS.backplateRise);

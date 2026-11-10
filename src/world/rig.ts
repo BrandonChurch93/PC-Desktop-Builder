@@ -50,7 +50,9 @@ export class Rig {
       o.localUp = [r(cols[0]![1]), r(cols[1]![1]), r(cols[2]![1])];
       o.localView = [r(cols[0]![2]), r(cols[1]![2]), r(cols[2]![2])];
     }
-    if (p.kind === 'gpu-support') { o.openFrame = false; o.postHeight = Math.max(...p.local.map((b) => b.max[1])); }
+    if (p.kind === 'gpu-support') {
+      if (p.meta.arm) { o.openFrame = true; o.armReach = Math.max(...p.local.map((b) => b.max[2])); } else { o.openFrame = false; o.postHeight = Math.max(...p.local.map((b) => b.max[1])); }
+    }
     return o;
   }
 

@@ -199,7 +199,9 @@ function makeMat(name: MatName): THREE.Material {
     case 'capSilver': return capHighlights(metal(0xc4c7cc, 0.28, t.grainFine, { metalness: 0.7 }), 1.2, 'cap-silver');
     case 'capDark': return metal(0x3b3e45, 0.3, t.grainFine);
     case 'aluWhite': return physical({ color: 0xe8e9ec, metalness: 0.15, roughness: 0.38, roughnessMap: t.bead, clearcoat: 0.3, clearcoatRoughness: 0.3 });
-    case 'aluRaw': return metal(0xbabdc2, 0.5, t.bead, { bumpMap: t.bead, bumpScale: 0.1 });
+    // Bead blasted natural aluminum for the open frame's plates: part metallic and capped like the anodized plates, as a fully
+    // metallic pale sheet mirrored the dark room and read charcoal, and no bump, which speckled on radiused edges.
+    case 'aluRaw': return capHighlights(physical({ color: 0xb2b6bd, metalness: 0.8, roughness: 0.42, roughnessMap: t.bead }), 1.3, 'alu-raw');
     case 'aluBrushed': return capHighlights(metal(0xbfc2c8, 0.28, t.brushed, { anisotropy: 0.85, bumpMap: t.brushed, bumpScale: 0.08 }), 1.4, 'alu-brushed');
     case 'aluBrushedDark': return metal(0x30333a, 0.3, t.brushed, { anisotropy: 0.8, bumpMap: t.brushed, bumpScale: 0.2 });
     case 'aluBrushedPlate': return metal(0x383b43, 0.68, t.brushedCoarse, { anisotropy: 0.3, bumpMap: t.brushedCoarse, bumpScale: 0.12 });

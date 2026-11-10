@@ -9,6 +9,7 @@ import { atriumCase } from './caseAtrium';
 import { ventCase } from './caseVent';
 import { bulwarkCase } from './caseBulwark';
 import { cubCase } from './caseCub';
+import { gantryCase } from './caseGantry';
 import type { Zone } from '../light/zones';
 import type { Box } from '../layout/math';
 import { Labels } from '../kit/labels';
@@ -208,6 +209,7 @@ const BUILDERS: Record<string, (pb: PartBuilder, labels: Labels, spec: CaseSpec,
   vent: ventCase,
   bulwark: bulwarkCase,
   cub: cubCase,
+  gantry: gantryCase,
 };
 
 export function casePart(id: string, opts: GenOpts = {}): PartObject {

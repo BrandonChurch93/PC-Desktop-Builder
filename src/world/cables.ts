@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { getCable, getGpu } from '../data/catalog';
+import { getCable, getCase, getGpu } from '../data/catalog';
 import type { Build } from '../engine/types';
 import { mat, sleeve } from './kit/materials';
 import { rbox, rrect as rrectPath } from './kit/geometry';
@@ -49,8 +49,12 @@ export function filletPath(points: V[], radius: number, step = 2.5, straight = 1
   return dense;
 }
 
-/** Tangent frames carried along a path without twist. */
-function frames(path: V[], firstNormal: V) {
+/**
+ * Tangent frames carried along a path without twist, then turned about the path where the run must lie a given way: at each
+ * align point the row axis meets the given normal (either sense, as the rows are symmetric), and the turn between align points
+ * spreads along the length, as a bundle twists gently over a long span.
+ */
+function frames(path: V[], firstNormal: V, align: Align[] = []) {
   const T: V[] = path.map((_, i) => {
     const a = path[Math.max(0, i - 1)]!; const b = path[Math.min(path.length - 1, i + 1)]!;
     return b.clone().sub(a).normalize();
@@ -62,8 +66,35 @@ function frames(path: V[], firstNormal: V) {
     n = n.addScaledVector(t, -n.dot(t)).normalize();
     N.push(n.clone()); B.push(new THREE.Vector3().crossVectors(t, n).normalize());
   }
+  if (!align.length) return { T, N, B };
+  const cum = [0];
+  for (let i = 1; i < path.length; i++) cum.push(cum[i - 1]! + path[i]!.distanceTo(path[i - 1]!));
+  const keys: { s: number; a: number }[] = [{ s: 0, a: 0 }];
+  for (const al of align) {
+    let i = 0; let best = Infinity;
+    path.forEach((p, k) => { const d = p.distanceToSquared(al.at); if (d < best) { best = d; i = k; } });
+    const prev = keys[keys.length - 1]!.a;
+    if (!al.normal) { keys.push({ s: cum[i]!, a: 0 }); continue; }
+    const want = al.normal.clone().addScaledVector(T[i]!, -al.normal.dot(T[i]!)).normalize();
+    let a = Math.atan2(new THREE.Vector3().crossVectors(N[i]!, want).dot(T[i]!), N[i]!.dot(want));
+    while (a - prev > Math.PI / 2) a -= Math.PI;
+    while (a - prev < -Math.PI / 2) a += Math.PI;
+    keys.push({ s: cum[i]!, a });
+  }
+  keys.sort((p, q) => p.s - q.s);
+  for (let i = 0; i < path.length; i++) {
+    const s = cum[i]!;
+    let k = 0; while (k < keys.length - 2 && keys[k + 1]!.s <= s) k++;
+    const k0 = keys[k]!; const k1 = keys[Math.min(k + 1, keys.length - 1)]!;
+    const f = k1.s > k0.s ? THREE.MathUtils.smoothstep(s, k0.s, k1.s) : 1;
+    const a = s >= keys[keys.length - 1]!.s ? keys[keys.length - 1]!.a : k0.a + (k1.a - k0.a) * f;
+    N[i]!.applyAxisAngle(T[i]!, a); B[i]!.applyAxisAngle(T[i]!, a);
+  }
   return { T, N, B };
 }
+
+/** Where a run must lie a given way: its row axis along the normal at the path point nearest to the given one, or untwisted there when no normal is given. */
+export type Align = { at: V; normal?: V };
 
 export type Run = {
   name: string;
@@ -80,6 +111,8 @@ export type Run = {
   combs?: boolean;
   /** arc length from the path start to the first comb */
   combFrom?: number;
+  /** where the run must lie a given way along its length */
+  align?: Align[];
   /** the tray's z where the run dives through a tray grommet: the wires darken as they go into the opening */
   intoTray?: number;
 };
@@ -162,7 +195,7 @@ function wireSleeve(color: string): THREE.MeshPhysicalMaterial {
 
 /** Builds one run: each wire its own tube, combs along the straights, a plug housing at the connector end. */
 export function buildRun(run: Run, group: THREE.Group, detail = 1) {
-  const { T, N, B } = frames(run.path, run.rowAxis);
+  const { T, N, B } = frames(run.path, run.rowAxis, run.align);
   const byColor = new Map<string, THREE.BufferGeometry[]>();
   for (let r = 0; r < run.rows; r++) for (let c = 0; c < run.cols; c++) {
     const or = (r - (run.rows - 1) / 2) * run.pitch; const oc = (c - (run.cols - 1) / 2) * run.pitch;
@@ -248,6 +281,30 @@ const toCase = (item: RigItem, a: Anchor): { p: V; d: V } => {
   return { p: new THREE.Vector3(...a.pos).applyMatrix4(m), d: new THREE.Vector3(...a.dir).applyQuaternion(q).normalize() };
 };
 
+/**
+ * Cable routing on an open frame, where the plate's back is seen: every board run goes through its grommet, turns down the
+ * plate's back lying flat, and comes forward into one grommet beside the supply; the supply's own runs leave its sockets, rise,
+ * and go back into the same grommet. The two halves of a cable meet inside the plate. Lanes across that grommet keep the
+ * bundles apart on both faces.
+ */
+function openRouting(L: CaseLayout) {
+  const gp = L.grommets.find((g) => g.id === 'psu');
+  const tray = L.boxes.find((b) => b.tag === 'tray');
+  if (!gp || !tray) return null;
+  const back = tray.min[2]; const mid = (tray.min[2] + tray.max[2]) / 2;
+  // An 18 mm turn out of the grommet and along the plate.
+  const zr = back - 19; const yr = gp.center[1];
+  const x0 = gp.center[0] - gp.size[0] / 2;
+  return {
+    zr, yr, mid,
+    lane: { eps: x0 + 12, atx24: x0 + 56, gpu: [x0 + 92, x0 + 111] },
+    psu: { eps: x0 + 16, atx24: x0 + 28, atx10: x0 + 40, gpu: [x0 + 52, x0 + 64] } as Record<string, number | number[]>,
+    /** untwisted through the grommet, then flat on the plate's back on the way down */
+    flat: (hold: V, x: number, y: number): Align[] => [{ at: hold }, { at: v(x, (y + yr) / 2, zr), normal: v(0, 0, 1) }],
+    behind: (pts: V[], x: number, straight = DIMS.plugLength + 12) => filletPath([...pts, v(x, yr, zr), v(x, yr, mid)], 18, 2.5, straight, 4),
+  };
+}
+
 /** Everything flexible between parts: sleeved power runs, fan leads and liquid cooler tubes. Built in case space, mm. */
 export function buildCables(build: Build, items: Map<string, RigItem>, detail = 1): THREE.Group {
   const group = new THREE.Group();
@@ -260,7 +317,25 @@ export function buildCables(build: Build, items: Map<string, RigItem>, detail = 
   const grommet = (id: string) => L.grommets.find((g) => g.id === id);
   const board = items.get('board'); const psu = items.get('psu'); const gpu = items.get('gpu');
   const runs: Run[] = [];
-  if (board && psu) {
+  const open = getCase(build.case?.id)?.open === true ? openRouting(L) : null;
+  if (board && psu && open) {
+    const a = board.part.anchors.atx24; const g = grommet('atx24');
+    if (a && g) {
+      const { p } = toCase(board, a);
+      const x = g.center[0] - 4;
+      runs.push({ name: 'atx24', rows: 2, cols: 12, pitch: 4.2, wire: 1.65, rowAxis: v(0, 0, 1), colors, comb, plugAt: 'start', plug: 'latch', combFrom: DIMS.plugLength + 6.5,
+        path: open.behind([p.clone(), v(x, p.y, p.z), v(x, p.y, open.zr), v(open.lane.atx24, p.y, open.zr)], open.lane.atx24) });
+    }
+    const e = board.part.anchors.eps; const ge = grommet('eps');
+    if (e && ge) {
+      const { p } = toCase(board, e);
+      const x = open.lane.eps;
+      runs.push({ name: 'eps', rows: 2, cols: 4, pitch: 4.2, wire: 1.65, rowAxis: v(0, 1, 0), colors, comb, plugAt: 'start',
+        align: [{ at: v(p.x, ge.center[1], open.zr) }, { at: v((p.x + x) / 2, ge.center[1], open.zr), normal: v(0, 0, 1) }, ...open.flat(v(x, ge.center[1], open.zr), x, ge.center[1]).slice(1)],
+        path: open.behind([p.clone(), v(p.x, p.y, p.z + 31), v(p.x, ge.center[1], p.z + 31), v(p.x, ge.center[1], open.zr), v(x, ge.center[1], open.zr)], x) });
+    }
+  }
+  if (board && psu && !open) {
     const a = board.part.anchors.atx24; const g = grommet('atx24');
     if (a && g) {
       const { p } = toCase(board, a);
@@ -290,6 +365,13 @@ export function buildCables(build: Build, items: Map<string, RigItem>, detail = 
       const down = g ? g.center[1] - 20 : 100;
       const gx = g ? Math.min(Math.max(p.x, g.center[0] - g.size[0] / 2 + 14), g.center[0] + g.size[0] / 2 - 14) : p.x;
       const gz = g ? g.center[2] : p.z + 20;
+      if (open && g) {
+        // Out toward the glass, down in front of the card, back under it through the plate, and down behind it to the supply.
+        const x = open.lane.gpu[i] ?? open.lane.gpu[0]!; const gy = g.center[1] + i * 9;
+        runs.push({ name: `gpu-power-${i}`, rows: 2, cols, pitch, wire: twelve ? 1.35 : 1.65, rowAxis: v(0, 1, 0), colors, comb, plugAt: 'start', combFrom: DIMS.plugLength + 6,
+          align: open.flat(v(x, gy, open.zr), x, gy), path: open.behind([p.clone(), v(p.x, p.y, p.z + 30.4), v(p.x, gy, p.z + 30.4), v(x, gy, p.z + 30.4), v(x, gy, open.zr)], x) });
+        return;
+      }
       // A comb sits just past the plug, where the macros see the run.
       // A grommet in the tray (a dual chamber case): out toward the glass, down in front of the card, back under it to the tray.
       const path = g && g.normal[2] === 1
@@ -297,6 +379,29 @@ export function buildCables(build: Build, items: Map<string, RigItem>, detail = 
         : filletPath([p.clone(), v(p.x, p.y, Math.max(p.z + 30.4, gz + 11)), v(gx, down, Math.max(p.z + 30.4, gz + 11))], 18.4);
       runs.push({ name: `gpu-power-${i}`, rows: 2, cols, pitch, wire: twelve ? 1.35 : 1.65, rowAxis: v(0, 1, 0), colors, comb, plugAt: 'start', combFrom: DIMS.plugLength + 6, ...(g && g.normal[2] === 1 ? { intoTray: gz } : {}), path });
     });
+  }
+  if (open && psu) {
+    // The supply's half of each cable: out of its socket, up beside the socket panel, and back into the plate.
+    const out: { socket: string; lane: number; cols: number; pitch: number; wire: number }[] = [];
+    if (board) {
+      const split = !!psu.part.anchors.atx10;
+      out.push({ socket: 'atx24', lane: open.psu.atx24 as number, cols: split ? 9 : 12, pitch: 4.2, wire: 1.65 });
+      if (split) out.push({ socket: 'atx10', lane: open.psu.atx10 as number, cols: 5, pitch: 4.2, wire: 1.65 });
+      if (board.part.anchors.eps) out.push({ socket: 'eps', lane: open.psu.eps as number, cols: 4, pitch: 4.2, wire: 1.65 });
+    }
+    if (gpu) {
+      const spec = getGpu(gpu.placed.id);
+      const twelve = spec?.plugs.startsWith('12V');
+      const n = ['power', 'power2'].filter((k) => gpu.part.anchors[k]).length;
+      for (let i = 0; i < n; i++) out.push({ socket: twelve ? 'hpwr' : `pcie${i + 1}`, lane: (open.psu.gpu as number[])[i]!, cols: twelve ? 6 : 4, pitch: twelve ? 3.0 : 4.2, wire: twelve ? 1.35 : 1.65 });
+    }
+    for (const o of out) {
+      const s = psu.part.anchors[o.socket];
+      if (!s) continue;
+      const { p } = toCase(psu, s);
+      runs.push({ name: `psu-${o.socket}`, rows: 2, cols: o.cols, pitch: o.pitch, wire: o.wire, rowAxis: v(0, 1, 0), colors, comb, plugAt: 'start', plug: 'latch', combFrom: DIMS.plugLength + 6,
+        path: filletPath([p.clone(), v(o.lane, p.y, p.z), v(o.lane, open.yr, p.z), v(o.lane, open.yr, open.mid)], 18, 2.5, DIMS.plugLength + 2, 4) });
+    }
   }
   const pump = items.get('cooler'); const rad = items.get('radiator');
   if (pump && rad && pump.part.anchors.fitting0 && rad.part.anchors.fitting0) {

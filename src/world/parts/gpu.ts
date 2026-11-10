@@ -612,6 +612,19 @@ export function supportPart(id: string, opts: GenOpts = {}): PartObject {
   // The post spans its whole gap, foot on the shroud to a padded cradle under the card; a fixed length stopped short of it.
   const h = Math.max(20, opts.postHeight ?? 66);
   const pb = new PartBuilder(`support-${id}`);
+  if (opts.openFrame) {
+    // An arm on a hinge block screwed to the backplate, swung out under the card's far end; origin on the plate face at the
+    // card's underside, the arm along +z.
+    const reach = Math.max(40, opts.armReach ?? 120);
+    pb.add(rbox(24, 28, 7, 1.2, 3), 'aluBlack', at(0, -12, 3.5));
+    for (const dy of [-22, -2]) pb.add(lathe([[0, 0], [2.4, 0], [2.4, 0.6], [2.0, 1.3], [0, 1.4]], 20), 'nickel', at(0, dy, 7));
+    pb.add(cyl(4.2, 20, 'y', 28), 'aluSatinDark', at(0, -12, 12));
+    pb.add(rbox(12, 7, reach - 16, 1.6, 3), 'aluBlack', at(0, -10.5, 12 + (reach - 16) / 2));
+    pb.add(rbox(10, 4.6, 10, 0.8, 2), 'aluBlack', at(0, -4.7, reach - 10));
+    pb.add(rbox(18, 2.2, 22, 0.8, 2), 'rubber', at(0, -1.1, reach - 11));
+    const arm = pb.finish();
+    return { root: arm.root, boxes: [], anchors: {}, zones: [], rotors: [], movers: {}, dispose: arm.dispose };
+  }
   pb.add(cyl(9, 3, 'y', 32), 'aluBlack', at(0, 1.5, 0));
   pb.add(cyl(6, 4, 'y', 32), 'aluBlack', at(0, 5, 0));
   pb.add(cyl(3.2, h - 12, 'y', 24), 'aluSatinDark', at(0, 7 + (h - 12) / 2, 0));

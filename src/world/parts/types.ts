@@ -40,6 +40,7 @@ export type GenOpts = {
   /** the placed key, so zones of repeated parts get their own names */
   key?: string;
   /** a crest card in the open frame carries an arm instead of a post */
+  armReach?: number;
   openFrame?: boolean;
   /** shown alone in the Inspector: loose leads hang and end in their plugs */
   loose?: boolean;

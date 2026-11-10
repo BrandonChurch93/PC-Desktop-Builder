@@ -77,9 +77,10 @@ export function interiorPatches(L: CaseLayout, items: Map<string, RigItem>, tube
     const mount = L.fanMounts.find((f) => f.id === String(item.placed.meta.mount));
     if (!mount || mount.group !== 'front') continue;
     const half = mount.size / 2; const back = mount.center[0] - 13;
-    const mesh = patch(new THREE.Vector3(back, mount.center[1] - half + 4, trayZ), new THREE.Vector3(0, 1, 0), mount.size - 8, new THREE.Vector3(-1, 0, 0), 110);
+    const mesh = patch(new THREE.Vector3(back, mount.center[1] - half + 4, trayZ), new THREE.Vector3(0, 1, 0), mount.size - 8, new THREE.Vector3(-1, 0, 0), 45);
     group.add(mesh);
-    patches.push({ mesh, zone: item.part.zones[0]!, gain: 1.3 });
+    // Short and moderate: a long bright patch read as a haze cloud in the chamber in the side view.
+    patches.push({ mesh, zone: item.part.zones[0]!, gain: 0.7 });
   }
   // Fans under a top radiator face down, so their lamp only grazes the tray and the board's top edge just below them, where
   // the tubes run: each fan's light lands on the tray and on the board face under it.
@@ -98,19 +99,19 @@ export function interiorPatches(L: CaseLayout, items: Map<string, RigItem>, tube
         const mesh = tubeGlow(t, lit.c, lit.w);
         if (!mesh) continue;
         group.add(mesh);
-        patches.push({ mesh, zone: z, gain: 1.8 });
+        patches.push({ mesh, zone: z, gain: 2.6 });
       }
       const a = lit.c.x - lit.w / 2 + 4; const b = lit.c.x + lit.w / 2 - 4;
       const tray = patch(new THREE.Vector3(a, lit.c.y, trayZ), new THREE.Vector3(1, 0, 0), b - a, new THREE.Vector3(0, -1, 0), 110);
       group.add(tray);
-      patches.push({ mesh: tray, zone: z, gain: 1.0 });
+      patches.push({ mesh: tray, zone: z, gain: 1.35 });
       // On the board only where it lies under the fan, from its top edge down.
       const ba = Math.max(a, board.x0); const bb = Math.min(b, board.x1);
       if (bb - ba > 20) {
         const top = Math.min(lit.c.y, board.y1);
         const mesh = patch(new THREE.Vector3(ba, top, boardFace), new THREE.Vector3(1, 0, 0), bb - ba, new THREE.Vector3(0, -1, 0), 110 - (lit.c.y - top));
         group.add(mesh);
-        patches.push({ mesh, zone: z, gain: 0.8 });
+        patches.push({ mesh, zone: z, gain: 1.05 });
       }
     }
   }
@@ -120,9 +121,9 @@ export function interiorPatches(L: CaseLayout, items: Map<string, RigItem>, tube
     let x0 = Infinity; let x1 = -Infinity; let y0 = Infinity; let y1 = -Infinity; let z0 = Infinity;
     for (const b of item.placed.boxes) { x0 = Math.min(x0, b.min[0]); x1 = Math.max(x1, b.max[0]); y0 = Math.min(y0, b.min[1]); y1 = Math.max(y1, b.max[1]); z0 = Math.min(z0, b.min[2]); }
     for (const s of [-1, 1]) {
-      const mesh = patch(new THREE.Vector3(s > 0 ? x1 : x0, y0 + 4, z0 - 1.6), new THREE.Vector3(0, 1, 0), y1 - y0 - 8, new THREE.Vector3(s, 0, 0), 34);
+      const mesh = patch(new THREE.Vector3(s > 0 ? x1 : x0, y0 + 4, z0 - 1.6), new THREE.Vector3(0, 1, 0), y1 - y0 - 8, new THREE.Vector3(s, 0, 0), 44);
       group.add(mesh);
-      patches.push({ mesh, zone: item.part.zones[0]!, gain: 0.55 });
+      patches.push({ mesh, zone: item.part.zones[0]!, gain: 0.95 });
     }
   }
   const gpu = items.get('gpu');

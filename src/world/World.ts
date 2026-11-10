@@ -9,8 +9,9 @@ import type { Build } from '../engine/types';
 import type { State, Store, Tier } from '../state/store';
 import { glassEnvironment, studioEnvironment } from './env';
 import { forEachVertex } from './kit/geometry';
-import { setGlassCards, setGlassEnvironment, setGlassStage, setPerfAspect, type GlassCard } from './kit/materials';
+import { setGlassEnvironment, setGlassStage, setPerfAspect, type GlassCard } from './kit/materials';
 import GLASS_CARDS from './glass-cards.json';
+import STUDIO_GLASS_CARDS from './studio-glass-cards.json';
 import { setMaxAnisotropy, textures } from './kit/textures';
 import { loadFonts } from './kit/type';
 import { CASE_LAYOUTS } from './layout/cases';
@@ -25,6 +26,8 @@ import { Room } from './room';
 const FOV = 30;
 const EXPOSURE = 1.15;
 const ROOM_GLASS_CLAMP = 0.1;
+/** Under the bloom threshold even over a white interior. */
+const STUDIO_GLASS_CLAMP = 0.55;
 const MM = 0.001;
 const SPIN_IDLE = 9;
 const SPIN_FULL = 42;
@@ -87,8 +90,7 @@ export class World {
     this.scene.environment = roomEnv;
     this.scene.environmentIntensity = 1.0;
     setGlassEnvironment(glassEnvironment(this.renderer));
-    setGlassCards(GLASS_CARDS as GlassCard[]);
-    setGlassStage('room', ROOM_GLASS_CLAMP);
+    setGlassStage('room', ROOM_GLASS_CLAMP, GLASS_CARDS as GlassCard[]);
     this.inspector = new Inspector(studioEnvironment(this.renderer, 'inspector'));
     this.scene.add(this.rig.group);
   }
@@ -132,7 +134,7 @@ export class World {
 
   private syncFromStore(s: State, prev: State | null) {
     if (!prev || s.build !== prev.build) this.setBuild(s.build);
-    if (!prev || s.mode !== prev.mode) this.room.setLevel(s.mode === 'showcase' ? 0.62 : s.mode === 'build' ? 1.12 : 0.9);
+    if (!prev || s.mode !== prev.mode) this.room.setLevel(s.mode === 'showcase' ? 0.7 : s.mode === 'build' ? 1.12 : 0.9);
     if (!prev || s.power !== prev.power) this.setPower(s.power, s.instant || s.frozen !== null);
     if (!prev || s.load !== prev.load || s.build !== prev.build) this.rgb.temps = temps(s.build, s.load);
     if (!prev || s.inspect !== prev.inspect) this.setInspect(s);
@@ -170,7 +172,7 @@ export class World {
 
   private setInspect(s: State) {
     const i = s.inspect;
-    if (!i) { this.showingInspector = false; setGlassStage('room', ROOM_GLASS_CLAMP); this.post.setScene(this.scene, this.camera); this.dirty = true; return; }
+    if (!i) { this.showingInspector = false; setGlassStage('room', ROOM_GLASS_CLAMP, GLASS_CARDS as GlassCard[]); this.post.setScene(this.scene, this.camera); this.dirty = true; return; }
     const opts: GenOpts = { detail: TIER_SETTINGS[this.tier].detail };
     if (i.finish) opts.finish = i.finish;
     else if (i.category === 'case') opts.finish = getCase(i.id)?.finishes[0] ?? 'onyx';
@@ -180,7 +182,7 @@ export class World {
     this.inspector.zoom = i.zoom;
     this.inspector.focus = (i as { focus?: [number, number, number] }).focus ?? null;
     this.showingInspector = true;
-    setGlassStage('studio');
+    setGlassStage('studio', STUDIO_GLASS_CLAMP, STUDIO_GLASS_CARDS as GlassCard[]);
     this.post.setScene(this.inspector.scene, this.inspector.camera, true);
     this.dirty = true;
   }

@@ -48,7 +48,7 @@ function surface(b: BoardSpec, L: BoardLayout, look: Look, ppm: number): { map: 
     const bundle = 1 + Math.floor(r() * 5);
     for (let k = 0; k < bundle; k++) {
       const o = k * 0.62;
-      for (const [ctx, style, wdt, s2] of [[g, look.frost ? 'rgba(200,203,210,0.9)' : 'rgba(34,42,54,0.95)', 0.32, ppm], [hg, 'rgba(150,150,150,1)', 0.4, ppm / 2]] as [CanvasRenderingContext2D, string, number, number][]) {
+      for (const [ctx, style, wdt, s2] of [[g, look.frost ? 'rgba(196,199,207,0.95)' : 'rgba(44,54,70,0.95)', 0.32, ppm], [hg, 'rgba(150,150,150,1)', 0.4, ppm / 2]] as [CanvasRenderingContext2D, string, number, number][]) {
         ctx.strokeStyle = style; ctx.lineWidth = wdt * s2; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
         ctx.beginPath();
         pts.forEach(([xx, yy], j) => { const X = (xx + o) * s2; const Y = (-yy + o) * s2; if (j) ctx.lineTo(X, Y); else ctx.moveTo(X, Y); });
@@ -76,8 +76,27 @@ function surface(b: BoardSpec, L: BoardLayout, look: Look, ppm: number): { map: 
       else { g.fillRect(px(x), py(y), bw * 0.22 * ppm, bh * ppm); g.fillRect(px(x) + bw * 0.78 * ppm, py(y), bw * 0.22 * ppm, bh * ppm); }
     }
   }
+  // Tinned pads for small parts not placed on this side, and a few small IC footprints with their pad rows, so the bare
+  // board between the big parts reads as a populated circuit board and not as line art.
+  {
+    const tin = look.frost ? 'rgba(178,180,186,1)' : 'rgba(118,116,108,1)';
+    g.fillStyle = tin;
+    for (let i = 0; i < 900; i++) {
+      const x = 3 + r() * (L.w - 6); const y = -3 - r() * (L.h - 6); const along = r() > 0.5;
+      const [pw, ph, gap] = r() > 0.7 ? [0.7, 0.9, 1.0] : [0.45, 0.6, 0.6];
+      if (along) { g.fillRect(px(x), py(y), pw * ppm, ph * ppm); g.fillRect(px(x + pw + gap), py(y), pw * ppm, ph * ppm); }
+      else { g.fillRect(px(x), py(y), ph * ppm, pw * ppm); g.fillRect(px(x), py(y) + (pw + gap) * ppm, ph * ppm, pw * ppm); }
+    }
+    for (let i = 0; i < 26; i++) {
+      const x = 8 + r() * (L.w - 20); const y = -8 - r() * (L.h - 20); const s = 3 + r() * 3;
+      for (let k = 0; k < Math.floor(s / 0.65); k++) {
+        g.fillRect(px(x - 0.9), py(y - k * 0.65), 0.6 * ppm, 0.3 * ppm); g.fillRect(px(x + s + 0.3), py(y - k * 0.65), 0.6 * ppm, 0.3 * ppm);
+        g.fillRect(px(x + k * 0.65), py(y + 0.9), 0.3 * ppm, 0.6 * ppm); g.fillRect(px(x + k * 0.65), py(y - s - 0.3), 0.3 * ppm, 0.6 * ppm);
+      }
+    }
+  }
   g.strokeStyle = look.silk; g.lineWidth = Math.max(1, 0.15 * ppm);
-  const outline = (x0: number, y0: number, x1: number, y1: number) => g.strokeRect(px(x0), py(y0), (x1 - x0) * ppm, (y0 - y1) * ppm);
+  const outline =(x0: number, y0: number, x1: number, y1: number) => g.strokeRect(px(x0), py(y0), (x1 - x0) * ppm, (y0 - y1) * ppm);
   L.dimms.slice(0, b.ramSlots).forEach((d) => outline(d.x - 4, d.y + 74, d.x + 4, d.y - 74));
   L.pcie.forEach((s) => outline(s.x0 - 1.5, s.y + 5, s.x0 + s.len + 1.5, s.y - 5));
   L.m2.slice(0, b.m2Slots).forEach((m) => { if (m.level === 0) outline(m.x0 - 7, m.y + 14, m.x0 + 93, m.y - 14); });
@@ -333,7 +352,8 @@ export function boardPart(id: string, opts: GenOpts = {}): PartObject {
   for (const [x, y] of L.holes) outline.holes.push(circleHole(x, y, 1.9));
   // The body shows only at its edges, where a board shows its matte fiberglass core: a clearcoated edge broke into dashes.
   pb.add(extrude(outline, T, 0.35, 'xy', 12, 2), 'pcbCore');
-  const ppm = Math.max(4, Math.round(9 * detail));
+  // 12 px a millimeter: at 9 the baked silkscreen went soft in the close board view.
+  const ppm = Math.max(4, Math.round(12 * detail));
   const surf = surface(b, L, look, ppm);
   const topMat = pb.own(new THREE.MeshPhysicalMaterial({ map: pb.own(surf.map), bumpMap: pb.own(surf.bump), bumpScale: 0.6, roughness: look.frost ? 0.42 : 0.38, metalness: 0.05, clearcoat: 0.55, clearcoatRoughness: 0.22, alphaTest: 0.5 }));
   const top = new THREE.PlaneGeometry(L.w, L.h); top.translate(L.w / 2, -L.h / 2, T + 0.02);
@@ -368,14 +388,22 @@ export function boardPart(id: string, opts: GenOpts = {}): PartObject {
   const body = rrectShape(sw, sh, 0.8); body.holes.push(rrectHole(cav[0]! + 0.6, cav[1]! + 0.6, 0.8));
   pb.add(extrude(body, 3.0, 0.4, 'xy', 6, 1), look.plastic, at(sx, sy, T));
   pb.add(new THREE.BoxGeometry(cav[0]! + 0.6, cav[1]! + 0.6, 1.26), look.plastic, at(sx, sy, T + 0.63));
-  pb.add(new THREE.BoxGeometry(cav[0]!, cav[1]!, 0.08), 'plasticDark', at(sx, sy, T + 1.3), { uv: 'box' });
-  const pinMats: THREE.Matrix4[] = [];
-  for (let i = 0; i < cav[0]! / 1.6; i++) for (let j = 0; j < cav[1]! / 1.6; j++) {
-    const x = sx - cav[0]! / 2 + 0.8 + i * 1.6; const y = sy - cav[1]! / 2 + 0.8 + j * 1.6;
-    if (Math.abs(x - sx) < cav[0]! * 0.18 && Math.abs(y - sy) < cav[1]! * 0.16) continue;
-    pinMats.push(xf({ p: [x, y, T + 1.6], r: [0.55, 0, 0] }));
+  // The contact field is a mipmapped texture: a thousand sub-pixel pins aliased into a moire band at the front view.
+  {
+    const ppm = 20; const W = Math.round(cav[0]! * ppm); const H = Math.round(cav[1]! * ppm);
+    const col = canvas(W, H); const met = canvas(W, H);
+    col.g.fillStyle = 'rgba(30,31,36,1)'; col.g.fillRect(0, 0, W, H); met.g.fillStyle = 'rgba(0,0,0,1)'; met.g.fillRect(0, 0, W, H);
+    for (let i = 0; i < cav[0]! / 1.6; i++) for (let j = 0; j < cav[1]! / 1.6; j++) {
+      const x = 0.8 + i * 1.6; const y = 0.8 + j * 1.6;
+      if (Math.abs(x - cav[0]! / 2) < cav[0]! * 0.18 && Math.abs(y - cav[1]! / 2) < cav[1]! * 0.16) continue;
+      for (const [g, st] of [[col.g, 'rgba(214,176,98,1)'], [met.g, 'rgba(255,255,255,1)']] as [CanvasRenderingContext2D, string][]) {
+        g.save(); g.translate(x * ppm, y * ppm); g.rotate(0.55); g.fillStyle = st; g.fillRect(-0.21 * ppm, -0.45 * ppm, 0.42 * ppm, 0.9 * ppm); g.restore();
+      }
+    }
+    const map = pb.own(wrap(col.canvas, { srgb: true, repeat: false })); const mm = pb.own(wrap(met.canvas, { repeat: false }));
+    const field = new THREE.PlaneGeometry(cav[0]!, cav[1]!);
+    pb.mesh(field, pb.own(new THREE.MeshPhysicalMaterial({ map, metalnessMap: mm, metalness: 1, roughness: 0.42 })), at(sx, sy, T + 1.35), { uv: 'keep' });
   }
-  if (detail >= 1) pb.instanced(new THREE.BoxGeometry(0.42, 0.95, 0.16), pb.own(new THREE.MeshPhysicalMaterial({ color: 0xe3bc68, metalness: 1, roughness: 0.42 })), pinMats, { shadow: false });
   const hingeY = sy - sh / 2 + 1;
   const plate = pb.group('socket-frame', pb.root, at(sx, hingeY, T + 3.3));
   const fw = sw - 2; const fh = sh - 4;
@@ -387,9 +415,15 @@ export function boardPart(id: string, opts: GenOpts = {}): PartObject {
   pb.add(rbox(10, 4, 1.2, 0.4, 1), 'steelBare', at(0, fh + 1.6, 0.5), { to: plate });
   movers['socket-frame'] = plate;
   const lever = pb.group('socket-lever', pb.root, at(sx + sw / 2 + 2.2, hingeY + 2, T + 2.4));
-  pb.add(cyl(0.9, fh - 2, 'y', 12), 'steelBare', at(0, (fh - 2) / 2, 0), { to: lever });
-  pb.add(cyl(0.9, 8, 'x', 12), 'steelBare', at(-4, fh - 2, 0), { to: lever });
-  pb.add(rbox(3, 7, 2.4, 0.8, 2), 'plasticMatte', at(-0.2, 1, 0), { to: lever });
+  // A load lever as builders know it: a stout wire rod beside the socket, a cam bent in over the frame's foot, the free end
+  // bent outward into a plastic grip, held down under a hook on the socket's side.
+  pb.add(cyl(1.15, fh - 2, 'y', 16), 'steelBare', at(0, (fh - 2) / 2, 0), { to: lever });
+  pb.add(cyl(1.15, 6, 'x', 16), 'steelBare', at(-3, -0.4, 0), { to: lever });
+  pb.add(cyl(1.15, 7, 'x', 16), 'steelBare', at(3.5, fh - 2, 0), { to: lever });
+  pb.add(rbox(5, 3.4, 3.0, 1.2, 3), 'plasticMatte', at(8.5, fh - 2, 0), { to: lever });
+  pb.add(rbox(1.6, 3.2, 3.6, 0.4, 2), 'steelBare', at(sx + sw / 2 + 4.0, hingeY + fh * 0.7, T + 1.8));
+  pb.add(rbox(4.2, 1.2, 1.0, 0.3, 1), 'steelBare', at(sx + sw / 2 + 2.6, hingeY + fh * 0.7, T + 3.9));
+  for (const kx of [-fw / 2 + 6, 0, fw / 2 - 6]) pb.add(cyl(1.5, 7, 'x', 16), 'steelBare', at(sx + kx, hingeY - 1.4, T + 3.0));
   movers['socket-lever'] = lever;
   {
     const fsg = screwGeometry(1.8, 0.9, 'button');
@@ -407,9 +441,11 @@ export function boardPart(id: string, opts: GenOpts = {}): PartObject {
   const lastDimm = L.dimms[L.dimms.length - 1];
   if (lastDimm) for (const [dx, dy] of [[13, -22], [13, -30.5], [20.5, -22]] as [number, number][]) capacitor(pb, lastDimm.x + dx, dy, 7, 2.2);
   if (L.size !== 'itx') {
-    for (const y of [-180, -188.5, -250, -258.5, -275]) capacitor(pb, 11, y, 9, 2.6, true);
-    pb.add(rbox(7, 7, 1.1, 0.3, 1), 'chip', at(11, -218, T + 0.55));
-    labels.text('KR-A7', TINY_TYPE, 1.0, at(11, -218, T + 1.12), { color: '#8a8e96' });
+    // The audio section fits the board's own height: on micro ATX the ATX positions ran past the bottom edge.
+    const audio = L.size === 'matx' ? { caps: [-178, -186.5, -214, -222.5, -231], chip: -200 } : { caps: [-180, -188.5, -250, -258.5, -275], chip: -218 };
+    for (const y of audio.caps) capacitor(pb, 11, y, 9, 2.6, true);
+    pb.add(rbox(7, 7, 1.1, 0.3, 1), 'chip', at(11, audio.chip, T + 0.55));
+    labels.text('KR-A7', TINY_TYPE, 1.0, at(11, audio.chip, T + 1.12), { color: '#8a8e96' });
   }
   heatsink(pb, look, vr.x0, vr.x1, vr.y0, vr.y1, vr.h, 'y', `${id}-vr`);
   heatsink(pb, look, vt.x0, vt.x1, vt.y0, vt.y1, vt.h, 'x', `${id}-vt`, true);
@@ -558,8 +594,10 @@ export function boardPart(id: string, opts: GenOpts = {}): PartObject {
   housing(pb, look, L.eps.x, L.eps.y, 21.2, 10.2, 13, 4, 2, 4.2, 'x');
   anchors.eps = { pos: [L.eps.x, L.eps.y, T + 13], dir: [0, 0, 1] };
   L.sata.slice(0, b.sataPorts).forEach((p, i) => {
-    const z = T + 3.4 + p.level * 6.4;
-    pb.add(rbox(10, 8.6, 6, 0.4, 1), look.plastic, at(p.x, p.y, z));
+    // Each port of a stacked pair is its own housing with a dark seam between them, so all ports read.
+    const z = T + 3.2 + p.level * 6.6;
+    pb.add(rbox(10, 8.6, 5.6, 0.5, 1), look.plastic, at(p.x, p.y, z));
+    if (p.level === 1) pb.add(new THREE.BoxGeometry(9.4, 8.0, 1.0), 'darkVoid', at(p.x, p.y, z - 3.3), { uv: 'keep' });
     pb.add(new THREE.BoxGeometry(0.6, 6.4, 1.6), 'darkVoid', at(p.x + 5.05, p.y, z), { uv: 'keep' });
     anchors[`sata${i + 1}`] = { pos: [p.x + 5.2, p.y, z], dir: [1, 0, 0] };
   });
@@ -571,7 +609,9 @@ export function boardPart(id: string, opts: GenOpts = {}): PartObject {
   fans.forEach((h, i) => { anchors[`fan${i + 1}`] = { pos: [h.x, h.y, T + 8.2], dir: [0, 0, 1] }; });
   pb.add(lathe([[0, 0], [10.4, 0], [10.4, 3.2], [9.6, 3.2], [9.6, 1.0], [0, 1.0]], 40), look.plastic, at(L.coin.x, L.coin.y, T));
   pb.add(puck(10, 3.2, 0.5, 40), 'nickel', at(L.coin.x, L.coin.y, T + 1.0));
-  labels.text('CR2032 3V', TINY_TYPE, 1.4, at(L.coin.x, L.coin.y, T + 4.25), { color: '#55585f' });
+  // Two lines inside the cell's face, clear of the holder's lip.
+  labels.text('CR2032', TINY_TYPE, 2.3, at(L.coin.x, L.coin.y + 1.6, T + 4.25), { color: '#3b3d43' });
+  labels.text('3V', TINY_TYPE, 1.9, at(L.coin.x, L.coin.y - 2.0, T + 4.25), { color: '#3b3d43' });
 
   // small parts: chips with markings and scattered passives
   const chips: [number, number, number, number, string][] = L.size === 'itx'
@@ -580,7 +620,7 @@ export function boardPart(id: string, opts: GenOpts = {}): PartObject {
   for (const [x, y, w, h, t] of chips) {
     if (y < -L.h + 6) continue;
     pb.add(rbox(w, h, 1.2, 0.3, 1), 'chip', at(x, y, T + 0.6));
-    labels.text(t, TINY_TYPE, Math.min(w, h) * 0.16, at(x, y, T + 1.25), { color: '#8a8e96' });
+    labels.text(t, TINY_TYPE, Math.min(w, h) * 0.2, at(x, y, T + 1.25), { color: '#a6aab2' });
   }
   const r = seededFor(`smd-${id}`);
   const passives: THREE.Matrix4[] = []; const passivesC: THREE.Matrix4[] = [];
@@ -640,7 +680,7 @@ export function boardPart(id: string, opts: GenOpts = {}): PartObject {
     const p0 = new THREE.Vector3(cs.x1 - 3, cs.y0 - 12, chipZ); const p1 = new THREE.Vector3(cs.x1 - 3, cs.y1 + 6, chipZ);
     const z = new Zone(`${key}:chipset`, 'board', false, stripLeds(p0, p1, 6.5), 0.6);
     const g = rbox(2.2, p0.y - p1.y, 1.6, 0.7, 2); uvAlong(g, 'y'); g.scale(1, -1, 1);
-    pb.mesh(g, z.diffuser(0.5, look.frost ? 0xd8dadf : 0x1c1d21), at(p0.x, (p0.y + p1.y) / 2, chipZ - 0.6), { uv: 'keep' });
+    pb.mesh(g, z.diffuser(0.36, look.frost ? 0xb9bcc3 : 0x16171b, 0.88), at(p0.x, (p0.y + p1.y) / 2, chipZ - 0.6), { uv: 'keep' });
     const toMinusX = new THREE.Matrix4().makeBasis(new THREE.Vector3(0, -1, 0), new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0, 1));
     pb.mesh(spillStrip(p0.y - p1.y, 22, 8), z.spill(look.frost ? 0.42 : 0.8), toMinusX.clone().setPosition(p0.x - 1.2, (p0.y + p1.y) / 2, chipZ + 0.06), { uv: 'keep' }).userData.spill = true;
     // And on the board beside the chipset, toward the SATA ports.

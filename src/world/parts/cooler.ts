@@ -49,18 +49,20 @@ function buildPump(pb: PartBuilder, labels: Labels, k: CoolerSpec, key: string, 
   pb.add(extrude(cap, 1.4, 0.5, 'xy', 96), frost ? 'plasticWhiteGloss' : 'plasticGloss', at(0, 0, 46.2), { to: root });
   const zone = new Zone(`${key}:pump`, 'cooler', true, Array.from({ length: 24 }, (_, i) => { const a = (i / 24) * PI * 2; return new THREE.Vector3(Math.cos(a) * 31.5, Math.sin(a) * 31.5, 47); }), 0.3);
   // The rings are thin, so they run brighter than a fan ring for the same LEDs; a blue comet head barely read at 1.0.
-  pb.mesh(torus(31.6, 1.35, 10, 128), zone.diffuser(frost ? 0.9 : 1.2, frost ? 0xd8dadf : 0x1c1d21), at(0, 0, 46.9), { to: root, uv: 'keep' });
-  pb.mesh(torus(23, 0.6, 8, 128), zone.diffuser(frost ? 0.62 : 0.82, frost ? 0xd8dadf : 0x1c1d21), at(0, 0, 47.6), { to: root, uv: 'keep' });
+  pb.mesh(torus(31.6, 1.35, 10, 128), zone.diffuser(frost ? 0.7 : 1.2, frost ? 0xd8dadf : 0x1c1d21), at(0, 0, 46.9), { to: root, uv: 'keep' });
+  pb.mesh(torus(23, 0.6, 8, 128), zone.diffuser(frost ? 0.5 : 0.82, frost ? 0xd8dadf : 0x1c1d21), at(0, 0, 47.6), { to: root, uv: 'keep' });
   // On the white cap the rings' light takes their hue over the white; added light cannot tint white.
-  pb.mesh(spillRing(30.3, 12, 96), frost ? pb.own(zone.tint(1.0, 0.55)) : zone.spill(0.3), at(0, 0, 47.66), { to: root, uv: 'keep' }).userData.spill = true;
+  pb.mesh(spillRing(30.3, frost ? 17 : 12, 96), frost ? pb.own(zone.tint(1.0, 0.85)) : zone.spill(0.3), at(0, 0, 47.66), { to: root, uv: 'keep' }).userData.spill = true;
   if (frost) {
     // Lit, the frosted white rings carry the LEDs' color: their body steps down from white as the LEDs come up.
     const white = new THREE.Color(0xd8dadf); const lit = new THREE.Color(0x2c2e34);
-    const rings = [zone.diffuser(0.9, 0xd8dadf), zone.diffuser(0.62, 0xd8dadf)];
+    const rings = [zone.diffuser(0.7, 0xd8dadf), zone.diffuser(0.5, 0xd8dadf)];
     zone.listeners.push((c) => { const k = Math.min(1, 1.6 * Math.max(c.r, c.g, c.b)); for (const r of rings) r.color.copy(white).lerp(lit, k); });
   }
-  zone.emit(new THREE.Vector3(0, 0, 48.5), new THREE.Vector3(0, 0, 1), 70, 70, 0.9);
-  zone.emit(new THREE.Vector3(0, 0, 30), new THREE.Vector3(0, 0, -1), 90, 90, 0.5);
+  // Standing alone in the Inspector the pump sits a few centimeters from the radiator's fans, and its light at rig strength
+  // lit an unlit fan as if the fan were lit. In the rig the light behind the ring falls on the bracket and the board.
+  zone.emit(new THREE.Vector3(0, 0, 48.5), new THREE.Vector3(0, 0, 1), 70, 70, loose ? 0.4 : 0.9);
+  zone.emit(new THREE.Vector3(0, 0, 30), new THREE.Vector3(0, 0, -1), 90, 90, loose ? 0.12 : 0.5);
   zone.owner = root;
   labels.text(brandName(k.brand), BRAND_TYPE[k.brand] ?? SPEC_TYPE, 3.6, at(0, 1.4, 47.66, [0, 0, 0]), { color: frost ? '#555a63' : '#c9ccd4', to: root });
   labels.text(k.name.toUpperCase(), MODEL_TYPE, 1.5, at(0, -4.4, 47.66), { color: frost ? '#7a7e87' : '#7d818a', to: root });
@@ -198,8 +200,9 @@ function buildRadiator(pb: PartBuilder, labels: Labels, k: CoolerSpec, key: stri
       const backZ = o.order === 'rad-first' ? coreZ0 - 0.25 : coreZ1 + 0.25;
       const lm = new THREE.Matrix4().makeTranslation(cx, 0, backZ).multiply(new THREE.Matrix4().makeRotationX(flip));
       // Peaks under the ring and fades both ways, so no hard circle shows on the core.
-      // Through 27 mm of folded fins the ring's light spreads into a broad soft patch, not a ring.
-      for (const [a, b] of [[40, 70], [40, 6]] as [number, number][]) pb.mesh(spillRing(a, b, 64), ring.spill(frost ? 0.035 : 0.06), lm, { uv: 'keep', to: root }).userData.spill = true;
+      // Through 27 mm of folded fins the ring's light spreads into a broad soft patch, not a ring. A white core takes the hue
+      // over its white, since added light cannot tint white.
+      for (const [a, b] of [[40, 70], [40, 6]] as [number, number][]) pb.mesh(spillRing(a, b, 64), frost ? pb.own(ring.tint(0.55, 0.5, 'soft')) : ring.spill(0.06), lm, { uv: 'keep', to: root }).userData.spill = true;
     }
     rotors.push(...fb.rotors);
     void g;

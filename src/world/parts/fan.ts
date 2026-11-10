@@ -131,7 +131,8 @@ export function buildFan(pb: PartBuilder, labels: Labels, look: FanLook, size: 1
   const blades = pb.group(`blades:${zoneKey}`, rotorGroup);
   // Frosted blades let light through, so they do not occlude: as opaque depth they darkened the white hub wall behind them
   // with the occlusion pass's noise.
-  if (look.blade === 'frost') blades.userData.noAO = true;
+  // On a radiator they stay in the pass: left out, they took the occlusion of the fin core behind them as stripes.
+  if (look.blade === 'frost' && !opts.tucked) blades.userData.noAO = true;
   const hubR = 19;
   const hubProfile: [number, number][] = look.soft
     ? [[0, -face + 0.6], [11.6, -face + 0.6], [14.6, -face + 1.1], [16.9, -face + 2.3], [18.4, -face + 4.0], [hubR, -face + 5.8], [hubR, back - 7], [0, back - 7]]
@@ -265,7 +266,8 @@ export function buildFan(pb: PartBuilder, labels: Labels, look: FanLook, size: 1
   };
 
   if (look.light === 'ring' || look.light === 'ring+hub') {
-    const z = ring(`${zoneKey}`, hole + 1.3, 18, [-face - 0.2, face + 0.2], 0.9);
+    // On a white frame the ring runs lower, or cyan washed toward white and bloomed past the frame.
+    const z = ring(`${zoneKey}`, hole + 1.3, 18, [-face - 0.2, face + 0.2], look.frame === 'plasticWhite' ? 0.68 : 0.9);
     const inner = cyl(hole + 0.15, t - 2 * fl - 0.6, 'z', Math.round(96 * detail), hole + 0.15, true);
     inner.rotateZ(PI / 2);
     // The duct lining only glows; a lit material here mirrors the fan's own lamp, which sits in the same plane, as a white hot spot.

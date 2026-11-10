@@ -41,7 +41,7 @@ export const VITRINE: CaseLayout = {
   ],
   fanMounts: [front(1, 100), front(2, 222), front(3, 344), top(1, -136), top(2, -2), top(3, 132), { id: 'rear-1', group: 'rear', center: [-216, 372, 40], rot: [0, -Q, 0], size: 120 }],
   radMounts: [
-    { id: 'top', group: 'top', inward: [0, -1, 0], rot: [Q, 0, 0], faceOffset: 12.5, order: 'rad-first', airInward: false },
+    { id: 'top', group: 'top', inward: [0, -1, 0], rot: [Q, 0, 2 * Q], faceOffset: 12.5, order: 'rad-first', airInward: false },
     { id: 'front', group: 'front', inward: [-1, 0, 0], rot: [0, -Q, Q], faceOffset: 12.5, order: 'fans-first', airInward: true },
   ],
   glass: [{ side: 'left', inner: GLASS_IN, outer: 116.5, rect: { min: [-226, FLOOR, GLASS_IN], max: [226, 496, 116.5] } }],
@@ -76,7 +76,7 @@ export const VITRINE: CaseLayout = {
     { id: 'front', center: [184, 250, TRAY_FRONT], normal: [0, 0, 1], size: [14, 150] },
     { id: 'top', center: [40, 466, TRAY_FRONT], normal: [0, 0, 1], size: [80, 20] },
     { id: 'rear', center: [-205, 300, TRAY_FRONT], normal: [0, 0, 1], size: [16, 60] },
-    { id: 'sata', center: [52, 216, TRAY_FRONT], normal: [0, 0, 1], size: [18, 40] },
+    { id: 'sata', center: [52, 196, TRAY_FRONT], normal: [0, 0, 1], size: [18, 36] },
   ],
   views: {},
 };

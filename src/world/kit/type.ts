@@ -37,13 +37,18 @@ export const SPEC_TYPE: TextStyle = { family: 'body', weight: 500, spacing: 0.04
 export const MODEL_TYPE: TextStyle = { family: 'body', weight: 600, spacing: 0.08, scaleX: 1, upper: true };
 export const TINY_TYPE: TextStyle = { family: 'body', weight: 500, spacing: 0.02, scaleX: 0.94, upper: true };
 
+/** Upper case that keeps the casing a standard name is written in: 12V-2x6, NVMe. */
+function caps(text: string): string {
+  return text.toUpperCase().replace(/12V-2X6/g, '12V-2x6').replace(/NVME/g, 'NVMe');
+}
+
 export function fontString(s: TextStyle, px: number) {
   return `${s.italic ? 'italic ' : ''}${s.weight} ${px}px ${FAMILY[s.family]}`;
 }
 
 /** Width in px of text set in a style at a px size, with its letter spacing and stretch. */
 export function measure(g: CanvasRenderingContext2D, text: string, s: TextStyle, px: number): number {
-  const t = s.upper ? text.toUpperCase() : text;
+  const t = s.upper ? caps(text) : text;
   g.font = fontString(s, px);
   let w = 0;
   for (const ch of t) w += g.measureText(ch).width + s.spacing * px;
@@ -53,7 +58,7 @@ export function measure(g: CanvasRenderingContext2D, text: string, s: TextStyle,
 
 /** Draws text with its left edge at x and vertical middle at y. */
 export function drawText(g: CanvasRenderingContext2D, text: string, s: TextStyle, x: number, y: number, px: number, fill: string) {
-  const t = s.upper ? text.toUpperCase() : text;
+  const t = s.upper ? caps(text) : text;
   g.save();
   g.font = fontString(s, px);
   g.textBaseline = 'middle';

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
-import { getCooler, getRam, type Category } from '../data/catalog';
+import { getCase, getCooler, getRam, type Category } from '../data/catalog';
 import { lathe } from './kit/geometry';
+import { FINISHES } from './kit/materials';
 import { canvas, wrap } from './kit/textures';
 import { RgbEngine } from './light/rgb';
 import type { Zone } from './light/zones';
@@ -223,8 +224,10 @@ export class Inspector {
       // A part that stands on a thin edge, such as a memory stick, still gets a shade band a few centimeters wide.
       // A stick that lies flat, such as an M.2 drive, needs a wider shade to show past its edges.
       const flat = category === 'storage' && id === 'nvme' ? 1.5 : 1;
-      this.shade.scale.set(this.size.x * sk * flat, Math.max(this.size.z * sk * flat, category === 'ram' ? 0.07 : 0), 1);
-      (this.shade.material as THREE.MeshBasicMaterial).opacity = flat > 1 ? 0.92 : category === 'ram' ? 0.96 : 0.75;
+      // A card stands on its long thin edge, so its shade needs a minimum width to show past it.
+      // A lit card throws its own pool on the disc, so its shade reaches further past its foot to seat it in that pool.
+      this.shade.scale.set(this.size.x * sk * flat, Math.max(this.size.z * (category === 'gpu' ? 1.6 : sk * flat), category === 'ram' ? 0.07 : category === 'gpu' ? 0.11 : 0), 1);
+      (this.shade.material as THREE.MeshBasicMaterial).opacity = flat > 1 ? 0.92 : category === 'ram' || category === 'gpu' ? 0.96 : 0.75;
       const gs = Math.max(this.size.x, this.size.z) * 2.6;
       this.glow.scale.set(gs, gs, 1);
       this.holder.updateMatrixWorld(true);
@@ -245,10 +248,13 @@ export class Inspector {
     }
     this.flip = flip;
     // A case is large and black: as a studio would, it gets more light than a small part so its frame separates from the backdrop.
-    const big = category === 'case';
+    // A white or raw case takes the standard light: boosted, its interior went far past white and hid the glass in front of it.
+    const caseFinish = category === 'case' ? (getCase(id)?.finishes.find((f) => f === opts.finish) ?? getCase(id)?.finishes[0]) : undefined;
+    const big = category === 'case' && !FINISHES[caseFinish ?? 'onyx']?.light;
     // A card is long and dark too, as is an unlit black memory kit: a stronger rim and the sheen softbox trace their edges
     // against the backdrop and light the disc around them, so their contact shade reads.
-    const long = category === 'gpu' || (category === 'ram' && getRam(id)?.lit === false);
+    // So is an air cooler, whose fans sit between dark fin stacks and went black from behind.
+    const long = category === 'gpu' || (category === 'ram' && getRam(id)?.lit === false) || (category === 'cooler' && getCooler(id)?.type !== 'aio');
     this.lights.key.intensity = big ? 6.6 : 4.6; this.lights.fill.intensity = big ? 4.6 : 3.2; this.lights.rim.intensity = big ? 4.4 : long ? 3.6 : 2.2; this.lights.sheen.intensity = big ? 3.2 : long ? 1.6 : 0;
     this.scene.environmentIntensity = big ? 1.7 : 1.25;
     // A card's hero surfaces are its backplate and its glass facing edge, so the camera stands higher to show that edge.

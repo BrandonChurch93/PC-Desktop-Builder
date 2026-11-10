@@ -236,7 +236,9 @@ export function buildCables(build: Build, items: Map<string, RigItem>, detail = 
       const { p } = toCase(board, a);
       const gz = g.center[2];
       runs.push({ name: 'atx24', rows: 2, cols: 12, pitch: 4.2, wire: 1.65, rowAxis: v(0, 0, 1), colors, comb, plugAt: 'start', plug: 'latch', combFrom: DIMS.plugLength + 6.5,
-        path: filletPath([p.clone(), v(g.center[0], p.y, p.z), v(g.center[0], p.y, gz - 24)], 19, 2.5, DIMS.plugLength + 12) });
+        // A 24 pin bundle bends on a wide radius: it bends toward the tray before the slot and dives back under the board's edge behind it, so the turn shows through the opening, and goes through the split
+        // membrane into the dark cable space; a tight bend at the slot's middle hid the turn and read as wires ending there.
+        path: filletPath([p.clone(), v(g.center[0] + 6, p.y, p.z), v(g.center[0] - 1, p.y, gz - 1), v(g.center[0] - 22, p.y, gz - 26)], 12, 2.5, DIMS.plugLength + 12) });
     }
     const e = board.part.anchors.eps; const ge = grommet('eps');
     if (e && ge) {

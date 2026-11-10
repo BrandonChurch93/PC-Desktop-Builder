@@ -5,7 +5,7 @@ import { ramBoxes } from '../layout/partBoxes';
 import { extrude, PartBuilder, rbox, roundedPoly, rrectHole, rrectShape, xf } from '../kit/geometry';
 import { Labels } from '../kit/labels';
 import { mat } from '../kit/materials';
-import { fingerMaterial, stripPlane } from '../kit/pcb';
+import { bandMaterial, fingerMaterial, stripPlane } from '../kit/pcb';
 import { seededFor } from '../kit/rng';
 import { BRAND_TYPE, MODEL_TYPE, SPEC_TYPE, TINY_TYPE } from '../kit/type';
 import { spillStripRange, stripLeds, uvAlong, Zone } from '../light/zones';
@@ -114,11 +114,19 @@ export function ramPart(id: string, opts: GenOpts = {}): PartObject {
     const fingers = fingerMaterial(side > 0 ? 'ddr5' : 'ddr5-back', DIMS.dimmLength, 4.2, 0.85, [[at - 0.8, at + 0.8]], board);
     const g = stripPlane(DIMS.dimmLength, 4.2);
     pb.mesh(g, fingers, onSide(side, side * (PCB_T / 2 + 0.02), 0, 0), { uv: 'keep' });
+    // The band of board between the contacts and the spreader, with its traces and vias.
+    const band = bandMaterial(`${id}:${side}`, DIMS.dimmLength, 3.3, 0.85, board, frost ? 'rgba(192,196,204,1)' : 'rgba(38,46,58,1)');
+    pb.mesh(stripPlane(DIMS.dimmLength, 3.3), band, onSide(side, side * (PCB_T / 2 + 0.02), 0, 4.2), { uv: 'keep' });
   }
   const rng = seededFor(id);
+  // Decoupling parts in loose groups along the band, as placed by a board layout, not a ruled row.
   for (let i = 0; i < 24; i++) {
-    const y = -HALF + 5 + (i / 23) * (DIMS.dimmLength - 10);
-    for (const side of [1, -1]) pb.add(rbox(0.5, 1.0, 0.5, 0.1, 1), rng() > 0.4 ? 'ceramic' : 'chip', xf({ p: [side * (PCB_T / 2 + 0.25), y, 5.6] }));
+    const y = -HALF + 5 + (i / 23) * (DIMS.dimmLength - 10) + (rng() - 0.5) * 3;
+    for (const side of [1, -1]) {
+      if (rng() < 0.25) continue;
+      const big = rng() > 0.7;
+      pb.add(rbox(0.5, big ? 1.6 : 1.0, big ? 0.8 : 0.5, 0.1, 1), rng() > 0.4 ? 'ceramic' : 'chip', xf({ p: [side * (PCB_T / 2 + 0.25), y, 5.2 + rng() * 1.0] }));
+    }
   }
 
   const spreaderBottom = 7.6;
@@ -213,16 +221,29 @@ export function ramPart(id: string, opts: GenOpts = {}): PartObject {
     const barW = 2 * (gap + plateT) - 0.6;
     const z0 = plateTop - 1.6; const z1 = height;
     const zone = new Zone(key, 'ram', false, stripLeds(new THREE.Vector3(0, -HALF + 3, z1 - 2), new THREE.Vector3(0, HALF - 3, z1 - 2), 7.4), 0.2 + (key.length % 7) * 0.09);
-    const diff = zone.diffuser(line === 'crown' ? 0.42 : 0.48, frost ? 0xd9dbe0 : 0x1d1e23, 0.7);
+    // Matte bodies: a broad bar face mirrored the white softboxes and washed bright hues such as green toward white.
+    const diff = zone.diffuser(line === 'crown' ? 0.42 : 0.48, frost ? 0xd9dbe0 : 0x1d1e23, 0.86);
     // The bar follows the notch in the spreader's top line, so the notch reads with the light on.
     const half = (DIMS.dimmLength - 2) / 2;
     const notched = (lo: number, hi: number): [number, number][] => [[-half, lo], [half, lo], [half, hi - 1.2], [half - 1.2, hi], [9.5, hi], [5.5, hi - 2.6], [-5.5, hi - 2.6], [-9.5, hi], [-half + 1.2, hi], [-half, hi - 1.2]];
+    // A frosted bar glows brightest near the LEDs at its top and falls off toward the spreader, so it reads as a lit diffuser
+    // with depth and not as an evenly painted slab.
+    const depthDiff = frost ? diff : pb.own(diff.clone());
+    if (!frost) {
+      depthDiff.onBeforeCompile = (sh) => {
+        // The bar's v carries its height (the LED texture is one texel tall, so v does not change the color).
+        sh.fragmentShader = sh.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance *= 0.45 + 0.6 * vEmissiveMapUv.y * vEmissiveMapUv.y;');
+      };
+      depthDiff.customProgramCacheKey = () => 'ram-bar-depth';
+    }
     const barPiece = (profile: [number, number][], w: number, lo: number, hi: number) => {
       const bar = extrude(roundedPoly(profile, 0.8), w, 0.6, 'xy', 4, 2);
       bar.applyMatrix4(new THREE.Matrix4().makeBasis(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1), new THREE.Vector3(1, 0, 0)));
       bar.translate(-w / 2, 0, -(lo + hi) / 2);
       uvAlong(bar, 'y');
-      pb.mesh(bar, diff, xf({ p: [0, 0, (lo + hi) / 2] }), { uv: 'keep' });
+      const p = bar.getAttribute('position'); const uvA = bar.getAttribute('uv');
+      for (let i = 0; i < p.count; i++) uvA.setY(i, THREE.MathUtils.clamp((p.getZ(i) + (hi - lo) / 2) / (hi - lo), 0, 1));
+      pb.mesh(bar, depthDiff, xf({ p: [0, 0, (lo + hi) / 2] }), { uv: 'keep' });
     };
     if (line === 'crown') {
       // The crown is two tiers: a full width base over the spreader and a narrower crown above it with the family's notch.
@@ -234,7 +255,7 @@ export function ramPart(id: string, opts: GenOpts = {}): PartObject {
       barPiece(notched(z0, z1), barW, z0, z1);
     }
     // A white spreader cannot be tinted by added light: it takes the bar's hue over its own white instead.
-    const spill = frost ? pb.own(zone.tint(1.0, 0.75)) : zone.spill(0.22);
+    const spill = frost ? pb.own(zone.tint(1.0, 0.75)) : zone.spill(0.4);
     if (frost) {
       // Lit, a frosted white crown carries the LEDs' color: its body steps down from white as they come up.
       const white = new THREE.Color(0xd9dbe0); const lit = new THREE.Color(0x2c2e34);
@@ -245,7 +266,7 @@ export function ramPart(id: string, opts: GenOpts = {}): PartObject {
     const total = DIMS.dimmLength - 3; const outer = (DIMS.dimmLength - 14) / 2;
     for (const sd of [1, -1]) {
       const m = new THREE.Matrix4().makeBasis(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1), new THREE.Vector3(sd, 0, 0)).setPosition(sd * (gap + plateT + 0.05), 0, z0 + 1.1);
-      pb.mesh(spillStripRange(total, -outer, outer, frost ? 10 : 6, 16), spill, m, { uv: 'keep' }).userData.spill = true;
+      pb.mesh(spillStripRange(total, -outer, outer, frost ? 10 : 9, 16), spill, m, { uv: 'keep' }).userData.spill = true;
     }
     // The white kit label on the back takes the bar's light as well, fading down from its top edge.
     if (line !== 'mono') {
@@ -260,8 +281,8 @@ export function ramPart(id: string, opts: GenOpts = {}): PartObject {
     // The crown's base tier sits straight on the spreader; the Facet bar sits on a plate.
     if (line !== 'crown') pb.add(rbox(barW + 0.6, DIMS.dimmLength - 0.8, 1.4, 0.5, 2), plateMat, xf({ p: [0, 0, z0 + 0.4] }));
     zone.emit(new THREE.Vector3(0, 0, z1), new THREE.Vector3(0, 0, 1), DIMS.dimmLength, 8, 0.9, new THREE.Vector3(0, 1, 0));
-    zone.emit(new THREE.Vector3(face, 0, z1 - 4), new THREE.Vector3(1, 0, 0), DIMS.dimmLength, 8, 0.5, new THREE.Vector3(0, 1, 0));
-    zone.emit(new THREE.Vector3(-face, 0, z1 - 4), new THREE.Vector3(-1, 0, 0), DIMS.dimmLength, 8, 0.5, new THREE.Vector3(0, 1, 0));
+    zone.emit(new THREE.Vector3(face, 0, z1 - 4), new THREE.Vector3(1, 0, 0), DIMS.dimmLength, 8, 0.85, new THREE.Vector3(0, 1, 0));
+    zone.emit(new THREE.Vector3(-face, 0, z1 - 4), new THREE.Vector3(-1, 0, 0), DIMS.dimmLength, 8, 0.85, new THREE.Vector3(0, 1, 0));
     zones.push(zone);
   }
   labels.finish();

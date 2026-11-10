@@ -46,6 +46,7 @@ const AIR_COOLER_SHOT = {
   tower: { front: 152, back: -28, detail: { angle: 140, zoom: 0.7, focus: [0.95, 0.9, 0.42] } },
   twin: { front: 152, back: -28, detail: { angle: 140, zoom: 0.7, focus: [0.98, 0.9, 0.42] } },
   low: { front: 152, back: -28, detail: { angle: 140, zoom: 0.7, focus: [0.5, 0.5, 0.05] } },
+  towerLit: { front: 152, back: -28, detail: { angle: 152, zoom: 0.56, focus: [0.55, 0.8, 0.78] } },
 };
 const PART_GROUPS = [['cases', 'case'], ['boards', 'board'], ['cpus', 'cpu'], ['coolers', 'cooler'], ['ram', 'ram'], ['gpus', 'gpu'], ['storage', 'storage'], ['psus', 'psu'], ['fans', 'fan']];
 for (const [key, cat] of PART_GROUPS) {
@@ -53,7 +54,7 @@ for (const [key, cat] of PART_GROUPS) {
     const id = cat === 'storage' ? part.type : part.id;
     const name = part.id;
     // Air coolers stand up from the board, so their close view looks at the top cover and the fan clips, not at a pump.
-    const s = cat === 'cooler' && part.type !== 'aio' ? AIR_COOLER_SHOT[part.type === 'lowprofile' ? 'low' : part.fans >= 2 ? 'twin' : 'tower'] : PART_SHOT[cat];
+    const s = cat === 'cooler' && part.type !== 'aio' ? AIR_COOLER_SHOT[part.type === 'lowprofile' ? 'low' : part.fans >= 2 ? 'twin' : part.lightZones > 0 ? 'towerLit' : 'tower'] : PART_SHOT[cat];
     const extra = cat === 'fan' ? { size: 120 } : cat === 'case' ? { finish: part.finishes[0] } : {};
     const shot = (angle, o) => ({ width: 800, height: 800, steps: [['inspect', cat, id, angle, { zoom: 0, ui: false, ...extra, ...o }], FREEZE] });
     SHOTS[`part/${cat}-${name}-front`] = shot(s.front, {});

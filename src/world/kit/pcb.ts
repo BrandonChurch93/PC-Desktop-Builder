@@ -29,6 +29,34 @@ export function fingerMaterial(key: string, lengthMm: number, heightMm: number, 
   return m;
 }
 
+/**
+ * The board band above a module's contacts: a trace from each finger rising into the board, a via or pad where it turns,
+ * on the module's own mask color, so the strip between the gold and the spreader reads as circuit board.
+ */
+export function bandMaterial(key: string, lengthMm: number, heightMm: number, pitch: number, base: string, trace: string, rough = 0.4): THREE.MeshPhysicalMaterial {
+  const k = `band|${key}|${lengthMm}|${heightMm}|${pitch}|${base}|${trace}`;
+  const hit = cache.get(k);
+  if (hit) return hit;
+  const ppm = 16;
+  const W = Math.round(lengthMm * ppm); const H = Math.round(heightMm * ppm);
+  const col = canvas(W, H);
+  col.g.fillStyle = base; col.g.fillRect(0, 0, W, H);
+  let s = 0; for (const ch of key) s = (s * 31 + ch.charCodeAt(0)) >>> 0;
+  const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+  col.g.strokeStyle = trace; col.g.lineWidth = 0.14 * ppm; col.g.lineCap = 'round';
+  for (let x = pitch / 2; x < lengthMm; x += pitch) {
+    if (rnd() < 0.35) continue;
+    const up = heightMm * (0.35 + rnd() * 0.5); const dx = (rnd() - 0.5) * 1.6;
+    col.g.beginPath(); col.g.moveTo(x * ppm, H); col.g.lineTo(x * ppm, H - up * 0.5 * ppm); col.g.lineTo((x + dx) * ppm, H - up * ppm); col.g.stroke();
+    col.g.fillStyle = trace; col.g.beginPath(); col.g.arc((x + dx) * ppm, H - up * ppm, 0.22 * ppm, 0, Math.PI * 2); col.g.fill();
+    col.g.fillStyle = base; col.g.beginPath(); col.g.arc((x + dx) * ppm, H - up * ppm, 0.09 * ppm, 0, Math.PI * 2); col.g.fill();
+  }
+  const m = new THREE.MeshPhysicalMaterial({ map: wrap(col.canvas, { srgb: true, repeat: false }), roughness: rough, clearcoat: 0.5, clearcoatRoughness: 0.25 });
+  m.name = `band:${key}`;
+  cache.set(k, m);
+  return m;
+}
+
 /** A plane with uv 0..1 across its width (u) and height (v), facing +z, with its bottom edge at y=0. */
 export function stripPlane(w: number, h: number): THREE.PlaneGeometry {
   const g = new THREE.PlaneGeometry(w, h);

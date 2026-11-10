@@ -3,7 +3,7 @@ import { brandName, getCase, K, type CaseSpec } from '../../data/catalog';
 import { CASE_LAYOUTS } from '../layout/cases';
 import { HOLES_UNION } from '../layout/cases/vitrine';
 import type { CaseLayout } from '../layout/types';
-import { at, circleHole, cyl, extrude, lathe, PartBuilder, rbox, rrect, rrectHole, rrectShape, screwGeometry, xf } from '../kit/geometry';
+import { at, circleHole, cyl, extrude, lathe, PartBuilder, rbox, rrect, rrectHole, rrectShape, screwGeometry, torus, xf } from '../kit/geometry';
 import { Labels } from '../kit/labels';
 import { FINISHES, mat, type CaseFinish, type MatName } from '../kit/materials';
 import { BRAND_TYPE, SPEC_TYPE, TINY_TYPE } from '../kit/type';
@@ -15,12 +15,20 @@ const HOLES4: [number, number][] = [[52.5, 52.5], [52.5, -52.5], [-52.5, 52.5], 
 const ZY = new THREE.Matrix4().set(0, 0, -1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1);
 
 /** A perforated sheet: an alpha tested plane inside its own solid border, both with real thickness. */
-function perforated(pb: PartBuilder, F: CaseFinish, w: number, h: number, m: THREE.Matrix4, border = 3, to?: THREE.Object3D) {
+function perforated(pb: PartBuilder, F: CaseFinish, w: number, h: number, m: THREE.Matrix4, border = 3, to?: THREE.Object3D, scale = 1) {
   const frame = rrectShape(w, h, 4);
   frame.holes.push(rrectHole(w - 2 * border, h - 2 * border, 2.5));
   pb.add(extrude(frame, 1.0, 0.3, 'xy', 8, 1), F.shell, m, to ? { to } : {});
   const plane = new THREE.PlaneGeometry(w - 2 * border + 0.4, h - 2 * border + 0.4);
-  pb.add(plane, F.mesh, m.clone().multiply(at(0, 0, 0.5)), to ? { to } : {});
+  let sheet: THREE.Material | MatName = F.mesh;
+  if (scale !== 1) {
+    // The same sheet at a coarser pitch: its own alpha map repeat, the shared perforation shader.
+    const base = mat(F.mesh) as THREE.MeshPhysicalMaterial; const m2 = pb.own(base.clone());
+    const am = pb.own(base.alphaMap!.clone()); am.repeat.multiplyScalar(1 / scale); am.needsUpdate = true;
+    m2.alphaMap = am; m2.onBeforeCompile = base.onBeforeCompile; m2.customProgramCacheKey = base.customProgramCacheKey;
+    sheet = m2;
+  }
+  pb.add(plane, sheet, m.clone().multiply(at(0, 0, 0.5)), to ? { to } : {});
 }
 
 function glassPanel(pb: PartBuilder, L: CaseLayout, F: CaseFinish) {
@@ -29,7 +37,9 @@ function glassPanel(pb: PartBuilder, L: CaseLayout, F: CaseFinish) {
   const w = g.rect.max[0] - g.rect.min[0]; const h = g.rect.max[1] - g.rect.min[1];
   const cx = (g.rect.min[0] + g.rect.max[0]) / 2; const cy = (g.rect.min[1] + g.rect.max[1]) / 2;
   const t = g.outer - g.inner;
-  const tint = pb.mesh(new THREE.BoxGeometry(w - 1, h - 1, t - 0.3), mat('glassTint'), at(cx, cy, (g.inner + g.outer) / 2), { to: group });
+  // Over a white interior the stock tint vanished, so the glass reads its smoke more strongly on light finishes.
+  const tintMat = F.light ? pb.own(Object.assign((mat('glassTint') as THREE.MeshPhysicalMaterial).clone(), { opacity: 0.62, color: new THREE.Color(0x1a1d26) })) : mat('glassTint');
+  const tint = pb.mesh(new THREE.BoxGeometry(w - 1, h - 1, t - 0.3), tintMat, at(cx, cy, (g.inner + g.outer) / 2), { to: group });
   tint.renderOrder = 10; tint.userData.glass = true;
   const spec = pb.mesh(new THREE.PlaneGeometry(w - 1.2, h - 1.2), mat('glassSpec'), at(cx, cy, g.outer + 0.02), { to: group });
   spec.renderOrder = 11; spec.userData.glass = true; spec.userData.glassSpec = true;
@@ -39,7 +49,7 @@ function glassPanel(pb: PartBuilder, L: CaseLayout, F: CaseFinish) {
     const m = pb.mesh(rbox(ew, eh, t - 0.2, 0.15, 1), edge, at(ex, ey, (g.inner + g.outer) / 2), { to: group });
     m.userData.glass = true; m.renderOrder = 9;
   }
-  const border = 14;
+  const border = 22;
   const fr = rrectShape(w - 1.5, h - 1.5, 3, cx, cy);
   fr.holes.push(rrectHole(w - 2 * border, h - 2 * border, 5, cx, cy));
   const frit = pb.mesh(extrude(fr, 0.25, 0, 'xy', 8), mat('frit'), at(0, 0, g.inner + 0.05), { to: group });
@@ -80,9 +90,10 @@ function vitrine(pb: PartBuilder, labels: Labels, spec: CaseSpec, L: CaseLayout,
   }
 
   // right side panel with a pressed return and its rear thumbscrews
-  const side = rrectShape(W - 4, H - 4, 4, 0, cy);
-  pb.add(extrude(side, 1.5, 0.45, 'xy', 8), F.shell, at(0, 0, z0));
-  pb.add(rbox(W - 40, H - 40, 0.8, 4, 2), F.inner, at(0, cy, z0 + 1.9));
+  // The solid panel's edges fold inward into a return, so its outline is a rounded bend that catches a highlight; a flat
+  // sheet with a fine bevel read as a cut slab.
+  pb.add(rbox(W - 4, H - 4, 4.2, 2.0, 5), F.shell, at(0, cy, z0 + 2.1));
+  pb.add(rbox(W - 40, H - 40, 0.8, 4, 2), F.inner, at(0, cy, z0 + 4.6));
   screwsAt(pb, [xf({ p: [x0 - 0.2, y1 - 30, -100], r: [0, -PI / 2, 0] }), xf({ p: [x0 - 0.2, y0 + 30, -100], r: [0, -PI / 2, 0] })], 'button', screwColor, 3.6);
 
   // floor with an intake field under the supply
@@ -95,7 +106,12 @@ function vitrine(pb: PartBuilder, labels: Labels, spec: CaseSpec, L: CaseLayout,
   const top = rrectShape(W - 2, D - 2, 4);
   top.holes.push(rrectHole(406, 130, 6, -7, -46));
   pb.add(extrude(top, 1.6, 0.5, 'xz', 10), F.shell, at(0, y1 - 1.6, 0));
-  perforated(pb, F, 408, 132, xf({ p: [-7, y1 - 1.0, 46], r: [-PI / 2, 0, 0] }), 2.5);
+  // The top takes a coarser pitch than the front, as many top panels do, so it reads as perforated even foreshortened.
+  perforated(pb, F, 408, 132, xf({ p: [-7, y1 - 1.0, 46], r: [-PI / 2, 0, 0] }), 2.5, undefined, 2.6);
+  // A magnetic dust filter under the top perforation, as top vented cases carry: a fine woven sheet that hides most of the
+  // rails below it, so the top reads as perforated steel over a filter and not as a tinted sheet.
+  const filter = pb.mesh(new THREE.PlaneGeometry(403, 127), pb.own(new THREE.MeshPhysicalMaterial({ color: light ? 0x55585f : 0x07070a, roughness: 0.95, transparent: true, opacity: 0.85, depthWrite: false })), xf({ p: [-7, 496.75, 46], r: [-PI / 2, 0, 0] }));
+  filter.renderOrder = 2;
   for (const sz of [1, -1]) pb.add(rbox(440, 2.5, 14, 0.8, 2), F.inner, at(-6, 494 + 1.25, 46 + sz * 62));
   const io = pb.group('front-io', pb.root, at(210, y1, 0));
   pb.add(rbox(26, 1.2, 96, 3, 2), F.trim, at(0, 0.3, 0), { to: io });
@@ -129,8 +145,8 @@ function vitrine(pb: PartBuilder, labels: Labels, spec: CaseSpec, L: CaseLayout,
     const cover = pb.group(`slot-cover-${k + 1}`, pb.root, at(x0 + 1.5, slotTop - sp * (k + 0.5), 0));
     const sh = new THREE.Shape(); rrect(sh, -66, -sp / 2 + 0.6, 118, sp - 1.2, 1);
     for (let v = 0; v < 6; v++) sh.holes.push(rrectHole(10, 2.6, 1.2, -50 + v * 15, 0));
-    pb.add(extrude(sh, 0.8, 0.15, 'xy', 4, 1), light ? 'steelBare' : 'powderBlack', new THREE.Matrix4().multiply(ZY).multiply(at(0, 0, -0.8)), { to: cover });
-    pb.add(rbox(8, sp - 1.6, 0.8, 0.3, 1), light ? 'steelBare' : 'powderBlack', at(-4.2, 0, 50.5), { to: cover });
+    pb.add(extrude(sh, 0.8, 0.15, 'xy', 4, 1), F.shell, new THREE.Matrix4().multiply(ZY).multiply(at(0, 0, -0.8)), { to: cover });
+    pb.add(rbox(8, sp - 1.6, 0.8, 0.3, 1), F.shell, at(-4.2, 0, 50.5), { to: cover });
     movers[`slot-cover-${k + 1}`] = cover;
   }
   screwsAt(pb, Array.from({ length: 7 }, (_, k) => xf({ p: [x0 - 6.2, slotTop - sp * (k + 0.5), 48], r: [0, -PI / 2, 0] })), 'pan', screwColor, 2.6);
@@ -148,6 +164,8 @@ function vitrine(pb: PartBuilder, labels: Labels, spec: CaseSpec, L: CaseLayout,
   pb.add(extrude(br, 1.5, 0.2, 'xy', 24, 1), F.inner, new THREE.Matrix4().makeTranslation(224.5, 0, 0).multiply(ZY));
   // Threaded fan screw holes: tapped into the bracket, so no light shows through them behind the mesh.
   for (const fy of [100, 222, 344]) for (const [dy, dz] of HOLES4) for (const sx of [1, -1]) pb.add(cyl(2.0, 0.2, 'x', 16), 'darkVoid', at(223.75 + sx * 0.85, fy + dy, dz), { uv: 'keep' });
+  // Each tapped hole is a pressed in clinch nut, bare zinc, so the fan mounts show as rows of bright rings behind the mesh.
+  for (const fy of [100, 222, 344]) for (const [dy, dz] of HOLES4) pb.add(torus(2.5, 0.55, 8, 24), 'steelZinc', xf({ p: [224.6, fy + dy, dz], r: [0, PI / 2, 0] }));
   labels.text(brandName(spec.brand), BRAND_TYPE[spec.brand] ?? SPEC_TYPE, 3.2, xf({ p: [x1 + 0.05, y0 + 8.5, 0], r: [0, PI / 2, 0] }), { color: light ? '#7b7f88' : '#8d919a' });
 
   // board tray: cutouts with rubber grommets, standoffs for every board size
@@ -162,9 +180,15 @@ function vitrine(pb: PartBuilder, labels: Labels, spec: CaseSpec, L: CaseLayout,
     const ring = rrectShape(gw + 6, gh + 6, Math.min(9, (gw + 6) / 2 - 0.5), gr.center[0], gr.center[1]);
     ring.holes.push(rrectHole(gw - 2, gh - 2, Math.min(6, gw / 2 - 1.5, gh / 2 - 1.5), gr.center[0], gr.center[1]));
     pb.add(extrude(ring, 2.8, 0.9, 'xy', 12, 2), F.foot, at(0, 0, trayZ - 1));
-    const memb = new THREE.PlaneGeometry(gw - 2, gh - 2);
-    pb.add(memb, 'rubber', at(gr.center[0], gr.center[1], trayZ + 0.2));
-    pb.add(new THREE.BoxGeometry(Math.max(0.6, gw - 8), 0.8, 0.4), 'darkVoid', at(gr.center[0], gr.center[1], trayZ + 0.4), { uv: 'keep' });
+    // A split rubber membrane: two flaps along the opening's length, pushed back where cables pass, over a dark cable space.
+    const along = gh >= gw; const span = along ? gh - 2 : gw - 2; const across = (along ? gw : gh) - 2; const flap = across * 0.34;
+    for (const s of [1, -1]) {
+      const g = new THREE.PlaneGeometry(along ? flap : span, along ? span : flap);
+      const off = s * (across / 2 - flap / 2);
+      const m = at(gr.center[0] + (along ? off : 0), gr.center[1] + (along ? 0 : off), trayZ - 0.4).multiply(new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(along ? 0 : s * 0.5, along ? -s * 0.5 : 0, 0)));
+      pb.add(g, 'rubber', m);
+    }
+    pb.add(new THREE.PlaneGeometry(gw + 4, gh + 4), 'darkVoid', at(gr.center[0], gr.center[1], trayZ - 22), { uv: 'keep' });
   }
   const anchor = L.boardAnchor;
   for (const [hx, hy] of HOLES_UNION) {
@@ -207,8 +231,9 @@ function vitrine(pb: PartBuilder, labels: Labels, spec: CaseSpec, L: CaseLayout,
   win.renderOrder = 10; win.userData.glass = true;
   const winSpec = pb.mesh(new THREE.PlaneGeometry(150, 72), mat('glassSpec'), at(82, 64, 111.6));
   winSpec.renderOrder = 11; winSpec.userData.glass = true; winSpec.userData.glassSpec = true;
-  pb.add(rbox(76, 20, 0.8, 0.35, 2), F.accent, at(-150, 66, 111.9));
-  labels.text(brandName(spec.brand), BRAND_TYPE[spec.brand] ?? SPEC_TYPE, 3.6, at(-150, 66, 112.34), { color: light ? '#5d616a' : '#d2d5dc' });
+  // The brand plate is dark anodized on every finish, so its print reads on the white case too.
+  pb.add(rbox(76, 20, 0.8, 0.35, 2), 'aluBlack', at(-150, 66, 111.9));
+  labels.text(brandName(spec.brand), BRAND_TYPE[spec.brand] ?? SPEC_TYPE, 3.6, at(-150, 66, 112.34), { color: '#d2d5dc' });
   pb.add(rbox(400, 0.8, 3.0, 0.3, 1), F.inner, at(-30, 117.6, 108));
 
   // 3.5 inch cage with two sleds, drives lying lengthwise behind the shroud window
@@ -217,10 +242,14 @@ function vitrine(pb: PartBuilder, labels: Labels, spec: CaseSpec, L: CaseLayout,
   for (const bay of L.bays35) cageEnd.holes.push(rrectHole(52, 14.4, 3, -60, bay.pose.pos[1] + 7.8));
   pb.add(extrude(cageEnd, 2, 0.5, 'zy', 8), F.inner, at(-2, 0, 0));
   pb.add(rbox(162, 2, 110, 0.6, 2), F.inner, at(81, 59, 49));
+  // Tool-less sleds in grey plastic; the empty lower sled shows its floor, so the bay reads as a sled and not a black hole.
+  const sled = light ? 'plasticWhite' : 'plasticGrey';
   for (const y of [22, 60]) {
-    for (const s of [-1, 1]) pb.add(rbox(150, 6, 4, 0.8, 2), light ? 'plasticWhite' : 'plasticMatte', at(82, y + 3, 46 + s * 53));
-    pb.add(rbox(4, 8, 14, 1.6, 2), light ? 'plasticWhite' : 'plasticMatte', at(159, y + 4, 46));
+    for (const s of [-1, 1]) pb.add(rbox(150, 6, 4, 0.8, 2), sled, at(82, y + 3, 46 + s * 53));
+    pb.add(rbox(4, 8, 14, 1.6, 2), sled, at(159, y + 4, 46));
   }
+  pb.add(rbox(146, 1.6, 102, 0.6, 2), sled, at(82, 22.8, 46));
+  for (const hx of [30, 82, 134]) pb.add(cyl(3.2, 1.7, 'y', 20), 'darkVoid', at(hx, 22.9, 46), { uv: 'keep' });
   // 2.5 inch brackets behind the tray
   for (const bay of L.bays25) pb.add(rbox(74, 104, 1.0, 0.6, 2), F.inner, at(bay.pose.pos[0], bay.pose.pos[1] + 50, trayZ - 0.5));
 

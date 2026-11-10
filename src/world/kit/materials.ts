@@ -24,7 +24,7 @@ export type MatName =
   | 'aluBlack' | 'aluSilver' | 'aluWhite' | 'aluRaw' | 'aluBrushed' | 'aluBrushedDark' | 'aluBrushedPlate' | 'aluAnodized' | 'aluCast' | 'aluSatin' | 'aluSatinDark' | 'aluGunmetal' | 'aluFacet'
   | 'nickel' | 'nickelLapped' | 'pipeNickel' | 'copper' | 'gold' | 'solder'
   | 'plasticMatte' | 'plasticSatin' | 'plasticSoft' | 'plasticGloss' | 'plasticWhite' | 'plasticWhiteGloss' | 'plasticGrey' | 'plasticDark' | 'plasticNylon'
-  | 'rubber' | 'rubberWhite' | 'rubberPad' | 'aluSatinBlack' | 'aluWhiteSatin' | 'finCoated' | 'finCoatedWhite'
+  | 'rubber' | 'rubberWhite' | 'rubberPad' | 'aluSatinBlack' | 'aluWhiteSatin' | 'finCoated' | 'finCoatedWhite' | 'finPale' | 'aluWhiteBrushed' | 'aluBeadGunmetal' | 'paintWhiteCard' | 'paintBlackCard'
   | 'pcbBlack' | 'pcbWhite' | 'pcbGreen' | 'pcbEdge' | 'chip' | 'chipWhite' | 'ceramic' | 'ferrite'
   | 'glassTint' | 'glassSpec' | 'glassEdge' | 'frit'
   | 'bladeSmoke' | 'bladeFrost' | 'bladeBlack' | 'bladeWhite'
@@ -131,13 +131,21 @@ function perforatedSheet(m: THREE.MeshPhysicalMaterial): THREE.MeshPhysicalMater
       '  vec2 perfDir = perfHit / max(length(perfHit), 1e-4);',
       '  vec3 perfWallN = normalize(-(perfTu * perfDir.x + perfTv * perfDir.y));',
       `  diffuseColor.a = mix(perfSharp, ${PERF_MEAN.toFixed(2)}, perfFarK);`,
-      '  diffuseColor.rgb *= 1.0 - perfWall * (0.2 + 0.6 * perfK);',
+      // Hole walls fall into shade with depth, so a hole reads as a recess and not as a raised dimple.
+      '  diffuseColor.rgb *= 1.0 - perfWall * (0.45 + 0.5 * perfK);',
       '  if (diffuseColor.a < 0.02) discard;',
+      '#endif',
+    ].join('\n')).replace('#include <roughnessmap_fragment>', [
+      '#include <roughnessmap_fragment>',
+      '#ifdef USE_ALPHAMAP',
+      // Holes too small for a pixel scatter light at their edges: far off, the sheet is matte, or it read as tinted glass.
+      '  roughnessFactor = mix(roughnessFactor, 0.95, perfFarK * 0.85);',
       '#endif',
     ].join('\n')).replace('#include <normal_fragment_maps>', [
       '#include <normal_fragment_maps>',
       '#ifdef USE_ALPHAMAP',
-      '  normal = normalize(mix(normal, perfWallN, perfWall));',
+      // The wall only darkens: shading it by its own normal lit one side of every hole and read as raised dimples.
+      '  normal = normalize(mix(normal, perfWallN, perfWall * 0.0));',
       '#endif',
     ].join('\n'));
   };
@@ -148,13 +156,15 @@ function perforatedSheet(m: THREE.MeshPhysicalMaterial): THREE.MeshPhysicalMater
 function makeMat(name: MatName): THREE.Material {
   const t = tex();
   switch (name) {
-    case 'powderBlack': return powder(0x28292e, 0.58, 0.14);
+    // Satin, with a light coat: a stronger sheen mirrored the softboxes at grazing angles and the shroud read as grey metal.
+    case 'powderBlack': return powder(0x25262b, 0.64, 0.08, 2.2e-5);
     case 'powderBlackInner': return powder(0x222327, 0.74, 0, 1e-5);
     // The socket panel is seen close up: an orange peel that reads at that range, which on the whole shell read as leather.
     case 'panelPowder': return physical({ color: 0x323439, metalness: 0, roughness: 0.42, roughnessMap: t.grain, bumpMap: t.peel, bumpScale: 2.4, clearcoat: 0.15, clearcoatRoughness: 0.45, specularIntensity: 0.6 });
     case 'powderPanel': return physical({ color: 0x34363c, metalness: 0, roughness: 0.5, roughnessMap: t.peel, bumpMap: t.grainFine, bumpScale: 0.22, clearcoat: 0.2, clearcoatRoughness: 0.45, specularIntensity: 0.6 });
-    case 'powderWhite': return powder(0xe4e5e9, 0.42, 0.35);
-    case 'powderWhiteInner': return powder(0xcfd1d6, 0.5, 0.2, 1e-5);
+    // No clearcoat, and highlights held under the bloom threshold: the frame's rounded corners bloomed into a halo.
+    case 'powderWhite': return capHighlights(worldBump(physical({ color: 0xe0e1e5, metalness: 0, roughness: 0.6, roughnessMap: tex().mottleMid, bumpMap: tex().orange, bumpScale: 2.2e-5, specularIntensity: 0.4 })), 1.4, 'powder-white');
+    case 'powderWhiteInner': return powder(0x8f939a, 0.5, 0.12, 1.8e-5);
     case 'powderGunmetal': return physical({ color: 0x45484f, metalness: 0.55, roughness: 0.4, roughnessMap: t.grainFine, bumpMap: t.peel, bumpScale: 0.25, clearcoat: 0.55, clearcoatRoughness: 0.22 });
     case 'powderGunmetalInner': return physical({ color: 0x2e3036, metalness: 0.45, roughness: 0.5, roughnessMap: t.grainFine, bumpMap: t.peel, bumpScale: 0.25, clearcoat: 0.25, clearcoatRoughness: 0.35 });
     case 'steelBare': return metal(0xa6a9af, 0.34, t.grainFine);
@@ -173,15 +183,25 @@ function makeMat(name: MatName): THREE.Material {
     case 'capTop': return metal(0x9a9da3, 0.62, t.mottle);
     case 'capBody': return metal(0x2c2e33, 0.55, t.mottle);
     // Graphite cards: a darker fin grey, so fins seen through the backplate's vents read as fins and not as bright bars.
-    case 'finGraphite': return metal(0x5e6168, 0.62, t.mottle);
+    // Coated, not bare: a pure metal fin reflected only the dark inside of the card and the fin window went black under softboxes.
+    case 'finGraphite': return physical({ color: 0x44474e, metalness: 0.6, roughness: 0.58, roughnessMap: t.mottle });
     case 'aluAnodized': return physical({ color: 0x1c1d21, metalness: 0.5, roughness: 0.52, roughnessMap: t.grainFine, clearcoat: 0.2, clearcoatRoughness: 0.5 });
     case 'aluSatin': return metal(0xc4c7cc, 0.5, t.brushedCoarse);
     // A drive cover seen at the closest zoom: a fine brush, as the coarse one broke into dark streaks there.
-    case 'aluLid': return metal(0xc4c7cc, 0.5, t.brushed);
+    // Fine bead blast, as drive covers are: coarse brushing stretched into streaks at the shroud window's grazing angle.
+    case 'aluLid': return metal(0xc4c7cc, 0.42, t.grainFine, { bumpMap: t.bead, bumpScale: 0.004 });
     case 'aluStamp': return metal(0xc0c3c8, 0.44, t.mottle);
-    case 'aluWhiteSatin': return worldBump(physical({ color: 0xe6e7ea, metalness: 0.15, roughness: 0.42, roughnessMap: t.mottleMid, bumpMap: t.stipple, bumpScale: 8e-6, clearcoat: 0.2, clearcoatRoughness: 0.35 }));
+    case 'aluWhiteSatin': return worldBump(physical({ color: 0xe6e7ea, metalness: 0.15, roughness: 0.42, roughnessMap: t.mottleMid, bumpMap: t.orange, bumpScale: 6e-5, clearcoat: 0.12, clearcoatRoughness: 0.35 }));
     // Black coated cooler fins: the coating is a dielectric, so only a dim sheen comes off the fin faces and their edges.
     case 'finCoated': return physical({ color: 0x0d0e10, metalness: 0, roughness: 0.66, roughnessMap: t.mottle, specularIntensity: 0.3 });
+    case 'finPale': return physical({ color: 0xcfd2d7, metalness: 0.15, roughness: 0.5, roughnessMap: t.mottle });
+    // Satin white paint on a card: a molded stipple and a bead roughness drift, so the white face shows its finish up close.
+    // Satin black paint on a slab card: a fine stipple and a slow sheen drift under a light clearcoat, read as coated metal.
+    case 'paintBlackCard': return worldBump(physical({ color: 0x232428, metalness: 0, roughness: 0.4, roughnessMap: t.mottleMid, bumpMap: t.stipple, bumpScale: 1.4e-5, clearcoat: 0.4, clearcoatRoughness: 0.3, specularIntensity: 0.6 }));
+    case 'paintWhiteCard': return worldBump(physical({ color: 0xdfe0e4, metalness: 0, roughness: 0.32, roughnessMap: t.mottleMid, bumpMap: t.orange, bumpScale: 1.05e-4, clearcoat: 0.18, clearcoatRoughness: 0.3, specularIntensity: 0.9 }));
+    case 'aluBeadGunmetal': return metal(0x5c5f66, 0.5, t.bead, { bumpMap: t.bead, bumpScale: 0.05 });
+    // Coarse brushing, as on the dark plates, and more metal, so the grain shows on white under the studio light.
+    case 'aluWhiteBrushed': return physical({ color: 0xdcdde1, metalness: 0.55, roughness: 0.42, roughnessMap: t.brushedCoarse, anisotropy: 0.4, bumpMap: t.brushedCoarse, bumpScale: 0.14, clearcoat: 0.15, clearcoatRoughness: 0.3 });
     case 'finCoatedWhite': return physical({ color: 0xdcdde1, metalness: 0, roughness: 0.5, roughnessMap: t.mottle, specularIntensity: 0.4 });
     case 'aluSatinBlack': return metal(0x34373d, 0.34, t.brushed, { anisotropy: 0.6, bumpMap: t.brushed, bumpScale: 0.12 });
     case 'aluSatinDark': return metal(0x464950, 0.36, t.brushed, { anisotropy: 0.5 });
@@ -199,7 +219,8 @@ function makeMat(name: MatName): THREE.Material {
     case 'solder': return metal(0xb9bcc0, 0.3, null);
     case 'plasticMatte': return plastic(0x232428, 0.6);
     // A card shroud's textured molded finish, visible at the closest zoom.
-    case 'plasticSatin': return worldBump(physical({ color: 0x222328, metalness: 0, roughness: 0.5, roughnessMap: t.bead, bumpMap: t.stipple, bumpScale: 2.8e-5, specularIntensity: 0.6 }));
+    // Molded satin: a slow roughness drift and a fine stipple; a bead blast roughness map read as stucco at the closest zoom.
+    case 'plasticSatin': return worldBump(physical({ color: 0x222328, metalness: 0, roughness: 0.5, roughnessMap: t.mottleMid, bumpMap: t.stipple, bumpScale: 1.4e-5, specularIntensity: 0.6 }));
     case 'plasticSoft': return plastic(0x25262b, 0.82, { sheen: 0.25, sheenRoughness: 0.8, sheenColor: new THREE.Color(0x3a3d48) });
     case 'plasticGloss': return physical({ color: 0x0f0f12, metalness: 0, roughness: 0.22, clearcoat: 0.8, clearcoatRoughness: 0.14 });
     case 'plasticWhite': return plastic(0xe1e2e6, 0.55);
@@ -236,13 +257,14 @@ function makeMat(name: MatName): THREE.Material {
     case 'bladeWhite': return physical({ color: 0xe2e3e7, metalness: 0, roughness: 0.5, side: THREE.DoubleSide });
     // Fins are thin and seen edge on, where a fine grain roughness map aliases into sparkles: they vary slowly instead.
     case 'finDark': return metal(0x33353b, 0.4, t.mottle);
-    case 'finGrey': return metal(0x777a82, 0.62, t.mottle);
+    // Coated, so it reads behind the supply's honeycomb: bare metal mirrored the dark inside of the box.
+    case 'finGrey': return physical({ color: 0x6e717a, metalness: 0.35, roughness: 0.6, roughnessMap: t.mottle });
     case 'finSilver': return metal(0xb8bbc1, 0.32, t.mottle);
     case 'finNickel': return metal(0xc9cbcf, 0.24, t.mottle);
     case 'radCore': return physical({ color: 0x1f2024, metalness: 0.5, roughness: 0.55, roughnessMap: t.grain });
     case 'radCoreWhite': return physical({ color: 0xdcdde1, metalness: 0.2, roughness: 0.5, roughnessMap: t.grain });
     case 'meshBlack': return perforatedSheet(physical({ color: 0x26272c, metalness: 0, roughness: 0.6, alphaMap: t.perf, alphaTest: 0.5, alphaToCoverage: true, side: THREE.DoubleSide, bumpMap: t.peel, bumpScale: 0.05 }));
-    case 'meshWhite': return perforatedSheet(physical({ color: 0xe1e2e6, metalness: 0, roughness: 0.45, alphaMap: t.perf, alphaTest: 0.5, alphaToCoverage: true, side: THREE.DoubleSide }));
+    case 'meshWhite': return perforatedSheet(physical({ color: 0xd4d5da, metalness: 0, roughness: 0.45, alphaMap: t.perf, alphaTest: 0.5, alphaToCoverage: true, side: THREE.DoubleSide }));
     case 'meshGunmetal': return perforatedSheet(physical({ color: 0x45484f, metalness: 0.5, roughness: 0.42, alphaMap: t.perf, alphaTest: 0.5, alphaToCoverage: true, side: THREE.DoubleSide }));
     case 'meshRaw': return perforatedSheet(physical({ color: 0xb6b9be, metalness: 1, roughness: 0.48, alphaMap: t.perf, alphaTest: 0.5, alphaToCoverage: true, side: THREE.DoubleSide }));
     case 'labelPaper': return physical({ color: 0xc4c5c8, metalness: 0, roughness: 0.7, specularIntensity: 0.25 });
@@ -271,6 +293,7 @@ const glassUniforms = {
   glassEnvWeight: { value: 1 },
   glassCardWeight: { value: 0 },
   glassClamp: { value: 0.3 },
+  glassNearFade: { value: 1 },
   glassCardTint: { value: new THREE.Color(0xe8ecff) },
   glassCardP: { value: vecs() },
   glassCardN: { value: vecs() },
@@ -298,15 +321,21 @@ export function setGlassCards(cards: GlassCard[]) {
   });
 }
 
-/** The room glass reflects studio cards at their real distance; the Inspector glass reflects its environment map. */
-export function setGlassStage(stage: 'room' | 'studio', clamp = 0.3) {
+/**
+ * Glass reflects studio cards at their real distance. The room glass reflects only its cards; the Inspector glass adds its
+ * environment map, and its own softbox strips so the glass shows over a white interior too.
+ */
+export function setGlassStage(stage: 'room' | 'studio', clamp: number, cards: GlassCard[]) {
+  setGlassCards(cards);
   glassUniforms.glassEnvWeight.value = stage === 'room' ? 0 : 1;
-  glassUniforms.glassCardWeight.value = stage === 'room' ? 1 : 0;
+  glassUniforms.glassCardWeight.value = 1;
   glassUniforms.glassClamp.value = clamp;
+  // A close camera blocks the room's cards; the studio softboxes stand beside the turntable and are never blocked.
+  glassUniforms.glassNearFade.value = stage === 'room' ? 1 : 0;
 }
 
 const GLASS_VERT_HEAD = 'varying vec3 vGlassWorld;\nvarying vec3 vGlassNormal;\n';
-const GLASS_FRAG_HEAD = `${GLASS_VERT_HEAD}uniform float glassEnvWeight;\nuniform float glassCardWeight;\nuniform float glassClamp;\nuniform vec3 glassCardTint;\nuniform vec3 glassCardP[${MAX_CARDS}];\nuniform vec3 glassCardN[${MAX_CARDS}];\nuniform vec3 glassCardU[${MAX_CARDS}];\nuniform vec3 glassCardV[${MAX_CARDS}];\nuniform vec4 glassCardS[${MAX_CARDS}];\nuniform float glassCardK[${MAX_CARDS}];\n`;
+const GLASS_FRAG_HEAD = `${GLASS_VERT_HEAD}uniform float glassEnvWeight;\nuniform float glassCardWeight;\nuniform float glassClamp;\nuniform float glassNearFade;\nuniform vec3 glassCardTint;\nuniform vec3 glassCardP[${MAX_CARDS}];\nuniform vec3 glassCardN[${MAX_CARDS}];\nuniform vec3 glassCardU[${MAX_CARDS}];\nuniform vec3 glassCardV[${MAX_CARDS}];\nuniform vec4 glassCardS[${MAX_CARDS}];\nuniform float glassCardK[${MAX_CARDS}];\n`;
 const GLASS_FRAG_BODY = `{
   vec3 gV = normalize(vGlassWorld - cameraPosition);
   vec3 gN = normalize(vGlassNormal);
@@ -326,7 +355,7 @@ const GLASS_FRAG_BODY = `{
     float e = smoothstep(0.0, 1.0, (1.0 - a) / s.z) * smoothstep(0.0, 1.0, (1.0 - abs(b)) / s.z);
     gL += glassCardK[i] * e * (1.0 - s.w * (1.0 - b) * 0.5);
   }
-  float gNear = smoothstep(${GLASS_NEAR[0].toFixed(2)}, ${GLASS_NEAR[1].toFixed(2)}, distance(vGlassWorld, cameraPosition));
+  float gNear = 1.0 - glassNearFade + glassNearFade * smoothstep(${GLASS_NEAR[0].toFixed(2)}, ${GLASS_NEAR[1].toFixed(2)}, distance(vGlassWorld, cameraPosition));
   gl_FragColor.rgb = gl_FragColor.rgb * glassEnvWeight + glassCardTint * (gF * gL * glassCardWeight * gNear);
   gl_FragColor.rgb = min(gl_FragColor.rgb, vec3(glassClamp));
 }

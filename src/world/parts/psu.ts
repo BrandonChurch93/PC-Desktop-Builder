@@ -59,6 +59,13 @@ export function psuPart(id: string, opts: GenOpts = {}): PartObject {
   u.lineTo(W / 2 - t, wallTop); u.lineTo(W / 2 - t, bend); u.absarc(W / 2 - bend, bend, bend - t, 0, -PI / 2, true);
   u.lineTo(-W / 2 + bend, t); u.absarc(-W / 2 + bend, bend, bend - t, -PI / 2, -PI, true); u.lineTo(-W / 2 + t, wallTop); u.closePath();
   pb.add(extrude(u, L - 1.6, 0.3, 'zy', 16), shell, xf({ p: [-L / 2 + 0.8, 0, 0] }));
+  // Both ends are folded into a rim with a rounded outer edge, so the corners where the sides meet the end faces catch a
+  // highlight; the bare 1 mm sheet edge read as a hard line.
+  for (const ex of [L / 2, -L / 2 + 2.4]) {
+    const rim = rrectShape(W + 0.6, H - 0.6, 3.2, 0, (H - 0.6) / 2 + 0.1);
+    rim.holes.push(rrectHole(W - 5, H - 6, 1.5, 0, (H - 0.6) / 2 + 0.1));
+    pb.add(extrude(rim, 2.4, 1.0, 'zy', 16, 3), shell, xf({ p: [ex, 0, 0] }));
+  }
 
   const fanR = sfx ? 46 : 64;
   const fx = sfx ? 0 : L * 0.04;
@@ -106,10 +113,16 @@ export function psuPart(id: string, opts: GenOpts = {}): PartObject {
     const housing = rrectShape(30, 24, 1.6);
     housing.holes.push(polyHole([[-11.5, -7.5], [11.5, -7.5], [11.5, 4.6], [8.6, 7.5], [-8.6, 7.5], [-11.5, 4.6]]));
     pb.add(extrude(housing, 2.4, 0.4, 'zy', 6, 1), 'plasticDark', at(rear - 1.4, iy, iz));
-    pb.add(rbox(1.2, 22, 28, 0.3, 1), 'plasticGrey', xf({ p: [rear + 4.4, iy, iz] }));
+    // A dark cavity behind the keyed opening, so the bright blades stand out; a grey floor read as a plain block.
+    pb.add(rbox(1.2, 22, 28, 0.3, 1), 'plasticDark', xf({ p: [rear + 4.4, iy, iz] }));
     // Three solid flat blades as an IEC inlet has them: line and neutral low, earth high in the middle, nickel plated.
     const blade = pb.own(new THREE.MeshPhysicalMaterial({ color: 0xb4b7bc, metalness: 1, roughness: 0.58 }));
-    for (const [dy, dz] of [[-2.6, -7], [-2.6, 7], [3.6, 0]] as [number, number][]) pb.add(rbox(5.0, 4.0, 1.6, 0.35, 2), blade, xf({ p: [rear + 1.6, iy + dy, iz + dz] }));
+    for (const [dy, dz] of [[-2.6, -7], [-2.6, 7], [3.6, 0]] as [number, number][]) pb.add(rbox(5.0, 4.6, 0.9, 0.25, 2), blade, xf({ p: [rear + 1.6, iy + dy, iz + dz] }));
+  }
+  // The four threaded holes the case screws go into, near the corners of the rear face.
+  for (const hy of [7, H - 7]) for (const hz of [-W / 2 + 7, W / 2 - 7]) {
+    pb.add(cyl(1.75, 0.12, 'x', 20), 'darkVoid', at(rear - 0.04, hy, hz), { uv: 'keep' });
+    pb.add(torus(2.05, 0.28, 6, 24), 'steelBare', xf({ p: [rear - 0.02, hy, hz], r: [0, PI / 2, 0] }));
   }
   pb.add(rbox(1.6, 21, 15.5, 0.5, 1), 'plasticDark', xf({ p: [rear - 0.2, H * 0.2 + 1, -W / 2 + 22] }));
   const rocker = pb.group('rocker', pb.root, xf({ p: [rear - 1.4, H * 0.2 + 1, -W / 2 + 22], r: [0, 0, 0.18] }));
@@ -127,7 +140,9 @@ export function psuPart(id: string, opts: GenOpts = {}): PartObject {
   }
   for (const [sx, sz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]] as [number, number][]) pb.add(sg.clone(), sm, xf({ p: [sx * (L / 2 - 6), H - 0.1, sz * (W / 2 - 6)], r: [-PI / 2, 0, 0] }), { uv: 'keep' });
   sg.dispose();
-  labels.text('100-240 V ~ 50/60 Hz', TINY_TYPE, 2.0, xf({ p: [rear - 1.1, H * 0.86, -W / 2 + 22], r: [0, -PI / 2, 0] }), { color: frost ? '#4c5058' : '#9aa0a8' });
+  labels.text('100-240 V ~ 50/60 Hz', TINY_TYPE, 2.0, xf({ p: [rear - 1.1, H * 0.78, -W / 2 + 22], r: [0, -PI / 2, 0] }), { color: frost ? '#4c5058' : '#9aa0a8' });
+  // The maker and rating on the rear plate too, so the supply is named from behind, where a shroud leaves it seen.
+  labels.text(`${brandName(spec?.brand ?? 'thessic').toUpperCase()} ${spec?.capacity ?? 850}W`, BRAND_TYPE[spec?.brand ?? 'thessic'] ?? SPEC_TYPE, 2.6, xf({ p: [rear - 1.1, H * 0.85, -W / 2 + 22], r: [0, -PI / 2, 0] }), { color: frost ? '#3e424a' : '#b9bdc5' });
 
   const anchors: Record<string, Anchor> = {};
   const front = L / 2;
@@ -190,7 +205,7 @@ export function psuPart(id: string, opts: GenOpts = {}): PartObject {
     pb.add(extrude(face, 1.4, 0.3, 'zy', 6, 1), 'plasticDark', xf({ p: [front - 2.6, s.y, s.z] }));
     pb.add(new THREE.BoxGeometry(0.1, sh - 0.6, sw - 0.6), 'darkVoid', xf({ p: [front - 2.5, s.y, s.z] }), { uv: 'keep' });
     pb.add(rbox(2.4, 1.0, 3.6, 0.3, 1), 'plasticDark', xf({ p: [front - 2.2, s.y + sh / 2 + 0.45, s.z] }));
-    labels.text(s.label, TINY_TYPE, 2.0, xf({ p: [front - 2.44, s.y + sh / 2 + 2.6, s.z], r: [0, PI / 2, 0] }), { color: frost ? '#4c5058' : '#b5b9c2' });
+    labels.text(s.label, TINY_TYPE, 2.5, xf({ p: [front - 2.44, s.y + sh / 2 + 2.9, s.z], r: [0, PI / 2, 0] }), { color: frost ? '#4c5058' : '#b5b9c2' });
     anchors[s.name] = { pos: [front - 1, s.y, s.z], dir: [1, 0, 0] };
   }
   const bigLabel = (side: 1 | -1) => {

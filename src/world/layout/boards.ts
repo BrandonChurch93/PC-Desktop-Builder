@@ -78,11 +78,12 @@ export const BOARD_LAYOUTS: Record<BoardSize, BoardLayout> = {
   },
   itx: {
     size: 'itx', w: K.boardDims.itx.w, h: K.boardDims.itx.h,
-    // 39 mm right of the rear regulator heatsink, so a liquid cooler's pump plate (38 mm half width) clears it.
-    socket: { x: 90, y: -76 },
+    // 39 mm right of the rear regulator heatsink (moved 4 mm toward the I/O), so a liquid cooler's 38 mm pump plate clears it
+    // while a twin tower still overhangs the memory slots.
+    socket: { x: 86, y: -76 },
     eps: { x: 40, y: -8 },
     atx24: { x: 162.5, y: -62 },
-    vrmRear: { x0: 33, x1: 51, y0: -22, y1: -115, h: 36 },
+    vrmRear: { x0: 31, x1: 47, y0: -22, y1: -115, h: 36 },
     vrmTop: { x0: 56, x1: 118, y0: -12, y1: -34, h: 32 },
     dimms: [{ name: 'A1', x: 140, y: -76 }, { name: 'B1', x: 149.5, y: -76 }],
     pcie: [{ y: -160, x0: 22, len: DIMS.pcieX16Length, kind: 'x16r' }],

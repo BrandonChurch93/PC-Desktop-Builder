@@ -1,4 +1,4 @@
-PHASE 3 IN PROGRESS · thumbnails, contact sheets, Gate 3
+PHASE 4 IN PROGRESS · vitrine frost
 
 <!-- Builder: this file is your memory. Read it first in every session and after every compaction. Keep it current. Replace the first line as you go: "PHASE N IN PROGRESS · step k", "BLOCKED: ...", and at the very end "BUILD COMPLETE" with nothing else on that line. -->
 
@@ -6,10 +6,10 @@ PHASE 3 IN PROGRESS · thumbnails, contact sheets, Gate 3
 
 ## Where things stand
 
-- Current phase: 3 · The roster
-- Current step: after step 9 · thumbnails, generator test, contact sheets, Gate 3
+- Current phase: 4 · Cases and layouts
+- Current step: vitrine in frost (then atrium, vent, bulwark, cub, gantry)
 - Next action: confirm the step 1 to 5 groups on the current build (all have builder verdicts on their newest images, addendum 01), commit "phase 3: boards", then steps 6 (tidal16), 7 (flint), 8 (supplies; fix the HZ casing in the spec table), 9 (cables). Generators for all of them already exist; each is the loop plus one critic round. Then `npm run thumbs` (scripts/thumbs.mjs written, writes public/thumbs, which changes the build id, so run it once before the Gate 3 retake), tests/unit/generators.test.ts (written: every non-case part generates a real model in Node, 43 pass; its 43 thumbnail checks pass once thumbs exist), 9 contact sheets with one critic round. B8 is dropped by addendum 01. Take shots group by group (a wide prefix lost manifest entries).
-- Last commit: phase 3: processor, storage, supplies, cables (steps 6 to 9)
+- Last commit: phase 3: the roster (Gate 3)
 
 ## Phases
 
@@ -18,7 +18,7 @@ PHASE 3 IN PROGRESS · thumbnails, contact sheets, Gate 3
 | 0 | Setup | done | see Gate 0 evidence below | phase 0: setup |
 | 1 | Engine | done | 134 unit tests pass, typecheck clean, check:copy 0 problems | phase 1: engine |
 | 2 | World foundation and the hero slice | done | see Gate 2 evidence below | phase 2: world foundation and the hero slice |
-| 3 | The roster | in progress (steps 1 to 9 done) | | |
+| 3 | The roster | done | see Gate 3 evidence below | phase 3: the roster |
 | 4 | Cases and layouts | not started | | |
 | 5 | Interface and the build flow | not started | | |
 | 6 | Hands | not started | | |
@@ -64,6 +64,14 @@ PHASE 3 IN PROGRESS · thumbnails, contact sheets, Gate 3
   - 10 Room: the desk mirror is clamped and hides the glass specular layer in its render; desk and wall have texture and a neutral wall takes the rig's wash; soft key shadow and placed rim and backdrop lights, so no hard case shadow falls on the wall.
   - 12 Layout: a pure place(build) from case and board layouts sets every part, and the layout tests check it (B2 to B9).
   - 13 Text: model names, capacities, ratings and small print on every part: board silkscreen, supply rating label and socket names, drive label grid, memory marks and kit label, card print, radiator and pump print, processor print, case plate and spec line.
+
+### Gate 3 evidence
+
+- `npm run check:shots -- part/board part/cpu part/cooler part/ram part/gpu part/storage part/psu part/fan cable`: `shots defined: 211 of 358 · passed: 135 · contact sheets passed: 0 · problems: 0` (43 parts, 129 part shots, 6 cable shots; under addendum 01, every 3D shot had one critic round, critics 001 to 264)
+- tests/unit/generators.test.ts: every catalog part that is not a case (43) generates its own model in Node (at least 5 meshes and 2000 triangles, not the collision box stub) and has public/thumbs/<category>-<id>.jpg. `npx vitest run`: 9 files, 234 tests passed. Typecheck clean. check:copy 0 problems (60 files).
+- Thumbnails: `npm run thumbs` renders 45 (43 parts plus Vitrine in onyx and frost; the other five cases are skipped until Phase 4 builds them), 1.4 MB, 240 px at density 2, from each part's front shot angle.
+- Item B8: dropped by addendum 01 rule 7.
+- `npm run check:shots -- contact/korrin contact/kestrane contact/lumenfold contact/calyra contact/veltrin contact/dravik contact/pellam contact/thessic contact/processors`: `shots defined: 211 of 358 · passed: 0 · contact sheets passed: 9 · problems: 0` (critic 264 passed eight; it failed Dravik for a Veltrin like light bar, fixed by keeping the fin light to a band under the seam, rebuilt and passed on my verdict; its thessic line carried the wrong hash and was skipped, the sheet passes on my verdict under rule 2).
 
 ## Environment
 

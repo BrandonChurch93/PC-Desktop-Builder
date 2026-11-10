@@ -129,7 +129,8 @@ function fins(pb: PartBuilder, c: Card, material: MatName, x0: number, x1: numbe
  * faces, fading down the face, so the gaps between fins stay dark. One flat layer over the window lit every fin face evenly
  * at every depth and read as a neon grille.
  */
-function finLight(pb: PartBuilder, zone: Zone, gain: number, fx0: number, fx1: number, bx0: number, bx1: number, ya: number, yb: number, zt: number, pitch = 1.9, skip: [number, number] | null = null) {
+/** fade: the light falls off from yb to ya instead of lying even over the fin tips. */
+function finLight(pb: PartBuilder, zone: Zone, gain: number, fx0: number, fx1: number, bx0: number, bx1: number, ya: number, yb: number, zt: number, pitch = 1.9, skip: [number, number] | null = null, fade = false) {
   const pos: number[] = []; const uv: number[] = []; const col: number[] = [];
   const quad = (p: [number, number, number][], u: number, k: [number, number, number, number]) => {
     const v = [0, 0, 1, 1];
@@ -141,8 +142,8 @@ function finLight(pb: PartBuilder, zone: Zone, gain: number, fx0: number, fx1: n
     const x = fx0 + i * pitch;
     if (x < bx0 || x > bx1 || (skip && x > skip[0] && x < skip[1])) continue;
     const u = (x - bx0) / (bx1 - bx0);
-    quad([[x - half, yb, zt + 0.02], [x + half, yb, zt + 0.02], [x + half, ya, zt + 0.02], [x - half, ya, zt + 0.02]], u, [1, 1, 1, 1]);
-    for (const s of [-1, 1]) { const xs = x + s * (half + 0.01); quad([[xs, yb, zt], [xs, yb, zt - 3], [xs, ya, zt - 3], [xs, ya, zt]], u, [1, 0, 0, 1]); }
+    quad([[x - half, yb, zt + 0.02], [x + half, yb, zt + 0.02], [x + half, ya, zt + 0.02], [x - half, ya, zt + 0.02]], u, fade ? [1, 1, 0, 0] : [1, 1, 1, 1]);
+    for (const s of [-1, 1]) { const xs = x + s * (half + 0.01); quad([[xs, yb, zt], [xs, yb, zt - 3], [xs, ya, zt - 3], [xs, ya, zt]], u, fade ? [1, 0, 0, 0] : [1, 0, 0, 1]); }
   }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
@@ -578,8 +579,11 @@ function dravik(pb: PartBuilder, labels: Labels, c: Card): { zones: Zone[]; roto
     zone.emit(mid3.clone().addScaledVector(s.n, 1), s.n.clone(), len, 6, 0.9, along.clone());
     zones.push(zone);
   });
-  if (c.frost && zones[1]) finLight(pb, zones[1], 0.26, c.back + 10, c.end - 8, wx0, wx1, wallY0 + 3, wallY0 + winTop, c.H - 3.5, 2.2, [skL, skR]);
-  if (c.spec.lightZones >= 1) finLight(pb, zones[0]!, c.frost ? 0.26 : 0.18, c.back + 10, c.end - 8, wx0, wx1, wallY0 + 3, wallY0 + winTop, c.H - 3.5, 2.2, [skL, skR]);
+  // Only a band under the top seam takes its light, fading out: lit over the window's full height, the fins read as a broad
+  // light bar, Veltrin's signature, not Dravik's thin seams (critic 264).
+  const band = Math.max(wallY0 + 3, wallY0 + winTop - 8);
+  if (c.frost && zones[1]) finLight(pb, zones[1], 0.2, c.back + 10, c.end - 8, wx0, wx1, band, wallY0 + winTop, c.H - 3.5, 2.2, [skL, skR], true);
+  if (c.spec.lightZones >= 1) finLight(pb, zones[0]!, c.frost ? 0.2 : 0.14, c.back + 10, c.end - 8, wx0, wx1, band, wallY0 + winTop, c.H - 3.5, 2.2, [skL, skR], true);
   const anchors = powerSockets(pb, labels, c, sockX);
   return { zones, rotors, anchors };
 }

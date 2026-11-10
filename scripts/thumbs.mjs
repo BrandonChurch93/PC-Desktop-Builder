@@ -24,6 +24,8 @@ for (const [cat, key] of Object.entries(CATEGORIES)) {
   for (const part of catalog[key]) {
     const front = SHOTS[`part/${cat}-${part.id}-front`];
     if (!front) throw new Error(`no front shot for ${cat} ${part.id}`);
+    // A part not modeled yet (its front shot has never been taken) gets its thumbnail when it is built.
+    if (!fs.existsSync(`shots/part/${cat}-${part.id}-front.jpg`)) { console.log(`skip: ${cat} ${part.id} is not built yet`); continue; }
     const inspect = front.steps.find((s) => s[0] === 'inspect');
     const rest = front.steps.filter((s) => s[0] !== 'inspect');
     const finishes = cat === 'case' ? part.finishes : [null];

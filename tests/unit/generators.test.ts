@@ -55,4 +55,18 @@ describe('part generators', () => {
       });
     }
   }
+  for (const c of catalog.cases) {
+    for (const finish of c.finishes) {
+      it(`case ${c.id} in ${finish} has its own generated model and a thumbnail`, async () => {
+        const { generate } = await import('../../src/world/parts/index');
+        const obj = generate('case', c.id, { finish });
+        let meshes = 0;
+        obj.root.traverse((o) => { if (o instanceof THREE.Mesh) meshes++; });
+        expect(meshes).toBeGreaterThanOrEqual(10);
+        expect(obj.movers.glass).toBeDefined();
+        obj.dispose();
+        expect(fs.existsSync(`public/thumbs/case-${c.id}-${finish}.jpg`)).toBe(true);
+      });
+    }
+  }
 });

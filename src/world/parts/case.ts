@@ -222,7 +222,7 @@ export function casePart(id: string, opts: GenOpts = {}): PartObject {
   const pb = new PartBuilder(`case-${id}-${finish}`);
   const labels = new Labels(pb, 18);
   const made = make(pb, labels, spec, L, F, finish);
-  made.movers.glass = glassPanels(pb, L, F);
+  made.movers.glass = glassPanels(pb, L, F, spec.brand);
   labels.finish();
   const done = pb.finish();
   for (const z of made.zones) z.owner = done.root;

@@ -36,10 +36,34 @@ function panelFrame(g: GlassPanel): { m: THREE.Matrix4; u0: number; u1: number }
 
 const capCorners = (g: GlassPanel): [number, number][] => (g.caps === 'top' ? [[1, 1], [-1, 1]] : [[1, 1], [1, -1], [-1, 1], [-1, -1]]);
 
+/**
+ * How each brand holds its glass, from its design language in the catalog: Mirevale hides its fasteners, so a low cap painted
+ * like the glass border; Skarn shows its function, so a hex bolt on a washer; Paleforge machines its parts, so a flat turned
+ * disc with a groove, in the plate finish. All stay inside the cap collision box (12 square, 4 deep).
+ */
+export type GlassFixing = 'flush' | 'hex' | 'turned' | 'dome';
+const GLASS_FIXING: Record<string, GlassFixing> = { mirevale: 'flush', skarn: 'hex', paleforge: 'turned' };
+
+function glassFixing(pb: PartBuilder, fixing: GlassFixing, F: CaseFinish, m: THREE.Matrix4, to: THREE.Object3D) {
+  const metal = F.light ? 'capSilver' : 'capDark';
+  if (fixing === 'flush') {
+    pb.add(lathe([[0, 0], [4.4, 0], [4.6, 0.3], [4.3, 0.9], [0, 1.0]], 40), 'capDark', m, { to });
+  } else if (fixing === 'hex') {
+    pb.add(lathe([[0, 0], [5.8, 0], [5.8, 0.8], [0, 0.8]], 40), metal, m, { to });
+    const head = new THREE.CylinderGeometry(4.6, 4.6, 3.0, 6, 1); head.rotateX(Math.PI / 2); head.rotateZ(Math.PI / 6); head.translate(0, 0, 0.8 + 1.5);
+    pb.add(head, metal, m, { to });
+    pb.add(lathe([[0, 0], [2.2, 0], [2.2, 0.2], [0, 0.2]], 24), 'darkVoid', m.clone().multiply(at(0, 0, 3.81)), { to, uv: 'keep' });
+  } else if (fixing === 'turned') {
+    pb.add(lathe([[0, 0], [5.9, 0], [5.9, 2.9], [5.4, 3.5], [3.4, 3.5], [3.1, 3.2], [2.6, 3.2], [2.3, 3.5], [0, 3.5]], 48), F.shell === 'aluRaw' ? 'aluRaw' : F.light ? 'plateAnoWhite' : 'plateAnoBlack', m, { to });
+  } else {
+    pb.add(lathe([[0, 0], [5.4, 0], [5.8, 0.4], [5.8, 2.6], [5.0, 3.6], [0, 3.8]], 40), metal, m, { to });
+  }
+}
+
 /** Corner caps sit this far in from each corner of a glass panel. */
 const CAP_INSET = 12;
 
-function glassPanel(pb: PartBuilder, g: GlassPanel, F: CaseFinish, group: THREE.Object3D) {
+function glassPanel(pb: PartBuilder, g: GlassPanel, F: CaseFinish, group: THREE.Object3D, fixing: GlassFixing) {
   const { m, u0, u1 } = panelFrame(g);
   const frame = pb.group(`glass-${g.side}`, group, m);
   const w = u1 - u0; const h = g.rect.max[1] - g.rect.min[1];
@@ -65,15 +89,16 @@ function glassPanel(pb: PartBuilder, g: GlassPanel, F: CaseFinish, group: THREE.
   for (const [sx, sy] of capCorners(g)) {
     // Seated well inside the glass edge, on the painted border, clear of the frame pillars beside it.
     const x = cx + sx * (w / 2 - CAP_INSET); const y = cy + sy * (h / 2 - CAP_INSET);
-    pb.add(lathe([[0, 0], [5.4, 0], [5.8, 0.4], [5.8, 2.6], [5.0, 3.6], [0, 3.8]], 40), F.light ? 'capSilver' : 'capDark', at(x, y, g.outer), { to: frame });
-    pb.add(cyl(3.6, 0.6, 'z', 32), F.light ? 'capSilver' : 'capDark', at(x, y, g.inner - 0.3), { to: frame });
+    glassFixing(pb, fixing, F, at(x, y, g.outer), frame);
+    pb.add(cyl(3.6, 0.6, 'z', 32), fixing === 'flush' ? 'capDark' : F.light ? 'capSilver' : 'capDark', at(x, y, g.inner - 0.3), { to: frame });
   }
 }
 
 /** Every glass panel of a case, in one group the rig shows and hides with the build's glass. */
-export function glassPanels(pb: PartBuilder, L: CaseLayout, F: CaseFinish): THREE.Group {
+export function glassPanels(pb: PartBuilder, L: CaseLayout, F: CaseFinish, brand: string): THREE.Group {
   const group = pb.group('glass', pb.root);
-  for (const g of L.glass) glassPanel(pb, g, F, group);
+  const fixing = GLASS_FIXING[brand] ?? 'dome';
+  for (const g of L.glass) glassPanel(pb, g, F, group, fixing);
   return group;
 }
 

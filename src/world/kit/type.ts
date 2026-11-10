@@ -73,7 +73,7 @@ export function drawText(g: CanvasRenderingContext2D, text: string, s: TextStyle
     g.save();
     g.globalCompositeOperation = 'destination-out';
     g.fillStyle = 'rgba(0,0,0,1)';
-    g.fillRect(x - 2, y - px * 0.035, w + 4, px * 0.07);
+    g.fillRect(x - 2, y - px * 0.06, w + 4, px * 0.12);
     g.restore();
   }
 }

@@ -184,7 +184,7 @@ function makeMat(name: MatName): THREE.Material {
     case 'steelZinc': return metal(0x9a9da2, 0.42, t.grain, { bumpMap: t.mottle, bumpScale: 0.2 });
     // Thick bead blasted anodized plates (Paleforge): a slow roughness drift and no bump, so their large radiused edges hold a
     // clean rolled highlight; a bump speckled at grazing angles (critic 272).
-    case 'plateAnoWhite': return capHighlights(physical({ color: 0xe4e5e9, metalness: 0.2, roughness: 0.5, roughnessMap: t.mottle, clearcoat: 0.1, clearcoatRoughness: 0.5 }), 1.3, 'plate-ano-white');
+    case 'plateAnoWhite': return capHighlights(physical({ color: 0xe2e3e7, metalness: 0.28, roughness: 0.64, roughnessMap: t.bead }), 1.3, 'plate-ano-white');
     case 'plateAnoBlack': return metal(0x3a3d43, 0.46, t.mottle, { metalness: 0.42, clearcoat: 0.12, clearcoatRoughness: 0.55 });
     case 'aluBlack': return metal(0x34363b, 0.42, t.bead, { bumpMap: t.bead, bumpScale: 0.08 });
     // Highlights held under the bloom threshold: a top face toward the key softbox bloomed into a white blob on the white board.

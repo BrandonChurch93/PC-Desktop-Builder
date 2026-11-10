@@ -1,4 +1,4 @@
-PHASE 4 IN PROGRESS · gate 4
+PHASE 5 IN PROGRESS · step 1
 
 <!-- Builder: this file is your memory. Read it first in every session and after every compaction. Keep it current. Replace the first line as you go: "PHASE N IN PROGRESS · step k", "BLOCKED: ...", and at the very end "BUILD COMPLETE" with nothing else on that line. -->
 
@@ -6,10 +6,10 @@ PHASE 4 IN PROGRESS · gate 4
 
 ## Where things stand
 
-- Current phase: 4 · Cases and layouts
-- Current step: gate 4 (all six cases built: vitrine frost, atrium, vent, bulwark, cub, gantry)
-- Next action: the layout test log per case, case thumbnails, the three case brand contact sheets, Gate 4. Do not end the turn with a status report: updates go here.
-- Last commit: phase 4: gantry and open frame
+- Current phase: 5 · Interface and the build flow
+- Current step: 1 (tokens, global styles, fonts)
+- Next action: Phase 5 steps 1 to 9 per kit/08-BUILD-ORDER.md; read kit/05-DESIGN.md, kit/01-PRODUCT.md, the named sections of kit/03-RULES.md and kit/06-ARCHITECTURE.md first. Do not end the turn with a status report: updates go here.
+- Last commit: phase 4: gate 4
 
 ## Phases
 
@@ -19,7 +19,7 @@ PHASE 4 IN PROGRESS · gate 4
 | 1 | Engine | done | 134 unit tests pass, typecheck clean, check:copy 0 problems | phase 1: engine |
 | 2 | World foundation and the hero slice | done | see Gate 2 evidence below | phase 2: world foundation and the hero slice |
 | 3 | The roster | done | see Gate 3 evidence below | phase 3: the roster |
-| 4 | Cases and layouts | not started | | |
+| 4 | Cases and layouts | done | see Gate 4 evidence below | phase 4: gate 4 |
 | 5 | Interface and the build flow | not started | | |
 | 6 | Hands | not started | | |
 | 7 | Light and life | not started | | |
@@ -72,6 +72,14 @@ PHASE 4 IN PROGRESS · gate 4
 - Thumbnails: `npm run thumbs` renders 45 (43 parts plus Vitrine in onyx and frost; the other five cases are skipped until Phase 4 builds them), 1.4 MB, 240 px at density 2, from each part's front shot angle.
 - Item B8: dropped by addendum 01 rule 7.
 - `npm run check:shots -- contact/korrin contact/kestrane contact/lumenfold contact/calyra contact/veltrin contact/dravik contact/pellam contact/thessic contact/processors`: `shots defined: 211 of 358 · passed: 0 · contact sheets passed: 9 · problems: 0` (critic 264 passed eight; it failed Dravik for a Veltrin like light bar, fixed by keeping the fin light to a band under the seam, rebuilt and passed on my verdict; its thessic line carried the wrong hash and was skipped, the sheet passes on my verdict under rule 2).
+
+### Gate 4 evidence
+
+- Layout tests (tests/unit/layout.test.ts, 41 tests) pass for all six cases: B2 (the six presets place with no intersections), B3, B4, B5, B6, B7, B9, and a liquid cooler on every mount with fans on every free mount. Builds generated per case (fans on every mount, each radiator on each mount, each board size, each cooler with a memory clearance, B9 per board size, each radiator with fans, the preset): vitrine 18, atrium 22, vent 16, bulwark 18, cub 8, gantry 14. B1 (random builds) dropped by addendum 01 rule 7.
+- `npm run check:shots -- rig bench finish macro part`: `shots defined: 237 of 358 · passed: 223 · contact sheets passed: 0 · problems: 0` (30 rig, 6 bench, 6 finish, 28 macro, 153 part). Every 3D shot had one critic round (critics up to 276); every image that changed after shared changes was opened and has my own verdict (shots/peek/v-gate4a to e).
+- Item B8: dropped by addendum 01 rule 7.
+- `npm run check:shots -- contact/mirevale contact/skarn contact/paleforge`: `contact sheets passed: 3 · problems: 0` (critic 276 failed all three for shared glass caps and a faint stencil; fixed with per brand glass fixings, a wider stencil bridge and a matte white plate, passed on my verdict under rule 1).
+- Every catalog part has a generator and every thumbnail exists: tests/unit/generators.test.ts checks 43 parts and all 12 case finishes (generate and thumbnail). `npm run thumbs`: 55 thumbnails, 1.8 MB. `npx vitest run`: 9 files, 276 tests passed. Typecheck clean. check:copy 0 problems.
 
 ## Environment
 
@@ -187,6 +195,8 @@ One line each: the question, what you chose, which step of the decision rule set
 - Gantry (Open Frame) layout (src/world/layout/cases/gantry.ts): outer 520 × 240 × 540, width 15 over the catalog's 225 for the cable space behind the plate (kit allows 15). Free card length 460 with fans or with a radiator: the spine is a C channel whose radiator nests outside the fans (rad-first, face 42.5 out from the fan centers), so the radiator's fans sit where the spine's own fans do and gpuPenalty 0 holds. Spine fans numbered from the top so a 240 takes the upper two and its fittings clear the fan left below (a 240 on the lower two put its fitting into spine-3). Height over the processor 186.9, supply bay 190, glass 51.4 past the Crest. Plate 6 mm: a run through the plate needs an 18 mm turn plus its half width behind it, which an 8 mm plate left no room for inside the 240 width. Glass pillars stand under the glass caps (12 in from the corners): rear two from the plate, front two from the spine's rail. The Crest's support in an open frame is an arm from the plate (place() gives a support box along z, supportPart builds a hinge block, bar and padded cradle).
 - Open frame cables: every board run goes through its grommet, turns flat down the plate's back and comes forward into one wide grommet beside the supply; the supply's runs (18 and 10 pin halves of the 24 pin, CPU, 12V-2x6 or PCIe) leave their sockets, rise beside the socket panel and go back into the same grommet. The halves meet at a full rubber membrane in the middle of the plate, so no cut end shows from either face. Frames carry an optional align list (row axis turned to a normal at a point, the turn spread along the length; an align with no normal holds the untwisted frame) so a bundle lies flat on the plate's back. The 24 pin runs sideways behind the plate before going down, which keeps it flat with no forced twist (a twist toward flat over 130 mm read as a broom). aluRaw is now part metallic, capped, soft mottle, no bump (fully metallic it mirrored the room; the full mottle read as clouds on the large plate).
 - Open frame drives: a shelf drive takes one supply lead and one data lead, each plugged at both ends (Run.plugAt 'both'); the data lead runs back to the plate, climbs left of the supply grommet, steps under the board's edge and up to the port. Drives on the plate's back run flat leads along the plate under the sleeved bundles into the drive grommet, one power and one data slot per drive; the front halves come from the board's port and from the supply's SATA socket, which climbs to the right of every supply lane. Plate-back drives are turned half a turn about their thickness (rot -Q, 2Q, 0) so their labels read upright from behind. Checked in shots/peek/gantrydrives.json with two SSDs and a drive added.
+- Gate 4 and addendum 01: rule 3 leaves passed shots alone after shared changes, but rule 8 keeps every "Shots pass" gate line and the check's manifest test against the current build, so a gate needs its groups taken from the current build. As at Gate 3, the gate groups (rig, bench, finish, macro, part) are retaken once at the gate; an image whose bytes are unchanged keeps its verdict by hash, and every changed image is opened and gets my own verdict (the Gate 7 wording of rule 3). B1 and B8 are dropped by rule 7, so Gate 4 logs no generated-build count and runs no bounds test.
+- Case brand contact sheets, critic 276 (all three FAIL, X21): every brand held its glass with the same domed caps, against each brand's catalog language. Glass fixings are now per brand (caseKit GLASS_FIXING): Mirevale low caps painted like the glass border (hidden fasteners), Skarn hex bolts on washers (exposed hex screws), Paleforge flat turned discs with a groove in the plate finish (raw aluminum on raw). All stay inside the cap collision box. The Skarn stencil bridge was 7 percent of the cap height and vanished at a distance; now 12 percent. plateAnoWhite is matte bead blasted (roughness 0.64 through the bead map, no clearcoat) since the white Cub read as glossy powder coat. The Vitrine's perforated front and the Gantry's large glass are their archetypes in the kit and stay. Sheets rebuilt and passed on my verdict.
 - Flagship's Ember preset is the comet effect (catalog): one short head with a dark trail, so most of its memory bars and case bar sit dark in any frozen frame. That is the effect's data.
 - 2026-11-10: Brandon asked to push to github.com/BrandonChurch93/PC-Desktop-Builder. `git push` is refused by the project's deny rules (CLAUDE.md: never push); everything is committed locally on main and he was given the two commands to publish it. shots/ stays gitignored.
 - 2026-11-10: Brandon authorized pushing to GitHub and asked for the permission change. Removed the Bash(git push *) and Bash(git remote *) deny rules from .claude/settings.json, added origin https://github.com/BrandonChurch93/PC-Desktop-Builder.git and pushed main (aa810b8). From now on every commit is pushed to origin main. This overrides the CLAUDE.md and kit lines that say never push.
@@ -240,6 +250,7 @@ One line per feature id in kit/01-PRODUCT.md: `F01 · where it is tested or show
 
 Newest first. One entry per working session or per compaction: what was done, what is next.
 
+- 2026-11-10 session 2, Gate 4 retake: rig, bench, finish, macro and part retaken on the current build (shots/peek/gate4-retake.log). 101 images changed from shared changes since their passes (Night Rig, White Out and Windbreak groups, boards, air coolers, two memory kits, Crest back, the older case parts); every one opened. One fault: the air coolers' bracket thumbscrews in plain nickel bloomed into a white halo under the studio key (part/cooler-pillar-front and the others); now capSilver (capped). Builder verdicts recorded for every other changed image (shots/peek/v-gate4a to d). npm run thumbs: 55 thumbnails (43 parts and 12 case finishes), 1.8 MB; generators.test.ts now checks every case in every finish generates and has its thumbnail (98 tests). Thumbnails are in dist, so the gate groups are retaken once more on that build (gate4-retake2.log); only the air cooler shots should change.
 - 2026-11-10 session 2, Phase 4 Gantry: layout, generator, open frame cable routing, Crest arm. Critics 274 and 275 failed 12 of 15, almost all X09 (raw read as white paint): aluRaw is now metalness 0.8, 0xb2b6bd, roughness 0.42 through the fine bead map, capped 1.3, and reads as bead blasted metal with edge highlights. Also: spine opening narrowed to 92 with slotted fan holes at every fan corner in the flange border (X21), flat screws down the flange's joint with the plate (X04), larger darker spec print on the plate's back. Onyx spine fans are seen edge on in the finish hero; judged readable by their frames and pads. Builder PASS on all 15 after retakes (shots/peek/v-gantry.txt); check:shots on the five Gantry groups: passed 15, problems 0. 264 unit tests pass. Next: drives on the open frame (the shelf drive's data lead and the two plate-back drives need open routing), then case thumbnails, the three case brand contact sheets, layout test log, Gate 4.
 - 2026-11-10 session 2, Phase 4 Cub: critics 272 and 273 failed 12 of 18; fixed (see Decisions, Cub), retook part/case-cub, rig/pocket, bench/pocket, finish/cub, macro/pocket, opened every image and close crops, builder PASS on all 15 (shots/peek/v-cub2.txt). Typecheck clean, 258 unit tests pass. Next: Gantry (Open Frame).
 

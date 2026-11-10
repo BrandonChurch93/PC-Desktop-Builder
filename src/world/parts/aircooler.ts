@@ -32,8 +32,8 @@ function base(pb: PartBuilder) {
   const screws = pb.group('cooler-screws', pb.root);
   for (const [sx, sy] of [[1, 1], [1, -1], [-1, 1], [-1, -1]] as [number, number][]) {
     const s = pb.group('thumb', screws, at(sx * 42, sy * 42, 8.4));
-    pb.add(lathe([[0, 0], [4.6, 0], [4.8, 0.6], [4.8, 3.2], [4.3, 4.0], [0, 4.0]], 24), 'nickel', undefined, { to: s });
-    for (let i = 0; i < 12; i++) { const a = (i / 12) * PI * 2; pb.add(rbox(0.6, 0.9, 2.6, 0.2, 1), 'nickel', xf({ p: [Math.cos(a) * 4.85, Math.sin(a) * 4.85, 1.9], r: [0, 0, a] }), { to: s }); }
+    pb.add(lathe([[0, 0], [4.6, 0], [4.8, 0.6], [4.8, 3.2], [4.3, 4.0], [0, 4.0]], 24), 'capSilver', undefined, { to: s });
+    for (let i = 0; i < 12; i++) { const a = (i / 12) * PI * 2; pb.add(rbox(0.6, 0.9, 2.6, 0.2, 1), 'capSilver', xf({ p: [Math.cos(a) * 4.85, Math.sin(a) * 4.85, 1.9], r: [0, 0, a] }), { to: s }); }
     pb.add(new THREE.BoxGeometry(4.4, 0.8, 0.4), 'darkVoid', at(0, 0, 4.05), { to: s, uv: 'keep' });
     // The spring under each thumbscrew, a few turns of steel wire.
     const coil: Vec[] = Array.from({ length: 41 }, (_, i) => { const a = (i / 40) * PI * 2 * 4; return [Math.cos(a) * 2.6, Math.sin(a) * 2.6, -2.2 + (i / 40) * 2.0]; });

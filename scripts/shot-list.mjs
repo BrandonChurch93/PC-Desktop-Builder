@@ -10,8 +10,9 @@
 //
 // Names chosen for __pcb.open(name): none yet.
 //
-// Extra hook options used here: inspect(category, id, angle, { zoom, size, finish, ui, flip, focus })
+// Extra hook options used here: inspect(category, id, angle, { zoom, size, finish, ui, flip, focus }),
 //   flip shows the underside, focus aims a close view at a point given as fractions of the part's bounds.
+//   act({ type: 'install', category, id, opts }) installs through the rules engine.
 import fs from 'node:fs';
 
 const catalog = JSON.parse(fs.readFileSync('kit/data/catalog.json', 'utf8'));
@@ -27,6 +28,11 @@ for (const p of catalog.presets) SHOTS[`bench/${p.id}`] = { steps: bench(p.id, '
 
 const HERO_MACROS = ['gpu', 'cooler', 'ram', 'board', 'fan', 'cable', 'psu', 'storage'];
 for (const m of HERO_MACROS) SHOTS[`macro/night-rig-${m}`] = { steps: lit('night-rig', m) };
+
+// Night Rig's cable macro with each colorway installed, lit.
+for (const c of catalog.cables) {
+  SHOTS[`cable/${c.id}`] = { steps: [['load', 'night-rig'], ['mode', 'showcase'], ['set', { ui: false, glass: true, power: true, load: 0 }], ['act', { type: 'install', category: 'cables', id: c.id }], ['cam', 'cable'], FREEZE] };
+}
 
 // How each category is shot in the Inspector: the turntable angle for the front and back three quarter views,
 // whether the back view flips the part over, and where the close detail view aims.

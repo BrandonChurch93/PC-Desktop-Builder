@@ -193,7 +193,9 @@ function makeMat(name: MatName): THREE.Material {
     case 'aluSatin': return metal(0xc4c7cc, 0.5, t.brushedCoarse);
     // A drive cover seen at the closest zoom: a fine brush, as the coarse one broke into dark streaks there.
     // Fine bead blast, as drive covers are: coarse brushing stretched into streaks at the shroud window's grazing angle.
-    case 'aluLid': return metal(0xc4c7cc, 0.42, t.grainFine, { bumpMap: t.bead, bumpScale: 0.004 });
+    // Part metallic: the blasted surface scatters some light diffusely. Fully metallic, it mirrored only the dark shroud and
+    // read black through the window while the paper label beside it was lit.
+    case 'aluLid': return metal(0xb4b7bd, 0.48, t.grainFine, { metalness: 0.6, bumpMap: t.bead, bumpScale: 0.004 });
     case 'aluStamp': return metal(0xc0c3c8, 0.44, t.mottle);
     case 'aluWhiteSatin': return worldBump(physical({ color: 0xe6e7ea, metalness: 0.15, roughness: 0.42, roughnessMap: t.mottleMid, bumpMap: t.orange, bumpScale: 6e-5, clearcoat: 0.12, clearcoatRoughness: 0.35 }));
     // Black coated cooler fins: the coating is a dielectric, so only a dim sheen comes off the fin faces and their edges.

@@ -62,7 +62,9 @@ function buildPump(pb: PartBuilder, labels: Labels, k: CoolerSpec, key: string, 
   // Standing alone in the Inspector the pump sits a few centimeters from the radiator's fans, and its light at rig strength
   // lit an unlit fan as if the fan were lit. In the rig the light behind the ring falls on the bracket and the board.
   zone.emit(new THREE.Vector3(0, 0, 48.5), new THREE.Vector3(0, 0, 1), 70, 70, loose ? 0.4 : 0.9);
-  zone.emit(new THREE.Vector3(0, 0, 30), new THREE.Vector3(0, 0, -1), 90, 90, loose ? 0.12 : 0.5);
+  // Alone, the pump has nothing behind it to light but the radiator, and an area light casts no shadow: it shone through the
+  // fans and lit the core's back as if light passed through it.
+  if (!loose) zone.emit(new THREE.Vector3(0, 0, 30), new THREE.Vector3(0, 0, -1), 90, 90, 0.5);
   zone.owner = root;
   labels.text(brandName(k.brand), BRAND_TYPE[k.brand] ?? SPEC_TYPE, 3.6, at(0, 1.4, 47.66, [0, 0, 0]), { color: frost ? '#555a63' : '#c9ccd4', to: root });
   labels.text(k.name.toUpperCase(), MODEL_TYPE, 1.5, at(0, -4.4, 47.66), { color: frost ? '#7a7e87' : '#7d818a', to: root });

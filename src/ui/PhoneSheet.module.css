@@ -1,0 +1,119 @@
+.sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  height: 268px;
+  padding: 0 var(--space-3) env(safe-area-inset-bottom);
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  border-radius: var(--radius-panel) var(--radius-panel) 0 0;
+  background: var(--panel);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--rig-glow) 35%, transparent), var(--shadow-panel);
+  overflow: hidden;
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .sheet,
+  .side {
+    background: var(--panel-solid);
+  }
+}
+
+.sheet[data-stop='full'] {
+  background: var(--panel-solid);
+}
+
+.handleRow {
+  display: flex;
+  justify-content: center;
+  flex: none;
+  touch-action: none;
+}
+
+.handle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 96px;
+  height: var(--touch);
+  border: 0;
+  background: transparent;
+  color: var(--ink-muted);
+}
+
+.grip {
+  width: 40px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line-strong);
+}
+
+.tabRow {
+  flex: none;
+  margin-bottom: var(--space-2);
+}
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.parts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.specs,
+.lighting {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-1) var(--space-1) var(--space-4);
+}
+
+.specHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.eyebrow {
+  color: var(--ink-muted);
+  font-size: var(--text-eyebrow);
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.side {
+  position: absolute;
+  top: var(--inset);
+  right: var(--inset);
+  bottom: var(--inset);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 320px;
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  background: var(--panel);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  box-shadow: var(--shadow-panel);
+}
+
+.hiddenSide {
+  display: none;
+}

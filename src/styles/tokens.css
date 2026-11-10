@@ -21,5 +21,51 @@
   --blur: blur(18px) saturate(1.3);
   --font-display: 'Unbounded Variable', 'DM Sans Variable', system-ui, sans-serif;
   --font-body: 'DM Sans Variable', system-ui, sans-serif;
+  /* Set from the scene: the build's average LED color. Only for a hairline on panel tops and the Power halo. */
   --rig-glow: rgba(124, 92, 255, 0.6);
+
+  --signature: linear-gradient(90deg, var(--magenta), var(--violet));
+  --scrim: rgba(8, 6, 18, 0.62);
+  --raise-strong: rgba(255, 255, 255, 0.09);
+  --accent-soft: rgba(24, 224, 255, 0.14);
+  --warn-soft: rgba(255, 196, 107, 0.12);
+  --danger-soft: rgba(255, 143, 163, 0.12);
+  --shadow-panel: 0 18px 48px rgba(4, 3, 12, 0.45);
+
+  --text-eyebrow: 11px;
+  --text-meta: 12px;
+  --text-control: 13px;
+  --text-body: 14px;
+  --text-brand: 16px;
+  --text-dialog: 20px;
+  --text-stat: 26px;
+  --text-intro: 44px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  --inset: 40px;
+  --touch: 44px;
+  --control-h: 36px;
+
+  --dur-press: 120ms;
+  --dur-control: 220ms;
+  --dur-panel: 360ms;
+  --dur-mode: 500ms;
+  --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-in: cubic-bezier(0.55, 0.06, 0.68, 0.19);
+}
+
+@media (max-width: 1199px) {
+  :root { --inset: 20px; }
+}
+
+@media (max-width: 499px), (max-height: 499px) {
+  :root { --inset: 12px; }
 }

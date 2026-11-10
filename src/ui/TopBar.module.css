@@ -1,0 +1,136 @@
+.brand {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+
+.product {
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: var(--text-brand);
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+
+.eyebrow {
+  margin-top: var(--space-2);
+  color: var(--ink-muted);
+  font-size: var(--text-eyebrow);
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.name {
+  display: inline-flex;
+  align-items: center;
+  max-width: 280px;
+  min-height: 28px;
+  margin-left: -6px;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  font-size: var(--text-body);
+  font-weight: 700;
+  text-align: left;
+}
+
+.name span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.name:hover {
+  border-color: var(--line);
+  background: var(--raise);
+}
+
+.untitled {
+  color: var(--ink-dim);
+  font-weight: 500;
+}
+
+.nameInput {
+  width: 280px;
+  min-height: 28px;
+  margin-left: -6px;
+  padding: 0 6px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: var(--panel-solid);
+  font-weight: 700;
+}
+
+.brandCompact .product {
+  font-size: var(--text-body);
+}
+
+.brandCompact .name {
+  min-height: 24px;
+  font-size: var(--text-control);
+}
+
+.group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.tipHost {
+  display: inline-flex;
+}
+
+.powerOn {
+  box-shadow: 0 0 18px color-mix(in srgb, var(--rig-glow) 70%, transparent);
+}
+
+.menuWrap {
+  position: relative;
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+  padding: var(--space-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--panel-solid);
+  box-shadow: var(--shadow-panel);
+}
+
+.menuItem {
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  font-size: var(--text-control);
+  text-align: left;
+}
+
+.menuItem:hover,
+.menuItem:focus-visible {
+  background: var(--raise-strong);
+  outline: none;
+}
+
+@media (pointer: coarse) {
+  .menuItem {
+    min-height: var(--touch);
+  }
+
+  .name {
+    min-height: var(--touch);
+  }
+}

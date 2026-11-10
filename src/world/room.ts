@@ -184,6 +184,33 @@ export class Room {
 
   updateShadow() { this.lights.shadow.shadow.needsUpdate = true; this.lights.kick.shadow.needsUpdate = true; }
 
+  private emptyMark: THREE.Mesh | null = null;
+
+  /**
+   * The empty bench: a dashed footprint on the desk where a case goes, the size of a mid tower, in the interface's line
+   * color. Drawn once into a canvas, unlit, so it reads as a guide and not as an object.
+   */
+  setEmptyFootprint(on: boolean) {
+    if (!on) { if (this.emptyMark) this.emptyMark.visible = false; return; }
+    if (!this.emptyMark) {
+      const W = 0.46; const D = 0.235; const px = 1400;
+      const c = document.createElement('canvas'); c.width = px; c.height = Math.round(px * D / W);
+      const g = c.getContext('2d');
+      if (g) {
+        const s = px / W; const lw = 0.0026 * s; const r = 0.012 * s; const m = lw;
+        g.strokeStyle = 'rgba(190, 170, 255, 0.55)'; g.lineWidth = lw; g.setLineDash([0.014 * s, 0.009 * s]); g.lineCap = 'round';
+        g.beginPath(); g.roundRect(m, m, c.width - 2 * m, c.height - 2 * m, r); g.stroke();
+      }
+      const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+      const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, toneMapped: false });
+      this.emptyMark = new THREE.Mesh(new THREE.PlaneGeometry(W, D), mat);
+      this.emptyMark.rotation.x = -Math.PI / 2; this.emptyMark.position.set(0, 0.0009, 0); this.emptyMark.name = 'empty-footprint';
+      this.emptyMark.renderOrder = 2;
+      this.group.add(this.emptyMark);
+    }
+    this.emptyMark.visible = true;
+  }
+
   /** Contact shading under whatever stands on the desk, sized to its footprint. */
   setFootprint(box: THREE.Box3 | null) {
     if (!box || box.isEmpty()) { this.contact.visible = false; return; }

@@ -1,0 +1,129 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--control-h);
+  padding: 0 var(--space-4);
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--ink);
+  font-size: var(--text-control);
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background var(--dur-control) var(--ease-out), border-color var(--dur-control) var(--ease-out), color var(--dur-control) var(--ease-out), transform var(--dur-press) var(--ease-out);
+}
+
+.button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.button:disabled {
+  color: var(--ink-muted);
+  opacity: 0.55;
+}
+
+.primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+
+.primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 86%, var(--ink));
+}
+
+.ghost {
+  border-color: var(--line-strong);
+}
+
+.ghost:hover:not(:disabled) {
+  background: var(--raise);
+  border-color: color-mix(in srgb, var(--line-strong) 60%, var(--accent));
+}
+
+.quiet {
+  color: var(--ink-dim);
+  padding: 0 var(--space-2);
+}
+
+.quiet:hover:not(:disabled) {
+  color: var(--ink);
+  background: var(--raise);
+}
+
+.icon {
+  width: var(--control-h);
+  padding: 0;
+  color: var(--ink-dim);
+}
+
+.icon:hover:not(:disabled) {
+  color: var(--ink);
+  background: var(--raise);
+}
+
+.selected {
+  color: var(--ink);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  font-weight: 700;
+}
+
+.block {
+  width: 100%;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 32px;
+  padding: 0 var(--space-3) 0 var(--space-2);
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-dim);
+  font-size: var(--text-control);
+  font-weight: 500;
+  transition: background var(--dur-control) var(--ease-out), border-color var(--dur-control) var(--ease-out), color var(--dur-control) var(--ease-out), box-shadow var(--dur-control) var(--ease-out);
+}
+
+.chip:hover:not(:disabled) {
+  color: var(--ink);
+  background: var(--raise);
+}
+
+.chip:disabled {
+  opacity: 0.5;
+}
+
+.chipOn {
+  color: var(--ink);
+  font-weight: 700;
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.chipCompact {
+  width: var(--touch);
+  height: var(--touch);
+  justify-content: center;
+  padding: 0;
+}
+
+.chipText {
+  line-height: 1;
+}
+
+@media (pointer: coarse) {
+  .button,
+  .chip {
+    min-height: var(--touch);
+  }
+
+  .icon {
+    width: var(--touch);
+  }
+}

@@ -1,10 +1,12 @@
+import gsap from 'gsap';
 import type { Category } from './data/catalog';
 import { getPreset } from './data/catalog';
 import { decode, encode } from './engine/codec';
-import { buildFromPreset, emptyBuild, install, revalidate, setFinish } from './engine/rules';
-import type { ActionOpts } from './engine/types';
+import { buildFromPreset, emptyBuild, revalidate, setFinish } from './engine/rules';
+import * as A from './state/actions';
+import type { ActionOpts, Lighting } from './engine/types';
 import { sheet } from './engine/sheet';
-import { store, type Mode, type Quality } from './state/store';
+import { store, type DialogName, type Mode, type Quality } from './state/store';
 import type { World } from './world/World';
 
 type SetArgs = { power?: boolean; glass?: boolean; airflow?: boolean; load?: number; quality?: Quality; ui?: boolean; reducedMotion?: boolean };
@@ -40,17 +42,49 @@ export function installHook(world: World) {
       store.setState(next);
       await world.settle();
     },
-    async act(action: { type: string; patch?: Record<string, unknown>; id?: string; category?: string; opts?: ActionOpts }, _o: { instant?: boolean } = {}) {
-      const s = store.getState();
-      if (action.type === 'install' && action.category && action.id) {
-        const r = install(s.build, action.category, action.id, action.opts ?? {});
-        if (!r.ok) throw new Error(`install ${action.category} ${action.id}: ${r.code}`);
-        store.setState({ build: r.build, instant: true });
+    async act(action: { type: string; patch?: Record<string, unknown>; id?: string; category?: string; opts?: ActionOpts; finish?: string; name?: string }, o: { instant?: boolean } = {}) {
+      const instant = o.instant !== false;
+      const c = action.category as Category | undefined;
+      switch (action.type) {
+        case 'install': {
+          if (!c || !action.id) throw new Error('install needs a category and an id');
+          const r = A.installPart(c, action.id, action.opts ?? {}, instant);
+          if (!r.ok) throw new Error(`install ${c} ${action.id}: ${r.code}`);
+          break;
+        }
+        case 'remove': if (c) A.removePart(c, action.opts ?? {}, instant); break;
+        case 'finish': if (action.finish) A.setCaseFinish(action.finish, instant); break;
+        case 'lighting': if (action.patch) A.setLighting(action.patch as Partial<Lighting>); break;
+        case 'lightingPreset': if (action.id) A.applyLightingPreset(action.id); break;
+        case 'fillFans': if (action.id) A.fillFanMounts(action.id, instant); break;
+        case 'clearFans': A.clearCaseFans(instant); break;
+        case 'name': A.setName(action.name ?? ''); break;
+        case 'undo': A.undo(); break;
+        case 'redo': A.redo(); break;
+        default: throw new Error(`unknown action ${action.type}`);
       }
-      if (action.type === 'lighting' && action.patch) {
-        const next = revalidate({ ...s.build, lighting: { ...s.build.lighting, ...action.patch } as typeof s.build.lighting }).build;
-        store.setState({ build: next, instant: true });
-      }
+      await world.settle();
+    },
+    /** Opens a named surface. Names: sheet, share, saved, settings, about (dialogs); menu; intro and start (overlays); lighting and spec (the tablet's side sheets); peek, half and full (the phone sheet's stops); parts, specs and lighting-tab (the phone sheet's tabs); tab-<category> (the tray tab); none (closes everything). */
+    async open(name: string) {
+      const ui = store.getState().ui;
+      const dialogs = ['sheet', 'share', 'saved', 'settings', 'about', 'poster'];
+      if (dialogs.includes(name)) store.setState({ ui: { ...ui, dialog: name as DialogName, menu: false } });
+      else if (name === 'menu') store.setState({ ui: { ...ui, menu: true } });
+      else if (name === 'intro' || name === 'start') store.setState({ ui: { ...ui, overlay: name } });
+      else if (name === 'lighting' || name === 'spec') store.setState({ ui: { ...ui, side: name } });
+      else if (name === 'peek' || name === 'half' || name === 'full') store.setState({ ui: { ...ui, sheet: name } });
+      else if (name === 'parts' || name === 'specs') store.setState({ ui: { ...ui, sheetTab: name } });
+      else if (name === 'lighting-tab') store.setState({ ui: { ...ui, sheetTab: 'lighting' } });
+      else if (name.startsWith('tab-')) store.setState({ ui: { ...ui, tab: name.slice(4) as Category } });
+      else if (name === 'none') store.setState({ ui: { ...ui, dialog: null, menu: false, overlay: null, side: null }, inspect: null, held: null });
+      else throw new Error(`no surface ${name}`);
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      await world.settle();
+    },
+    /** Holds a part as placing by tap, so its sockets show; with an index, the keyboard's active socket is that one. */
+    async hold(category: Category, id: string, socket?: number) {
+      store.setState({ held: { category, id, how: socket === undefined ? 'tap' : 'keys', socket: socket ?? null } });
       await world.settle();
     },
     async finish(f: string) { store.setState({ build: setFinish(store.getState().build, f), instant: true }); await world.settle(); },
@@ -60,7 +94,15 @@ export function installHook(world: World) {
       store.setState({ inspect: insp, uiHidden: o.ui === false ? true : store.getState().uiHidden, instant: true });
       await world.settle();
     },
-    async freeze(seconds: number) { store.setState({ frozen: seconds }); world.markDirty(); await world.settle(); },
+    async freeze(seconds: number) {
+      store.setState({ frozen: seconds });
+      // A frozen frame shows the interface at rest: its transitions and count ups end now, not mid way.
+      document.documentElement.dataset.frozen = 'true';
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      for (const t of gsap.globalTimeline.getChildren(true, true, false)) if (t.data === 'ui' || (t as gsap.core.Tween).targets?.().some((x: unknown) => x instanceof Element)) t.progress(1);
+      world.markDirty();
+      await world.settle();
+    },
     async settle() { await world.settle(); },
     renderer: () => world.rendererString(),
     stats: (seconds: number) => world.stats(seconds),

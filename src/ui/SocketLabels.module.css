@@ -1,0 +1,107 @@
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.banner {
+  position: absolute;
+  top: calc(var(--inset) + 64px);
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 6px 6px 6px var(--space-4);
+  translate: -50% 0;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel-solid);
+  color: var(--ink-dim);
+  font-size: var(--text-control);
+  pointer-events: auto;
+}
+
+.cancel {
+  min-height: 30px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font-size: var(--text-control);
+}
+
+.socket {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 32px;
+  padding: 0 var(--space-3) 0 6px;
+  translate: -16px -50%;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--panel-solid);
+  color: var(--ink);
+  font-size: var(--text-control);
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: auto;
+}
+
+.ring {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  box-shadow: inset 0 0 0 3px var(--panel-solid);
+}
+
+.ok {
+  color: var(--ink);
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+.ok .ring {
+  color: var(--accent);
+  background: var(--accent);
+}
+
+.blocked {
+  color: var(--ink-dim);
+  border-color: color-mix(in srgb, var(--danger) 55%, transparent);
+}
+
+.blocked .ring {
+  color: var(--danger);
+}
+
+.active {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.reason {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  max-width: 280px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--panel-solid);
+  border: 1px solid color-mix(in srgb, var(--danger) 55%, transparent);
+  color: var(--ink);
+  font-weight: 500;
+  white-space: normal;
+}
+
+@media (pointer: coarse) {
+  .socket {
+    min-height: var(--touch);
+  }
+
+  .cancel {
+    min-height: 36px;
+  }
+}

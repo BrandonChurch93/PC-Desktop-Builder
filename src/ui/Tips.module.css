@@ -1,0 +1,20 @@
+.tip {
+  position: fixed;
+  z-index: 70;
+  max-width: 260px;
+  padding: 6px 10px;
+  translate: -50% -100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-solid);
+  color: var(--ink);
+  font-size: var(--text-meta);
+  line-height: 1.35;
+  text-align: center;
+  pointer-events: none;
+  box-shadow: var(--shadow-panel);
+}
+
+.below {
+  translate: -50% 0;
+}

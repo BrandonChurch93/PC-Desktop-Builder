@@ -40,6 +40,8 @@ const ROOM_GLASS_CLAMP_LIGHT = 0.26;
 /** Under the bloom threshold even over a white interior. */
 const STUDIO_GLASS_CLAMP = 0.55;
 const MM = 0.001;
+/** In the named views the rig spans about this many window heights across. */
+const FRAME_RIG_WIDTH = 1;
 const SPIN_IDLE = 9;
 const SPIN_FULL = 42;
 const BLUR_FROM = 20;
@@ -174,6 +176,7 @@ export class World {
     if (this.viewName && this.views[this.viewName]) this.jump(this.viewName);
     this.room?.updateShadow();
     this.room?.setFootprint(this.rig.itemBounds('case'));
+    this.room?.setEmptyFootprint(!this.store.getState().build.case);
     this.room?.setRearFlag(this.rig.itemBounds('case'), this.rig.itemBounds('psu'));
     this.dirty = true;
   }
@@ -286,6 +289,13 @@ export class World {
     this.camera.aspect = w / h;
     const ox = (this.insets.left - this.insets.right) / 2; const oy = (this.insets.top - this.insets.bottom) / 2;
     if (ox || oy) this.camera.setViewOffset(w, h, -ox, -oy, w, h); else this.camera.clearViewOffset();
+    // The rig fills the clear area between the panels, not the whole window: the lens widens by the share of the window
+    // left clear. With nothing over the scene the zoom is 1 and every frame is as before.
+    const cw = Math.max(1, w - this.insets.left - this.insets.right); const ch = Math.max(1, h - this.insets.top - this.insets.bottom);
+    // The views are framed for a 1.6 window, where the rig spans about as wide as the window is tall: a clear area narrower
+    // than it is tall also widens the lens, so the rig's width stays in view.
+    const fit = Math.min(ch / h, cw / (FRAME_RIG_WIDTH * h));
+    this.camera.zoom = Math.min(1, fit * (this.insets.left || this.insets.right || this.insets.top || this.insets.bottom ? 1.2 : 1));
     this.camera.updateProjectionMatrix();
     this.dirty = true;
   }
@@ -421,6 +431,14 @@ export class World {
     const gl = this.renderer.getContext();
     const ext = gl.getExtension('WEBGL_debug_renderer_info');
     return String(ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER));
+  }
+
+  /** A case space point in mm on the screen, in CSS pixels, and whether it is in front of the camera. */
+  project(mm: [number, number, number]): { x: number; y: number; front: boolean } {
+    const p = new THREE.Vector3(...mm).multiplyScalar(MM).applyMatrix4(this.rig.group.matrixWorld);
+    p.project(this.camera);
+    const el = this.renderer.domElement;
+    return { x: (p.x * 0.5 + 0.5) * el.clientWidth, y: (0.5 - p.y * 0.5) * el.clientHeight, front: p.z < 1 };
   }
 
   cameraInfo() {

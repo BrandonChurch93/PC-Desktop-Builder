@@ -9,7 +9,7 @@ import type { Build } from '../engine/types';
 import type { State, Store, Tier } from '../state/store';
 import { glassEnvironment, studioEnvironment } from './env';
 import { forEachVertex } from './kit/geometry';
-import { setGlassEnvironment, setGlassStage, setPerfAspect, type GlassCard } from './kit/materials';
+import { FINISHES, setGlassEnvironment, setGlassStage, setPerfAspect, type GlassCard } from './kit/materials';
 import GLASS_CARDS from './glass-cards.json';
 import STUDIO_GLASS_CARDS from './studio-glass-cards.json';
 import { setMaxAnisotropy, textures } from './kit/textures';
@@ -26,6 +26,8 @@ import { Room } from './room';
 const FOV = 30;
 const EXPOSURE = 1.15;
 const ROOM_GLASS_CLAMP = 0.1;
+/** A pale interior behind the glass hid the reflections a dark one shows, so the glass read as an empty opening (critic 265). */
+const ROOM_GLASS_CLAMP_LIGHT = 0.26;
 /** Under the bloom threshold even over a white interior. */
 const STUDIO_GLASS_CLAMP = 0.55;
 const MM = 0.001;
@@ -147,6 +149,12 @@ export class World {
 
   private setBuild(b: Build) {
     this.rig.sync(b);
+    if (!this.showingInspector) setGlassStage('room', this.roomGlassClamp(), GLASS_CARDS as GlassCard[]);
+  }
+
+  private roomGlassClamp(): number {
+    const finish = this.store.getState().build.case?.finish;
+    return finish && FINISHES[finish]?.light ? ROOM_GLASS_CLAMP_LIGHT : ROOM_GLASS_CLAMP;
   }
 
   private onRigChange() {
@@ -173,7 +181,7 @@ export class World {
 
   private setInspect(s: State) {
     const i = s.inspect;
-    if (!i) { this.showingInspector = false; setGlassStage('room', ROOM_GLASS_CLAMP, GLASS_CARDS as GlassCard[]); this.post.setScene(this.scene, this.camera); this.dirty = true; return; }
+    if (!i) { this.showingInspector = false; setGlassStage('room', this.roomGlassClamp(), GLASS_CARDS as GlassCard[]); this.post.setScene(this.scene, this.camera); this.dirty = true; return; }
     const opts: GenOpts = { detail: TIER_SETTINGS[this.tier].detail };
     if (i.finish) opts.finish = i.finish;
     else if (i.category === 'case') opts.finish = getCase(i.id)?.finishes[0] ?? 'onyx';

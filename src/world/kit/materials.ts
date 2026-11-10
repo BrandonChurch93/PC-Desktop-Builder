@@ -130,7 +130,12 @@ function perforatedSheet(m: THREE.MeshPhysicalMaterial): THREE.MeshPhysicalMater
       '  vec2 perfHit = perfRb + perfRa * perfK;',
       '  vec2 perfDir = perfHit / max(length(perfHit), 1e-4);',
       '  vec3 perfWallN = normalize(-(perfTu * perfDir.x + perfTv * perfDir.y));',
-      `  diffuseColor.a = mix(perfSharp, ${PERF_MEAN.toFixed(2)}, perfFarK);`,
+      // Far off, the sheet blends to the share of light that passes straight through its holes at this angle: the sheet's
+      // thickness closes the holes as the view grazes it. A fixed mean let a grazing white front show the dark case behind it
+      // as grey streaks (critic 265).
+      '  float perfTan = sqrt(max(1.0 - perfVt.z * perfVt.z, 0.0)) / perfVt.z;',
+      `  float perfOpen = ${(1 - PERF_MEAN).toFixed(2)} * clamp(1.0 - 1.27 * ${f(PERF_SHEET_MM)} * perfTan / ${f(d)}, 0.0, 1.0);`,
+      '  diffuseColor.a = mix(perfSharp, 1.0 - perfOpen, perfFarK);',
       // Hole walls fall into shade with depth, so a hole reads as a recess and not as a raised dimple.
       '  diffuseColor.rgb *= 1.0 - perfWall * (0.45 + 0.5 * perfK);',
       '  if (diffuseColor.a < 0.02) discard;',
@@ -301,7 +306,7 @@ let glassEnv: THREE.Texture | null = null;
 
 /** A studio card the room glass reflects: a soft edged rectangle at a real distance, in world meters. */
 export type GlassCard = { pos: [number, number, number]; look: [number, number, number]; w: number; h: number; tilt?: number; k: number; edge?: number; grad?: number };
-const MAX_CARDS = 10;
+const MAX_CARDS = 12;
 // Close to the glass the camera and the photographer block the studio cards, as in a real close up, so card
 // reflections fade out between these distances in meters.
 const GLASS_NEAR = [0.6, 1.1] as const;

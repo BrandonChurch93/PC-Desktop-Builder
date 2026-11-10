@@ -29,6 +29,13 @@ for (const p of catalog.presets) SHOTS[`bench/${p.id}`] = { steps: bench(p.id, '
 const HERO_MACROS = ['gpu', 'cooler', 'ram', 'board', 'fan', 'cable', 'psu', 'storage'];
 for (const m of HERO_MACROS) SHOTS[`macro/night-rig-${m}`] = { steps: lit('night-rig', m) };
 
+// Each case in the finish its preset does not use, holding that preset's build, lit, from the hero view.
+for (const p of catalog.presets) {
+  const c = catalog.cases.find((x) => x.id === p.build.case.id);
+  const other = c.finishes.find((f) => f !== p.build.case.finish);
+  SHOTS[`finish/${c.id}-${other}`] = { steps: [['load', p.id], ['mode', 'showcase'], ['set', { ui: false, glass: true, power: true, load: 0 }], ['finish', other], ['cam', 'hero'], FREEZE] };
+}
+
 // Night Rig's cable macro with each colorway installed, lit.
 for (const c of catalog.cables) {
   SHOTS[`cable/${c.id}`] = { steps: [['load', 'night-rig'], ['mode', 'showcase'], ['set', { ui: false, glass: true, power: true, load: 0 }], ['act', { type: 'install', category: 'cables', id: c.id }], ['cam', 'cable'], FREEZE] };

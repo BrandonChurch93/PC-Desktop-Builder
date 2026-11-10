@@ -360,6 +360,13 @@ export function boardPart(id: string, opts: GenOpts = {}): PartObject {
   const surf = surface(b, L, look, ppm);
   const topMat = pb.own(new THREE.MeshPhysicalMaterial({ map: pb.own(surf.map), bumpMap: pb.own(surf.bump), bumpScale: 0.6, roughness: look.frost ? 0.42 : 0.38, metalness: 0.05, clearcoat: 0.55, clearcoatRoughness: 0.22, alphaTest: 0.5 }));
   const top = new THREE.PlaneGeometry(L.w, L.h); top.translate(L.w / 2, -L.h / 2, T + 0.02);
+  // The trace relief fades out once a millimeter of board falls under about 1.5 pixels: further off, the relief under the
+  // clearcoat caught the LED colors as blotchy speckle instead of reading as traces (critic 265). Close views keep it whole.
+  const bumpTexels = (surf.bump.image as { width: number }).width;
+  topMat.onBeforeCompile = (sh) => {
+    sh.fragmentShader = sh.fragmentShader.replace('vec2 dHdxy_fwd() {', 'vec2 dHdxy_fwd_raw();\nvec2 dHdxy_fwd() {\n  float boardFoot = max(length(dFdx(vBumpMapUv)), length(dFdy(vBumpMapUv))) * ' + bumpTexels.toFixed(1) + ';\n  return dHdxy_fwd_raw() * (1.0 - smoothstep(4.0, 9.0, boardFoot));\n}\nvec2 dHdxy_fwd_raw() {');
+  };
+  topMat.customProgramCacheKey = () => 'board-top-bump-fade';
   pb.mesh(top, topMat, undefined, { uv: 'keep' });
   const backTex = backSurface(b, L, look, Math.max(4, Math.round(8 * detail)));
   const backMat = pb.own(new THREE.MeshPhysicalMaterial({ map: pb.own(backTex.map), roughnessMap: pb.own(backTex.mr), metalnessMap: backTex.mr, roughness: 1, metalness: 1, clearcoat: 0.4, clearcoatRoughness: 0.3, alphaTest: 0.5 }));

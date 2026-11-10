@@ -1,4 +1,4 @@
-PHASE 4 IN PROGRESS · vitrine frost
+PHASE 4 IN PROGRESS · atrium
 
 <!-- Builder: this file is your memory. Read it first in every session and after every compaction. Keep it current. Replace the first line as you go: "PHASE N IN PROGRESS · step k", "BLOCKED: ...", and at the very end "BUILD COMPLETE" with nothing else on that line. -->
 
@@ -7,7 +7,7 @@ PHASE 4 IN PROGRESS · vitrine frost
 ## Where things stand
 
 - Current phase: 4 · Cases and layouts
-- Current step: vitrine in frost (then atrium, vent, bulwark, cub, gantry)
+- Current step: atrium (vitrine frost done: finish/vitrine-frost passed after critic 265)
 - Next action: confirm the step 1 to 5 groups on the current build (all have builder verdicts on their newest images, addendum 01), commit "phase 3: boards", then steps 6 (tidal16), 7 (flint), 8 (supplies; fix the HZ casing in the spec table), 9 (cables). Generators for all of them already exist; each is the loop plus one critic round. Then `npm run thumbs` (scripts/thumbs.mjs written, writes public/thumbs, which changes the build id, so run it once before the Gate 3 retake), tests/unit/generators.test.ts (written: every non-case part generates a real model in Node, 43 pass; its 43 thumbnail checks pass once thumbs exist), 9 contact sheets with one critic round. B8 is dropped by addendum 01. Take shots group by group (a wide prefix lost manifest entries).
 - Last commit: phase 3: the roster (Gate 3)
 
@@ -170,6 +170,9 @@ One line each: the question, what you chose, which step of the decision rule set
 - Pale cases (frost, raw) take the Inspector's standard studio light, not the boost given to dark cases, and frost glass is a dark smoke (tint 0.62): boosted, the white interior went far past white and nothing on the glass in front of it could show (step 2).
 - Slot covers take the case's shell finish: bare steel covers read black on the white case (critic 185) (step 1: white cases ship white covers).
 - Solid steel side panels are a rounded 4.2 mm box with a 2 mm bend radius, standing for the panel's folded return, so their outline catches a highlight (step 1: real panels are folded at the edge).
+- Perforated sheets blend, far off, to the share of light that passes straight through a hole at the viewing angle (open 0.52 times 1 - 1.27 t tan(theta) / d), not a fixed 0.48 coverage: at a grazing view a 0.6 mm sheet closes its holes, and the fixed mean let a white front show the dark case behind as grey streaks (critic 265). Shared: Night Rig front and top change; under addendum 01 they are retaken in Phase 10.
+- Board top relief fades out once a millimeter falls under about 1.5 px (bump texel footprint 4 to 9): further off, the trace relief under the clearcoat caught LED colors as blotchy speckle (critic 265).
+- Glass on pale cases: the room glass clamp is 0.26 (dark 0.1), and an eleventh room card puts a soft diagonal streak over the board and card in the hero view (MAX_CARDS 12; it was silently dropping cards past 10). Over a white interior the streaks that show on onyx clip and vanish (critic 265).
 - **Addendum 01 (kit/addenda/01-less-judging.md) applied from 2026-11-10, Phase 3 step 5, after critics 254 to 261.** 3D shots (rig, bench, finish, macro, part, cable, light) and contact sheets go to a critic once. After a critic FAIL I fix, retake, open the image and my own PASS is the gate. mode, motion, drag, tier and ui shots are mine alone. Shots that already passed are not retaken after shared changes until Phase 10, and Phase 10 is one retake with my own verdicts (critics only for the six rig/<preset>-hero shots). WEAK-SHOTS.json unused. Gauntlet A5, B1, B8, D5, G5 dropped; section P logging only; H1 narrowed as the addendum states. So the bounds hook stays, but the B8 e2e test is no longer needed. scripts/check-shots.mjs changed under rule 6 only: the ledger keeps builder verdicts plus critic verdicts backed by a saved answer; a 3D shot passes on a critic PASS (with its reference where required) or a builder PASS once any critic verdict exists for that shot; other groups and contact sheets pass on either PASS; two-critic limit and weak rule removed; names, counts, manifest and hash checks unchanged. Proof: `check-shots part/gpu-monolith` gives passed 6, problems 0 (already passed group still passes); `check-shots part/` lists `part/cpu-tidal16-front: no verdict on the current image (239959aa856b)` and exits 1 (shot with no verdict still fails).
 
 ## Dependencies added

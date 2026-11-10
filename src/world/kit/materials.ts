@@ -24,7 +24,7 @@ export type MatName =
   | 'aluBlack' | 'aluSilver' | 'aluWhite' | 'aluRaw' | 'aluBrushed' | 'aluBrushedDark' | 'aluBrushedPlate' | 'aluAnodized' | 'aluCast' | 'aluSatin' | 'aluSatinDark' | 'aluGunmetal' | 'aluFacet'
   | 'nickel' | 'nickelLapped' | 'pipeNickel' | 'copper' | 'gold' | 'solder'
   | 'plasticMatte' | 'plasticSatin' | 'plasticSoft' | 'plasticGloss' | 'plasticWhite' | 'plasticWhiteGloss' | 'plasticGrey' | 'plasticDark' | 'plasticNylon'
-  | 'rubber' | 'rubberWhite' | 'rubberPad'
+  | 'rubber' | 'rubberWhite' | 'rubberPad' | 'aluSatinBlack' | 'aluWhiteSatin'
   | 'pcbBlack' | 'pcbWhite' | 'pcbGreen' | 'pcbEdge' | 'chip' | 'chipWhite' | 'ceramic' | 'ferrite'
   | 'glassTint' | 'glassSpec' | 'glassEdge' | 'frit'
   | 'bladeSmoke' | 'bladeFrost' | 'bladeBlack' | 'bladeWhite'
@@ -179,6 +179,8 @@ function makeMat(name: MatName): THREE.Material {
     // A drive cover seen at the closest zoom: a fine brush, as the coarse one broke into dark streaks there.
     case 'aluLid': return metal(0xc4c7cc, 0.5, t.brushed);
     case 'aluStamp': return metal(0xc0c3c8, 0.44, t.mottle);
+    case 'aluWhiteSatin': return worldBump(physical({ color: 0xe6e7ea, metalness: 0.15, roughness: 0.42, roughnessMap: t.mottleMid, bumpMap: t.stipple, bumpScale: 8e-6, clearcoat: 0.2, clearcoatRoughness: 0.35 }));
+    case 'aluSatinBlack': return metal(0x34373d, 0.34, t.brushed, { anisotropy: 0.6, bumpMap: t.brushed, bumpScale: 0.12 });
     case 'aluSatinDark': return metal(0x464950, 0.36, t.brushed, { anisotropy: 0.5 });
     case 'aluGunmetal': return metal(0x4b4e55, 0.38, t.brushed, { anisotropy: 0.6 });
     // Memory facets: satin anodized, rough enough that each tilted plane takes the softboxes from a wide angle.

@@ -2,8 +2,9 @@ import * as THREE from 'three';
 import { brandName, getRam } from '../../data/catalog';
 import { DIMS } from '../layout/dims';
 import { ramBoxes } from '../layout/partBoxes';
-import { extrude, PartBuilder, rbox, roundedPoly, xf } from '../kit/geometry';
+import { extrude, PartBuilder, rbox, roundedPoly, rrectHole, rrectShape, xf } from '../kit/geometry';
 import { Labels } from '../kit/labels';
+import { mat } from '../kit/materials';
 import { fingerMaterial, stripPlane } from '../kit/pcb';
 import { seededFor } from '../kit/rng';
 import { BRAND_TYPE, MODEL_TYPE, SPEC_TYPE, TINY_TYPE } from '../kit/type';
@@ -76,6 +77,16 @@ function facetGlow(relief: THREE.BufferGeometry, barZ: number, u0: number, u1: n
   return g;
 }
 
+let ramp: THREE.DataTexture | null = null;
+/** Alpha rising up the v axis, squared, for a soft shade that is darkest at its top edge. */
+function shadeRamp(): THREE.DataTexture {
+  if (ramp) return ramp;
+  const n = 32; const d = new Uint8Array(n * 4);
+  for (let i = 0; i < n; i++) { const k = Math.round(255 * Math.pow(i / (n - 1), 0.8)); d.set([k, k, k, 255], i * 4); }
+  ramp = new THREE.DataTexture(d, 1, n); ramp.magFilter = THREE.LinearFilter; ramp.minFilter = THREE.LinearFilter; ramp.needsUpdate = true;
+  return ramp;
+}
+
 type Line = 'facet' | 'mono' | 'crown';
 const lineOf = (id: string): Line => (id.startsWith('mono') ? 'mono' : id.startsWith('crown') ? 'crown' : 'facet');
 
@@ -96,8 +107,11 @@ export function ramPart(id: string, opts: GenOpts = {}): PartObject {
   const pcb = extrude(roundedPoly(outline, 0.35), PCB_T, 0.15, 'xy', 4);
   pcb.translate(0, 0, -PCB_T / 2);
   pb.add(pcb, frost ? 'pcbWhite' : 'pcbBlack', TO_STICK);
-  const fingers = fingerMaterial('ddr5', DIMS.dimmLength, 4.2, 0.85, [[HALF + NOTCH - 0.8, HALF + NOTCH + 0.8]], frost ? 'rgba(220,222,226,1)' : 'rgba(14,16,20,1)');
+  // The back strip is turned end for end, so its gap is drawn mirrored to sit over the same key notch.
+  const board = frost ? 'rgba(220,222,226,1)' : 'rgba(14,16,20,1)';
   for (const side of [1, -1]) {
+    const at = HALF + side * NOTCH;
+    const fingers = fingerMaterial(side > 0 ? 'ddr5' : 'ddr5-back', DIMS.dimmLength, 4.2, 0.85, [[at - 0.8, at + 0.8]], board);
     const g = stripPlane(DIMS.dimmLength, 4.2);
     pb.mesh(g, fingers, onSide(side, side * (PCB_T / 2 + 0.02), 0, 0), { uv: 'keep' });
   }
@@ -112,18 +126,31 @@ export function ramPart(id: string, opts: GenOpts = {}): PartObject {
   const plateTop = line === 'mono' ? height : height - barH + 1.2;
   const plateT = 1.55;
   const gap = PCB_T / 2 + 0.75;
-  const plateMat = frost ? 'aluWhite' : line === 'mono' ? 'aluBlack' : 'aluBrushedDark';
+  const plateMat = frost ? 'aluWhiteSatin' : line === 'mono' ? 'aluSatinBlack' : 'aluBrushedDark';
   // The latch cutouts in the board ends stay open: the spreader is notched to match.
   const rN: [number, number][] = [[HALF - 0.3, 13.0], [HALF - 3.4, 14.2], [HALF - 3.4, 18.2], [HALF - 0.3, 19.4]];
   const lN: [number, number][] = [[-HALF + 0.3, 19.4], [-HALF + 3.4, 18.2], [-HALF + 3.4, 14.2], [-HALF + 0.3, 13.0]];
   const prof: [number, number][] = line === 'mono'
-    ? [[-HALF + 0.3, spreaderBottom], [HALF - 0.3, spreaderBottom], ...rN, [HALF - 0.3, plateTop - 3], [HALF - 3.3, plateTop], [-HALF + 3.3, plateTop], [-HALF + 0.3, plateTop - 3], ...lN]
+    ? [[-HALF + 0.3, spreaderBottom], [HALF - 0.3, spreaderBottom], ...rN, [HALF - 0.3, plateTop - 3], [HALF - 3.3, plateTop], [7.5, plateTop], [4.5, plateTop - 1.8], [-4.5, plateTop - 1.8], [-7.5, plateTop], [-HALF + 3.3, plateTop], [-HALF + 0.3, plateTop - 3], ...lN]
     : [[-HALF + 0.3, spreaderBottom], [HALF - 0.3, spreaderBottom], ...rN, [HALF - 0.3, plateTop - 5.5], [HALF - 6.5, plateTop], [9.5, plateTop], [5.5, plateTop - 2.6], [-5.5, plateTop - 2.6], [-9.5, plateTop], [-HALF + 6.5, plateTop], [-HALF + 0.3, plateTop - 5.5], ...lN];
+  // Where the spreader is the board's own color, the thermal pad shows as a thin grey line under its edge and the board below
+  // it lies in the spreader's shade, so spreader and board read as two pieces.
+  if (line !== 'facet') {
+    const padT = gap - PCB_T / 2;
+    for (const side of [1, -1]) {
+      pb.add(rbox(padT, DIMS.dimmLength - 10, 6, 0.2, 1), 'thermalPad', xf({ p: [side * (PCB_T / 2 + padT / 2), 0, spreaderBottom + 2.4] }));
+      const g = new THREE.PlaneGeometry(DIMS.dimmLength - 2, 2.6);
+      const occ = pb.own(new THREE.MeshBasicMaterial({ color: 0x050507, alphaMap: shadeRamp(), opacity: 0.95, transparent: true, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -4 }));
+      pb.mesh(g, occ, onSide(side, side * (PCB_T / 2 + 0.03), 0, spreaderBottom - 0.2 - 1.3), { uv: 'keep' }).userData.spill = true;
+    }
+  }
+  const borderMat = pb.own(Object.assign((mat(plateMat) as THREE.MeshPhysicalMaterial).clone(), { bumpMap: null, anisotropy: 0, roughness: 0.46 }));
   const reliefs: THREE.BufferGeometry[] = [];
   for (const side of [1, -1]) {
     const g = extrude(roundedPoly(prof, 0.6), plateT, 0.55, 'xy', 6, 1);
     g.translate(0, 0, side > 0 ? gap : -gap - plateT);
     pb.add(g, plateMat, TO_STICK);
+    // The plain line has no facets: only the family's notched top line, in its own satin black.
     if (line !== 'mono') {
       const facet = (pts: [number, number][]) => {
         const f = facetRelief(pts, 0.25, 1.3, side > 0 ? 1 : -1);
@@ -135,6 +162,15 @@ export function ramPart(id: string, opts: GenOpts = {}): PartObject {
       facet([[-HALF + 8, low], [-14, low], [-4, top - 4], [-HALF + 14, top - 4]]);
       // The back carries the kit label on flat plate where the second facet would be.
       if (side > 0) facet([[14, low], [HALF - 8, low], [HALF - 14, top - 4], [4, top - 4]]);
+    } else {
+      // Plain spreaders are machined or pressed with a raised border round a flat field, whose edges catch the light.
+      const z0 = spreaderBottom + 0.8; const z1 = plateTop - 3.2; const w = DIMS.dimmLength - 10; const bw = 2.0;
+      const frame = rrectShape(w, z1 - z0, 2, 0, (z0 + z1) / 2);
+      frame.holes.push(rrectHole(w - 2 * bw, z1 - z0 - 2 * bw, 1, 0, (z0 + z1) / 2));
+      const fg = extrude(frame, 0.4, 0.18, 'xy', 8, 3);
+      fg.translate(0, 0, side > 0 ? gap + plateT : -gap - plateT - 0.4);
+      // The border is machined smooth: on its thin rounded edge the brushing broke the highlight into sparkling dots.
+      pb.add(fg, borderMat, TO_STICK);
     }
   }
 
@@ -144,11 +180,11 @@ export function ramPart(id: string, opts: GenOpts = {}): PartObject {
   {
     const side = 1;
     const m = (y: number, z: number) => onSide(side, side * (face + 0.04), y, z);
-    // Faceted lines carry their marks on the flat plate between and below the facets; the plain line keeps them high and wide.
-    const mono = line === 'mono';
-    labels.text(brand, BRAND_TYPE[spec?.brand ?? 'calyra'] ?? SPEC_TYPE, mono ? 3.4 : 3.1, m(mono ? -30 : 0, mono ? height * 0.58 : spreaderBottom + 7.9), { color: printColor });
-    labels.text(line === 'facet' ? 'FACET' : line === 'crown' ? 'CROWN' : 'MONO', MODEL_TYPE, mono ? 2.0 : 1.8, m(mono ? -30 : 0, mono ? height * 0.58 - 4.6 : spreaderBottom + 4.2), { color: frost ? '#8c909a' : '#8a8e98' });
-    labels.text(`DDR5 · ${spec?.gbPerStick ?? 16} GB`, MODEL_TYPE, mono ? 2.0 : 1.8, m(mono ? 30 : 0, mono ? height * 0.58 - 2.3 : spreaderBottom + 1.7), { color: frost ? '#8c909a' : '#8a8e98' });
+    // Every line carries its marks on the flat plate between and below the facets; the plain line, inside its raised border.
+    const up = line === 'mono' ? 3.2 : 0;
+    labels.text(brand, BRAND_TYPE[spec?.brand ?? 'calyra'] ?? SPEC_TYPE, 3.1, m(0, spreaderBottom + 7.9 + up), { color: printColor });
+    labels.text(line === 'facet' ? 'FACET' : line === 'crown' ? 'CROWN' : 'MONO', MODEL_TYPE, 1.8, m(0, spreaderBottom + 4.2 + up), { color: frost ? '#70747e' : '#8a8e98' });
+    labels.text(`DDR5 · ${spec?.gbPerStick ?? 16} GB`, MODEL_TYPE, 1.8, m(0, spreaderBottom + 1.7 + up), { color: frost ? '#70747e' : '#8a8e98' });
   }
   const capacity = `${spec?.gbPerStick ?? 16} GB DDR5`;
   const labelW = 46; const labelH = 13;
@@ -161,8 +197,8 @@ export function ramPart(id: string, opts: GenOpts = {}): PartObject {
     const s = W / labelW;
     g.font = `700 ${2.6 * s}px "DM Sans Variable"`; g.textBaseline = 'top';
     g.fillText(`${brand.toUpperCase()} ${line.toUpperCase()}  ${capacity}`, 1.6 * s, 1.2 * s);
-    g.font = `500 ${1.45 * s}px "DM Sans Variable"`;
-    g.fillText(`CL${line === 'crown' ? 32 : line === 'mono' ? 40 : 36}  1.35 V  ${line === 'mono' ? '5600' : '6000'} MT/s  ${spec?.sticks ?? 2} x ${spec?.gbPerStick ?? 16} GB`, 1.6 * s, 4.6 * s);
+    g.font = `600 ${1.75 * s}px "DM Sans Variable"`;
+    g.fillText(`CL${line === 'crown' ? 32 : line === 'mono' ? 40 : 36}  1.35 V  ${line === 'mono' ? '5600' : '6000'} MT/s  ${spec?.sticks ?? 2} x ${spec?.gbPerStick ?? 16} GB`, 1.6 * s, 4.4 * s);
     g.fillText(`CY-${id.toUpperCase()}-${spec?.sticks ?? 2}K  LOT 2611`, 1.6 * s, 6.6 * s);
     const r = seededFor(`bar-${id}`);
     let x = 1.6 * s;
@@ -177,40 +213,52 @@ export function ramPart(id: string, opts: GenOpts = {}): PartObject {
     const barW = 2 * (gap + plateT) - 0.6;
     const z0 = plateTop - 1.6; const z1 = height;
     const zone = new Zone(key, 'ram', false, stripLeds(new THREE.Vector3(0, -HALF + 3, z1 - 2), new THREE.Vector3(0, HALF - 3, z1 - 2), 7.4), 0.2 + (key.length % 7) * 0.09);
-    const diff = zone.diffuser(line === 'crown' ? 0.5 : 0.48, frost ? 0xd9dbe0 : 0x1d1e23, 0.7);
+    const diff = zone.diffuser(line === 'crown' ? 0.42 : 0.48, frost ? 0xd9dbe0 : 0x1d1e23, 0.7);
     // The bar follows the notch in the spreader's top line, so the notch reads with the light on.
     const half = (DIMS.dimmLength - 2) / 2;
-    const barProfile: [number, number][] = line === 'facet'
-      ? [[-half, z0], [half, z0], [half, z1 - 1.2], [half - 1.2, z1], [9.5, z1], [5.5, z1 - 2.6], [-5.5, z1 - 2.6], [-9.5, z1], [-half + 1.2, z1], [-half, z1 - 1.2]]
-      : [[-half, z0], [half, z0], [half, z1 - 1.2], [half - 1.2, z1], [-half + 1.2, z1], [-half, z1 - 1.2]];
-    const bar = extrude(roundedPoly(barProfile, 0.8), barW, 0.6, 'xy', 4, 2);
-    bar.applyMatrix4(new THREE.Matrix4().makeBasis(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1), new THREE.Vector3(1, 0, 0)));
-    bar.translate(-barW / 2, 0, -(z0 + z1) / 2);
-    uvAlong(bar, 'y');
-    pb.mesh(bar, diff, xf({ p: [0, 0, (z0 + z1) / 2] }), { uv: 'keep' });
-    const spill = zone.spill(frost ? 0.2 : 0.22);
+    const notched = (lo: number, hi: number): [number, number][] => [[-half, lo], [half, lo], [half, hi - 1.2], [half - 1.2, hi], [9.5, hi], [5.5, hi - 2.6], [-5.5, hi - 2.6], [-9.5, hi], [-half + 1.2, hi], [-half, hi - 1.2]];
+    const barPiece = (profile: [number, number][], w: number, lo: number, hi: number) => {
+      const bar = extrude(roundedPoly(profile, 0.8), w, 0.6, 'xy', 4, 2);
+      bar.applyMatrix4(new THREE.Matrix4().makeBasis(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1), new THREE.Vector3(1, 0, 0)));
+      bar.translate(-w / 2, 0, -(lo + hi) / 2);
+      uvAlong(bar, 'y');
+      pb.mesh(bar, diff, xf({ p: [0, 0, (lo + hi) / 2] }), { uv: 'keep' });
+    };
+    if (line === 'crown') {
+      // The crown is two tiers: a full width base over the spreader and a narrower crown above it with the family's notch.
+      const zm = z0 + 6.5;
+      // Its base dips into the spreader notch, so no gap opens under the crown there.
+      barPiece([[-half, z0], [-9.5, z0], [-5.5, z0 - 1.2], [5.5, z0 - 1.2], [9.5, z0], [half, z0], [half, zm], [-half, zm]], barW, z0 - 1.2, zm);
+      barPiece(notched(zm - 0.6, z1), barW - 1.4, zm - 0.6, z1);
+    } else {
+      barPiece(notched(z0, z1), barW, z0, z1);
+    }
+    // A white spreader cannot be tinted by added light: it takes the bar's hue over its own white instead.
+    const spill = frost ? pb.own(zone.tint(1.0, 0.75)) : zone.spill(0.22);
+    if (frost) {
+      // Lit, a frosted white crown carries the LEDs' color: its body steps down from white as they come up.
+      const white = new THREE.Color(0xd9dbe0); const lit = new THREE.Color(0x2c2e34);
+      zone.listeners.push((c) => diff.color.copy(white).lerp(lit, Math.min(1, 1.6 * Math.max(c.r, c.g, c.b))));
+    }
     // The bar's light on the plate, under the facets, which take it through their own skin below.
     // One strip from the rim's top edge down, the whole length: split strips met in a visible seam at the notch.
     const total = DIMS.dimmLength - 3; const outer = (DIMS.dimmLength - 14) / 2;
     for (const sd of [1, -1]) {
       const m = new THREE.Matrix4().makeBasis(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1), new THREE.Vector3(sd, 0, 0)).setPosition(sd * (gap + plateT + 0.05), 0, z0 + 1.1);
-      pb.mesh(spillStripRange(total, -outer, outer, 6, 16), spill, m, { uv: 'keep' }).userData.spill = true;
+      pb.mesh(spillStripRange(total, -outer, outer, frost ? 10 : 6, 16), spill, m, { uv: 'keep' }).userData.spill = true;
     }
     // The white kit label on the back takes the bar's light as well, fading down from its top edge.
     if (line !== 'mono') {
       const lt = spreaderBottom + 3 + 13;
       const lm = new THREE.Matrix4().makeBasis(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1), new THREE.Vector3(1, 0, 0)).setPosition(-(gap + plateT + 0.24), 0, lt);
-      const ls = pb.mesh(spillStripRange(total, 28 - 23, 28 + 23, 13, 12), zone.spill(frost ? 0.18 : 0.32), lm, { uv: 'keep' });
+      const ls = pb.mesh(spillStripRange(total, 28 - 23, 28 + 23, 13, 12), frost ? pb.own(zone.tint(1.0, 0.35)) : zone.spill(0.32), lm, { uv: 'keep' });
       // Drawn after the label's print, which is blended and was covering it.
       ls.userData.spill = true; ls.renderOrder = 6;
     }
     const glow = pb.own(new THREE.MeshBasicMaterial({ map: zone.tex, vertexColors: true, color: new THREE.Color(0.4, 0.4, 0.4), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -4 }));
     for (const r of reliefs) pb.mesh(facetGlow(r, z0, -HALF + 3, HALF - 3), glow, TO_STICK, { uv: 'keep' }).userData.spill = true;
-    if (line === 'crown') {
-      for (let i = 0; i < 9; i++) pb.add(rbox(barW + 0.4, 0.8, 1.2, 0.3, 1), 'aluWhite', xf({ p: [0, -HALF + 10 + i * 14.2, z0 + 0.6] }));
-    } else {
-      pb.add(rbox(barW + 0.6, DIMS.dimmLength - 0.8, 1.4, 0.5, 2), plateMat, xf({ p: [0, 0, z0 + 0.4] }));
-    }
+    // The crown's base tier sits straight on the spreader; the Facet bar sits on a plate.
+    if (line !== 'crown') pb.add(rbox(barW + 0.6, DIMS.dimmLength - 0.8, 1.4, 0.5, 2), plateMat, xf({ p: [0, 0, z0 + 0.4] }));
     zone.emit(new THREE.Vector3(0, 0, z1), new THREE.Vector3(0, 0, 1), DIMS.dimmLength, 8, 0.9, new THREE.Vector3(0, 1, 0));
     zone.emit(new THREE.Vector3(face, 0, z1 - 4), new THREE.Vector3(1, 0, 0), DIMS.dimmLength, 8, 0.5, new THREE.Vector3(0, 1, 0));
     zone.emit(new THREE.Vector3(-face, 0, z1 - 4), new THREE.Vector3(-1, 0, 0), DIMS.dimmLength, 8, 0.5, new THREE.Vector3(0, 1, 0));

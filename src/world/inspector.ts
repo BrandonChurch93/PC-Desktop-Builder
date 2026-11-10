@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { Category } from '../data/catalog';
+import { getRam, type Category } from '../data/catalog';
 import { lathe } from './kit/geometry';
 import { canvas, wrap } from './kit/textures';
 import { RgbEngine } from './light/rgb';
@@ -243,8 +243,9 @@ export class Inspector {
     this.flip = flip;
     // A case is large and black: as a studio would, it gets more light than a small part so its frame separates from the backdrop.
     const big = category === 'case';
-    // A card is long and dark too: a stronger rim and the sheen softbox trace its edges against the backdrop.
-    const long = category === 'gpu';
+    // A card is long and dark too, as is an unlit black memory kit: a stronger rim and the sheen softbox trace their edges
+    // against the backdrop and light the disc around them, so their contact shade reads.
+    const long = category === 'gpu' || (category === 'ram' && getRam(id)?.lit === false);
     this.lights.key.intensity = big ? 6.6 : 4.6; this.lights.fill.intensity = big ? 4.6 : 3.2; this.lights.rim.intensity = big ? 4.4 : long ? 3.6 : 2.2; this.lights.sheen.intensity = big ? 3.2 : long ? 1.6 : 0;
     this.scene.environmentIntensity = big ? 1.7 : 1.25;
     // A card's hero surfaces are its backplate and its glass facing edge, so the camera stands higher to show that edge.

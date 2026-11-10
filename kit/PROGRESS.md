@@ -1,4 +1,4 @@
-PHASE 3 IN PROGRESS · step 2
+PHASE 3 IN PROGRESS · step 3
 
 <!-- Builder: this file is your memory. Read it first in every session and after every compaction. Keep it current. Replace the first line as you go: "PHASE N IN PROGRESS · step k", "BLOCKED: ...", and at the very end "BUILD COMPLETE" with nothing else on that line. -->
 
@@ -7,9 +7,9 @@ PHASE 3 IN PROGRESS · step 2
 ## Where things stand
 
 - Current phase: 3 · The roster
-- Current step: 2 · memory (the other five kits: Mono, Crown and the four stick kit)
-- Next action: build facet64, facet64x4, mono16, mono32, crown96 (re-read the Memory row of kit/02-PARTS.md and the catalog), take part/ram- shots, review, builder verdicts, critics. Open item for the B8 step: __pcb.bounds reports fans 6.1 mm (the loose plug housing is rigid geometry, it belongs to the lead and should be flexible), case 17.83 and cooler 45.07: check each before writing the B8 test.
-- Last commit: phase 3: fans (step 1)
+- Current step: 3 · coolers (the other seven)
+- Next action: re-read the Coolers rows of kit/02-PARTS.md and the catalog, build pillar, pillar-lux, twin, slate (air coolers are box placeholders today), tarn240, tarn240-frost, tarn360, take part/cooler- shots, review, builder verdicts, critics. Open item for the B8 step: __pcb.bounds reports fans 6.1 mm (the loose plug housing is rigid geometry, it belongs to the lead and should be flexible), case 17.83 and cooler 45.07: check each before writing the B8 test.
+- Last commit: phase 3: memory (step 2)
 
 ## Phases
 
@@ -18,7 +18,7 @@ PHASE 3 IN PROGRESS · step 2
 | 0 | Setup | done | see Gate 0 evidence below | phase 0: setup |
 | 1 | Engine | done | 134 unit tests pass, typecheck clean, check:copy 0 problems | phase 1: engine |
 | 2 | World foundation and the hero slice | done | see Gate 2 evidence below | phase 2: world foundation and the hero slice |
-| 3 | The roster | in progress (step 1 fans done) | | |
+| 3 | The roster | in progress (steps 1 fans and 2 memory done) | | |
 | 4 | Cases and layouts | not started | | |
 | 5 | Interface and the build flow | not started | | |
 | 6 | Hands | not started | | |
@@ -90,6 +90,7 @@ One line each: what you checked, where, what you found.
 - three r187 Object3D.lookAt on lights points them at the target; RectAreaLight lights one side only, so a lamp plane that cuts through a part lights only the part in front of it (found while debugging the inspector).
 
 - three r187 WebGLShadowMap renders a front sided material's back faces into the shadow map (shadowSide defaults to the opposite side), so a receiver touching an occluder's inner face sits at the stored depth and is lit or shadowed per texel. Found as white dashes where the shroud top meets the rear panel under the kicker (found with the new __pcb.probe and by switching lights off one at a time).
+- Memory key notch, fact check for critic 138 (Mono and Crown front and back, X21: notch at 49 percent of the screen length on the front and 41 on the back, expected 51): the PCB cut is at stick y +5.6 mm, and both finger strips draw their gap there (front strip u = HALF + 5.6 from its start; the back strip is turned end for end, u = HALF - 5.6 maps back to y +5.6). 5.6 of 133.35 mm is 4.2 percent off center, so the faces show it at 54 and 46 percent of the true length; the 3/4 perspective shifts both by the same few percent, which the critic measured as 49 and 41. The mirror is correct. Those images changed for the contact shade fix anyway, so they go to new critics as new images.
 - Pinned versions installed exactly as kit/06-ARCHITECTURE.md lists, read from node_modules/*/package.json.
 - Headless Chromium on this Mac reports a hardware ANGLE Metal renderer, so performance numbers measured here are valid.
 
@@ -149,9 +150,10 @@ What the floor looks like, its weak points, and how each was beaten.
 
 Per shot verdicts live in `kit/VERDICTS.jsonl`, not here. At each gate write one line per `check:shots` command you ran: the command, and the line it printed.
 
-- Critics run so far (the highest number in `kit/critics/`): 133
+- Critics run so far (the highest number in `kit/critics/`): 145
 - Weak shots, if any (name, and why): none
 - Research and rebuild notes for shots that failed four rounds (shot, what you learned, what you rebuilt):
+  - part/ram-mono16 and mono32 front and back (failed in critics 134/137, 138, 141, 142, 143: flat uniform face read as plastic, then facets read as a copy of Facet, then no contact shade on the dark disc). Learned (web search 2026-11-09: Crucial DDR5 Pro low profile spreader is machined aluminum in matte black; XPG Lancer and G.Skill Trident Z5 are black with a brushed aluminum finish): plain spreaders read as metal through brushing and machined edges, not through relief. Rebuilt: brushed satin black anodizing (aluSatinBlack, anisotropic brushing), a raised machined border round a flat field whose edges catch the light, no facets, the family notch kept, marks inside the field; the Inspector gives unlit memory the rim and sheen softboxes like cards (they light the disc around it), and a black kit's contact shade spreads 30 mm wide.
   - rig/night-rig-hero, side, front, top (glass, failed in rounds 001, 011, 030, 035 among others). Learned: product photographers make glass read with strip boxes and gradient cards placed for each shot, and a dark stripe means no light is reflected there (PetaPixel and DIY Photography gradient and strip box articles, searched 2026-11-09). Measured with a new tool (scripts/glass-map.mjs, which ray traces the glass for each named camera): with reflections at infinity (an environment map) every rig view sees almost one direction across the whole panel, so a softbox gives either nothing or a uniform veil, which the critics read as an open side or as milky glass; and the real room lights reflect in none of the rig views. Rebuilt: the room glass now reflects soft edged studio cards at real distances (src/world/glass-cards.json, ray traced in the glass shader), so each view sees a strip pair with parallax and edges, placed so no card is seen by two views in a bad spot; card reflections fade out within 0.6 to 1.1 m of the camera, as a close up camera blocks them; the Inspector glass keeps its environment map.
 
 ## Measurements
@@ -176,6 +178,10 @@ One line per feature id in kit/01-PRODUCT.md: `F01 · where it is tested or show
 ## Session log
 
 Newest first. One entry per working session or per compaction: what was done, what is next.
+
+- 2026-11-09 session 1, Phase 3 step 2 memory done, critics 136 to 145. Evidence: `npm run check:shots -- part/ram-` problems 0 (18 passed); fans problems 0; both Gate 2 groups problems 0. Since the last entry: Crown passes with satin white (aluWhiteSatin: stipple and slow roughness drift) and a deeper contact line; Mono rebuilt after five rounds (research note under Shot results: brushed satin black, a smooth machined raised border, no facets, marks inside the field, rim and sheen softboxes for unlit memory, a 30 mm contact shade); a shade under the spreader edge on the board for Mono and Crown; the kit label small print 1.75 mm at weight 600 (it read soft on the backs). Facts logged: the key notch mirror (critics 138 and 144 measured screen percentages under perspective). Next: step 3, coolers.
+
+- 2026-11-09 session 1, Phase 3 step 1 committed (3d42327, critics 132 and 133 passed all 17; fans, Gate 2 groups: problems 0). Step 2 memory, critics 134 and 135: 4 of 15 passed (the details). Fixes: the Inspector showed one stick for every kit, so the stick count that tells the Facet kits apart was missing (X21); it now shows the whole kit side by side at a 14 mm pitch (ramKit in parts/index.ts), and the memory detail aims at the front stick between bar and marks (focus [0.62, 0.6, 0.95]; the old aim was the middle of the row, which a kit moved between sticks: a definition fix, not a reframe). The back finger strip is turned end for end, so its key gap was drawn mirrored onto the front's position (critic 135, X21, a true catch); each side now draws its gap over the real notch. Mono gets the family notch and shallow pressed facets in a new satin black anodized (aluSatinBlack, with a world scale stipple), marks centered like Facet. Crown: the frosted white crown steps its body down from white as the LEDs come up (it read pastel), it is two tiers whose base dips into the spreader notch (a gap there showed a support rib as a white pin; the ribs are gone), and the white spreader takes the crown's hue over its white with Zone.tint (cover 0.75, 10 mm). Next: critics 136 and 137.
 
 - 2026-11-09 session 1, Phase 3 critics 128 to 131: 42 of 43 passed; every fan shot passes (`npm run check:shots -- part/fan-`: problems 0). The one fail, effect-static (X15): the tubes under the radiator sank into black and could not be followed, and the hero critics had named those dark tubes as the weakest spot too. Fans under a top radiator face down, so their lamp only grazes what runs just below them: each radiator fan now lights the tray and the board face under it (interior patches, gains 1.0 and 0.8) and the top of each braided tube beneath it (a shell over the tube, strongest where the tube faces the fan and fades 60 mm below, in the braid's own tone so the weave still reads, gain 1.8). This changes every lit Night Rig shot. Next: retake, review, builder verdicts, critics from 132.
 

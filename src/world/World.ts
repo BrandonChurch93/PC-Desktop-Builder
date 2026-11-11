@@ -4,7 +4,7 @@ import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUnifo
 import { gsap } from 'gsap';
 import type { Category } from '../data/catalog';
 import { getCase } from '../data/catalog';
-import { temps } from '../engine/sheet';
+import { sheet, temps } from '../engine/sheet';
 import type { Build } from '../engine/types';
 import type { State, Store, Tier } from '../state/store';
 import { glassEnvironment, studioEnvironment } from './env';
@@ -15,7 +15,7 @@ import STUDIO_GLASS_CARDS from './studio-glass-cards.json';
 import { setMaxAnisotropy, textures } from './kit/textures';
 import { loadFonts } from './kit/type';
 import { CASE_LAYOUTS } from './layout/cases';
-import { Inspector } from './inspector';
+import { INSPECT_ELEVATION, Inspector } from './inspector';
 import { RgbEngine } from './light/rgb';
 import { inspectPart } from './parts';
 import type { GenOpts } from './parts/types';
@@ -24,6 +24,8 @@ import { Rig, type RigItem } from './rig';
 import { Choreo, type MotionMode } from './motion/choreo';
 import { PowerSequence } from './motion/power';
 import { Airflow } from './airflow';
+import { Tour } from './tour';
+import { Turntable } from './interact/turntable';
 import { EXPLODE_REACH, Exploder } from './motion/explode';
 import { Hands } from './interact/hands';
 import { itemsOfPart } from './interact/pick';
@@ -100,6 +102,8 @@ export class World {
   private showingInspector = false;
   readonly airflow = new Airflow();
   readonly exploder: Exploder;
+  readonly tour: Tour;
+  turntable!: Turntable;
   private airDirty = true;
   private glowAt = -Infinity;
   private glowValue = '';
@@ -122,6 +126,8 @@ export class World {
     this.controls.maxDistance = 3.2;
     this.controls.maxPolarAngle = Math.PI * 0.495;
     this.controls.addEventListener('change', () => { this.dirty = true; this.viewName = null; });
+    this.tour = new Tour(this.camera, this.controls, () => this.views, () => { this.dirty = true; });
+    this.controls.addEventListener('start', () => this.tour.input());
     this.rgb = new RgbEngine(this.scene, true, true);
     this.exploder = new Exploder(this.rig, () => { this.dirty = true; });
     this.powerSeq = new PowerSequence(this.level, this.rgb.targetPower, () => { this.dirty = true; });
@@ -146,6 +152,7 @@ export class World {
     new ResizeObserver(() => this.resize()).observe(this.canvasEl.parentElement ?? this.canvasEl);
     this.rig.onChange = () => this.onRigChange();
     this.hands = new Hands(this, this.store);
+    this.turntable = new Turntable(this.canvasEl, this.inspector, () => { this.dirty = true; });
     this.syncFromStore(this.store.getState(), null);
     this.unsub = this.store.subscribe((s, prev) => this.syncFromStore(s, prev));
     this.loop(performance.now());
@@ -204,6 +211,7 @@ export class World {
     if (!prev || s.power !== prev.power) this.setPower(s.power, s.instant || s.frozen !== null);
     if (!prev || s.load !== prev.load || s.build !== prev.build) this.rgb.temps = temps(s.build, s.load);
     if (!prev || s.inspect !== prev.inspect) this.setInspect(s);
+    this.tour.setEnabled(s.mode === 'showcase' && !s.reducedMotion && s.frozen === null && !s.inspect);
     if (prev && s.mode !== prev.mode && (s.mode === 'exploded' || prev.mode === 'exploded')) this.setExploded(s.mode === 'exploded', s.instant || s.frozen !== null ? 'instant' : s.reducedMotion ? 'fade' : 'motion');
     else if (!prev && s.mode === 'exploded') this.setExploded(true, 'instant');
     if (!prev || s.airflow !== prev.airflow || s.mode !== prev.mode) { this.airflow.group.visible = s.airflow && s.mode !== 'exploded'; this.airDirty = true; }
@@ -248,6 +256,57 @@ export class World {
     this.dirty = true;
   }
 
+  /** The largest frame this device can draw, in pixels on each side. */
+  maxFrame(): number {
+    const gl = this.renderer.getContext();
+    const dims = gl.getParameter(gl.MAX_VIEWPORT_DIMS) as Int32Array;
+    return Math.min(gl.getParameter(gl.MAX_TEXTURE_SIZE) as number, gl.getParameter(gl.MAX_RENDERBUFFER_SIZE) as number, dims[0] ?? 4096, dims[1] ?? 4096);
+  }
+
+  /**
+   * The rig drawn at a poster's size from the hero view, the glass as the build has it, the power on and nothing over it.
+   * clear says which share of the frame the text takes, so the rig is framed in the rest. Everything is put back after.
+   */
+  async renderPoster(w: number, h: number, clear: Insets): Promise<HTMLCanvasElement> {
+    const saved = { pos: this.camera.position.clone(), target: this.controls.target.clone(), insets: this.insets, view: this.viewName, level: { ...this.level }, power: { ...this.rgb.targetPower }, pr: this.renderer.getPixelRatio() };
+    const s = this.store.getState();
+    const on = sheet(s.build).canPowerOn;
+    this.tour.stop();
+    this.powerSeq.run(on, 'instant');
+    this.room.setLevel(roomLevel('showcase', s.build.case?.finish));
+    this.renderer.setPixelRatio(1);
+    this.width = w; this.height = h;
+    this.renderer.setSize(w, h, false);
+    this.post.setSize(w, h);
+    this.insets = clear;
+    this.camera.aspect = w / h;
+    const ox = (clear.left - clear.right) / 2; const oy = (clear.top - clear.bottom) / 2;
+    this.camera.setViewOffset(w, h, -ox, -oy, w, h);
+    const cw = w - clear.left - clear.right; const ch = h - clear.top - clear.bottom;
+    this.camera.zoom = Math.min(1, ch / h, cw / (FRAME_RIG_WIDTH * h)) * 0.92;
+    this.jump('hero');
+    this.camera.updateProjectionMatrix();
+    this.step(0);
+    this.post.composer.render();
+    const out = document.createElement('canvas');
+    out.width = w; out.height = h;
+    out.getContext('2d')!.drawImage(this.renderer.domElement, 0, 0, w, h);
+    // Back to the screen as it was.
+    this.renderer.setPixelRatio(saved.pr);
+    Object.assign(this.level, saved.level);
+    Object.assign(this.rgb.targetPower, saved.power);
+    this.room.setLevel(roomLevel(s.mode, s.build.case?.finish));
+    this.insets = saved.insets;
+    this.resize();
+    this.camera.position.copy(saved.pos);
+    this.controls.target.copy(saved.target);
+    this.controls.update();
+    this.viewName = saved.view;
+    this.tour.setEnabled(s.mode === 'showcase' && !s.reducedMotion && s.frozen === null && !s.inspect);
+    await this.renderNow(1);
+    return out;
+  }
+
   /** Apart or together. When it ends, the LED lamps and shadows are laid out again where the parts now are. */
   private setExploded(on: boolean, mode: 'instant' | 'motion' | 'fade') {
     const L = CASE_LAYOUTS[this.rig.caseId ?? ''];
@@ -282,6 +341,8 @@ export class World {
 
   private setInspect(s: State) {
     const i = s.inspect;
+    if (this.turntable) this.turntable.active = !!i;
+    this.controls.enabled = !i;
     if (!i) { this.showingInspector = false; setGlassStage('room', this.roomGlassClamp(), GLASS_CARDS as GlassCard[]); this.post.setScene(this.scene, this.camera); this.dirty = true; return; }
     const opts: GenOpts = { detail: TIER_SETTINGS[this.tier].detail };
     if (i.finish) opts.finish = i.finish;
@@ -289,6 +350,7 @@ export class World {
     if (i.category === 'fan') opts.size = i.size ?? 120;
     this.inspector.show(i.category, i.id, opts, Boolean((i as { flip?: boolean }).flip));
     this.inspector.angle = i.angle;
+    this.inspector.elevation = INSPECT_ELEVATION;
     this.inspector.zoom = i.zoom;
     this.inspector.focus = (i as { focus?: [number, number, number] }).focus ?? null;
     this.showingInspector = true;
@@ -367,6 +429,7 @@ export class World {
   }
 
   jump(name: string) {
+    this.tour?.input();
     const v = this.views[name];
     if (!v) return false;
     this.camera.position.copy(v.pos);
@@ -453,7 +516,7 @@ export class World {
     }
     this.rgb.power = this.level.power;
     this.rgb.update(this.time);
-    if (this.showingInspector) { this.inspector.rgb.update(this.time); this.inspector.updateGlow(); }
+    if (this.showingInspector) { this.turntable.step(dt, frozen !== null); this.inspector.rgb.update(this.time); this.inspector.updateGlow(); }
     this.writeGlow(frozen !== null);
     const led = this.rig.items.get('psu')?.part.movers.led as THREE.Mesh | undefined;
     if (led) (led.material as THREE.MeshStandardMaterial).emissiveIntensity = SUPPLY_LED * this.level.led;
@@ -506,7 +569,8 @@ export class World {
     await document.fonts.ready;
     for (let i = 0; i < 600; i++) {
       // A tween made this tick is not active until the next one; count every running one that has not finished.
-      const busy = gsap.globalTimeline.getChildren(false, true, true).some((t) => t.isActive() || (!t.paused() && t.progress() < 1 && t.totalDuration() > 0));
+      // The Showcase tour loops for ever; it is not something to wait for.
+      const busy = gsap.globalTimeline.getChildren(false, true, true).some((t) => t.data !== 'tour' && (t.isActive() || (!t.paused() && t.progress() < 1 && t.totalDuration() > 0)));
       if (!busy) break;
       await new Promise((r) => setTimeout(r, 16));
     }
@@ -593,6 +657,7 @@ export class World {
 
   /** Camera moves between views: position and target together, power3.inOut. */
   glide(pos: THREE.Vector3, target: THREE.Vector3, duration = 1.4) {
+    this.tour.input();
     gsap.killTweensOf(this.camera.position); gsap.killTweensOf(this.controls.target);
     const reduced = this.store.getState().reducedMotion;
     if (reduced) { this.camera.position.copy(pos); this.controls.target.copy(target); this.controls.update(); this.dirty = true; return; }

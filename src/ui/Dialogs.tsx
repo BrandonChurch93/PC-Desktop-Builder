@@ -10,6 +10,8 @@ import { Button, Chip } from './kit/Button';
 import { Segmented } from './kit/Controls';
 import { Dialog } from './kit/Dialog';
 import { SheetDialog } from './SheetDialog';
+import { downloadCanvas, makePoster, POSTER_SIZE, posterFileName, posterSize, type PosterFormat } from './poster';
+import { getWorld } from './worldRef';
 import s from './Dialogs.module.css';
 
 export const ABOUT_COPY = `${K.productName} is a portfolio project by Brandon Church. Every brand and part here is invented. It runs entirely in your browser. No accounts, no tracking, no AI.`;
@@ -134,6 +136,36 @@ function SavedDialog() {
   );
 }
 
+function PosterDialog() {
+  const build = useApp((st) => st.build);
+  const [format, setFormat] = useState<PosterFormat>('portrait');
+  const [busy, setBusy] = useState(false);
+  const world = getWorld();
+  const size = world ? posterSize(world, format, world.tier) : { ...POSTER_SIZE[format], half: false };
+  const go = async () => {
+    if (!world || busy) return;
+    setBusy(true);
+    try {
+      const canvas = await makePoster(world, build, format, size);
+      await downloadCanvas(canvas, posterFileName(build.name));
+      say('Poster exported.');
+    } catch { say('The poster could not be made on this device.'); }
+    finally { setBusy(false); }
+  };
+  return (
+    <Dialog title="Export poster" onClose={closeDialog}>
+      <div className={s.stack}>
+        <Segmented label="Format" block value={format} onChange={setFormat} options={[{ value: 'portrait', label: 'Portrait' }, { value: 'landscape', label: 'Landscape' }]} />
+        <p className={s.text}>{size.w} × {size.h} pixels, PNG.{size.half ? ' This device draws the poster at half size.' : ''}</p>
+        <div className={s.buttons}>
+          <span className={s.status} role="status">{busy ? 'Rendering the poster.' : ''}</span>
+          <Button variant="primary" data-autofocus disabled={busy || !build.case} onClick={() => { void go(); }}>Export poster</Button>
+        </div>
+      </div>
+    </Dialog>
+  );
+}
+
 /** Whichever dialog is open. */
 export function Dialogs() {
   const d = useApp((st) => st.ui.dialog);
@@ -143,6 +175,7 @@ export function Dialogs() {
     case 'about': return <AboutDialog />;
     case 'share': return <ShareDialog />;
     case 'saved': return <SavedDialog />;
+    case 'poster': return <PosterDialog />;
     default: return null;
   }
 }

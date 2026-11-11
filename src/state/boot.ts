@@ -11,6 +11,22 @@ import { DEFAULT_UI, store } from './store';
 const house = (): Build => revalidate(buildFromPreset(getPreset('night-rig')!)).build;
 
 /**
+ * Arriving on a shared link: the build in Showcase with its banner, powered when it can be, and a notice when parts were left
+ * out. A bad or newer link keeps the house build and offers the empty bench.
+ */
+export function landOnLink(code: string) {
+  const d = decode(code);
+  if ('error' in d) {
+    store.setState({ build: house(), instant: true, mode: 'build', ui: DEFAULT_UI });
+    notify({ kind: 'link', title: linkMessage(d.error), lines: [], action: 'empty' });
+    return;
+  }
+  const b = d.build;
+  store.setState({ build: b, instant: true, mode: 'showcase', power: sheet(b).canPowerOn, ui: { ...DEFAULT_UI, shared: b.name || 'Untitled build' } });
+  if (d.removed.some((r) => r.code === 'UNKNOWN_PART')) notify({ kind: 'info', title: DROPPED_PARTS, lines: [], action: null });
+}
+
+/**
  * Where the app starts. A shared link lands in Showcase with its banner; a returning visitor gets their last build back with
  * no intro; a first visit sees the intro over the house build, then the start overlay. The test hook starts on the house
  * build with no intro or overlay, and drives everything else itself.
@@ -29,16 +45,8 @@ export function boot(hook: boolean) {
 
   const code = codeFromHash(location.hash);
   if (code) {
-    const d = decode(code);
     history.replaceState(null, '', location.pathname + location.search);
-    if ('error' in d) {
-      store.setState({ build: house(), instant: true });
-      notify({ kind: 'link', title: linkMessage(d.error), lines: [], action: 'empty' });
-      return;
-    }
-    const b = d.build;
-    store.setState({ build: b, instant: true, mode: 'showcase', power: sheet(b).canPowerOn, ui: { ...DEFAULT_UI, shared: b.name || 'Untitled build' } });
-    if (d.removed.some((r) => r.code === 'UNKNOWN_PART')) notify({ kind: 'info', title: DROPPED_PARTS, lines: [], action: null });
+    landOnLink(code);
     return;
   }
 

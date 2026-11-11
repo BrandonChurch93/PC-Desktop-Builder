@@ -7,6 +7,7 @@ import * as A from './state/actions';
 import type { ActionOpts, Build, Lighting, Profile } from './engine/types';
 import { sheet } from './engine/sheet';
 import { store, type DialogName, type Mode, type Quality } from './state/store';
+import { landOnLink } from './state/boot';
 import { socketsFor } from './engine/queries';
 import { forcePlace } from './world/layout/force';
 import type { World } from './world/World';
@@ -43,6 +44,8 @@ export function installHook(world: World) {
       store.setState({ build, instant: true, inspect: null });
       await world.settle();
     },
+    /** Does what arriving on a shared link with this code does: the banner, Showcase, and any message. */
+    async link(code: string) { store.setState({ inspect: null, held: null, selected: null }); landOnLink(code); await world.settle(); },
     async empty() { store.setState({ build: emptyBuild(), instant: true, power: false }); await world.settle(); },
     async mode(name: Mode) { store.setState({ mode: name, instant: true, ...(name === 'showcase' && sheet(store.getState().build).canPowerOn ? { power: true } : {}) }); await world.settle(); },
     async set(a: SetArgs) {

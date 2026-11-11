@@ -80,6 +80,7 @@ export function ModeSwitch({ block }: { block?: boolean }) {
 
 const MENU: { d: DialogName; label: string }[] = [
   { d: 'saved', label: 'Saved builds' },
+  { d: 'poster', label: 'Export poster' },
   { d: 'settings', label: 'Settings' },
   { d: 'about', label: 'About' },
 ];

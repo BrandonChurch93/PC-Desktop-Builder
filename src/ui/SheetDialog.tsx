@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { removePart, say } from '../state/actions';
-import { closeDialog } from './uiActions';
+import { closeDialog, openDialog } from './uiActions';
 import { useApp } from './hooks';
 import { Button } from './kit/Button';
 import { Dialog } from './kit/Dialog';
@@ -36,7 +36,7 @@ export function SheetDialog() {
   };
   return (
     <Dialog title={build.name || 'Untitled build'} onClose={closeDialog} wide
-      actions={<><SpecStatus /><span className={s.spacer} /><Button variant="ghost" icon={copied ? 'check' : 'copy'} onClick={copy}>{copied ? 'Copied' : 'Copy as text'}</Button></>}>
+      actions={<><SpecStatus /><span className={s.spacer} /><Button variant="ghost" icon={copied ? 'check' : 'copy'} onClick={copy}>{copied ? 'Copied' : 'Copy as text'}</Button><Button variant="ghost" onClick={() => openDialog('poster')}>Export poster</Button></>}>
       <p className={s.eyebrow}>Full spec sheet</p>
       <div className={s.grid}>
         <section className={[s.section, s.parts].join(' ')} aria-labelledby="sheet-parts">

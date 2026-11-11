@@ -30,6 +30,39 @@ export function keyNumbers(category: Category, id: string): string {
   }
 }
 
+/** The Inspector's spec list: every number the rules use for this part, from the catalog, as label and value. */
+export function specRows(category: Category, id: string): [string, string][] {
+  const lit = (z: number) => (z > 0 ? `${z} ${z === 1 ? 'zone' : 'zones'}` : 'None');
+  switch (category) {
+    case 'case': {
+      const k = getCase(id); if (!k) return [];
+      return [['Boards', k.boardSizes.map((s) => LABELS.boardSize[s]).join(', ')], ['Size', `${k.size.d} × ${k.size.w} × ${k.size.h} mm`], ['Graphics clearance', `${k.gpuMaxLength} mm`], ['Cooler height', `${k.coolerMaxHeight} mm`],
+        ['Supply', `${LABELS.psuForm[k.psuForm]} up to ${k.psuMaxLength} mm`], ['Fan mounts', String(k.fanMounts.length)], ['Radiator mounts', k.radMounts.map((m) => `${LABELS.mountGroup[m.group]} ${m.sizes.join(' or ')}`).join(', ') || 'None'],
+        ['Drive bays', `${k.bays25} × 2.5 in · ${k.bays35} × 3.5 in`], ['Lighting', lit(k.lightZones)]];
+    }
+    case 'board': {
+      const b = getBoard(id); if (!b) return [];
+      return [['Size', LABELS.boardSize[b.size]], ['Socket', PLATFORMS.get(b.platform)?.socketLabel ?? ''], ['Memory slots', String(b.ramSlots)], ['M.2 slots', String(b.m2Slots)], ['SATA ports', String(b.sataPorts)], ['Draw', `${b.draw} W`], ['Lighting', lit(b.lightZones)]];
+    }
+    case 'cpu': { const c = getCpu(id); return c ? [['Socket', PLATFORMS.get(c.platform)?.socketLabel ?? ''], ['Cores', String(c.cores)], ['Draw', `${c.draw} W`]] : []; }
+    case 'cooler': {
+      const k = getCooler(id); if (!k) return [];
+      const rows: [string, string][] = k.type === 'aio' ? [['Radiator', `${k.radSize} mm`], ['Fans', String(k.fans)]] : [['Height', `${k.height} mm`], ['Fans', String(k.fans)]];
+      if (k.ramClearance !== null) rows.push(['Memory clearance', `${k.ramClearance} mm`]);
+      return [...rows, ['Rated for', `${k.capacity} W`], ['Draw', `${k.draw} W`], ['Lighting', lit(k.lightZones)]];
+    }
+    case 'ram': { const r = getRam(id); return r ? [['Kit', `${r.sticks} × ${r.gbPerStick} GB`], ['Height', `${r.height} mm`], ['Draw', `${r.drawPerStick} W per stick`], ['Lighting', r.lit ? 'Lit' : 'None']] : []; }
+    case 'gpu': {
+      const g = getGpu(id); if (!g) return [];
+      return [['Length', `${g.length} mm`], ['Thickness', `${g.thickness} mm`], ['Fans', String(g.fans)], ['Power', g.plugs], ['Draw', `${g.draw} W`], ['Lighting', lit(g.lightZones)]];
+    }
+    case 'storage': { const s = getStorage(id); return s ? [['Type', LABELS.storageType[s.type]], ['Capacity', `${s.capacityTb} TB`], ['Draw', `${s.draw} W`]] : []; }
+    case 'psu': { const p = getPsu(id); return p ? [['Capacity', `${p.capacity} W`], ['Size', LABELS.psuForm[p.form]], ['Length', `${p.length} mm`]] : []; }
+    case 'fan': { const f = getFan(id); return f ? [['Blades', String(f.blades)], ['Lighting', f.lit ? lit(f.lightZones) : 'None'], ['Draw', `${f.draw} W`]] : []; }
+    case 'cables': return [];
+  }
+}
+
 /** The tray's parts for a category, with the id the engine installs by: storage installs by its type. */
 export function trayParts(category: Category): { id: string; brand: string; name: string }[] {
   if (category === 'storage') return catalog.storage.map((s) => ({ id: s.type, brand: s.brand, name: s.name }));

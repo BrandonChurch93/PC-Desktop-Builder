@@ -8,7 +8,7 @@ import { setUi } from './uiActions';
 import { useApp, useReducedMotion } from './hooks';
 import { Button } from './kit/Button';
 import { partName } from '../state/actions';
-import { keyNumbers } from './parts';
+import { specRows } from './parts';
 import s from './Overlays.module.css';
 
 const BASE = import.meta.env.BASE_URL;
@@ -101,20 +101,28 @@ export function InspectorBar() {
   }, [insp]);
   if (!insp || hidden) return null;
   const fit = fitOf(build, insp.category, insp.id);
+  const rows = specRows(insp.category, insp.id);
   return (
     <div className={s.inspector} role="region" aria-label="Inspector">
-      <div className={s.inspText}>
-        <div className={s.inspEyebrow}>{LABELS.category[insp.category]}</div>
-        <div className={s.inspName}>{partName(insp.category, insp.id)}</div>
-        <div className={s.inspNumbers}>{keyNumbers(insp.category, insp.id)}</div>
-        {fit.status === 'blocked' && <div className={s.inspBlocked}>{fit.message}</div>}
+      <div className={s.inspHead}>
+        <div className={s.inspText}>
+          <div className={s.inspEyebrow}>{LABELS.category[insp.category]}</div>
+          <div className={s.inspName}>{partName(insp.category, insp.id)}</div>
+          {fit.status === 'blocked' && <div className={s.inspBlocked}>{fit.message}</div>}
+        </div>
+        <div className={s.inspActions}>
+          {fit.status === 'installed'
+            ? <Button variant="ghost" onClick={() => removePart(insp.category)}>Remove</Button>
+            : <Button variant="primary" disabled={fit.status === 'blocked'} onClick={() => { const r = installPart(insp.category, insp.id); if (r.ok) store.setState({ inspect: null }); }}>Install</Button>}
+          <Button variant="icon" icon="close" label="Close the Inspector" onClick={() => store.setState({ inspect: null })} />
+        </div>
       </div>
-      <div className={s.inspActions}>
-        {fit.status === 'installed'
-          ? <Button variant="ghost" onClick={() => removePart(insp.category)}>Remove</Button>
-          : <Button variant="primary" disabled={fit.status === 'blocked'} onClick={() => { const r = installPart(insp.category, insp.id); if (r.ok) store.setState({ inspect: null }); }}>Install</Button>}
-        <Button variant="icon" icon="close" label="Close the Inspector" onClick={() => store.setState({ inspect: null })} />
-      </div>
+      {rows.length > 0 && (
+        <dl className={s.inspSpecs}>
+          {rows.map(([k, v]) => <div key={k} className={s.inspRow}><dt>{k}</dt><dd>{v}</dd></div>)}
+        </dl>
+      )}
+      <p className={s.inspHint}>Drag to turn · scroll or pinch to zoom</p>
     </div>
   );
 }

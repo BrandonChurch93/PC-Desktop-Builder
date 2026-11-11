@@ -116,6 +116,9 @@ function backdrop(): THREE.Texture {
   return wrap(c, { srgb: true, repeat: false });
 }
 
+/** The camera's height angle over the turntable, in radians, when a part opens. */
+export const INSPECT_ELEVATION = 0.32;
+
 /** The part alone on a slow turntable over a dark gradient, lit by neutral softboxes. */
 export class Inspector {
   readonly scene = new THREE.Scene();
@@ -135,7 +138,7 @@ export class Inspector {
   private lights: { key: THREE.RectAreaLight; fill: THREE.RectAreaLight; rim: THREE.RectAreaLight; sheen: THREE.RectAreaLight };
   angle = 0;
   zoom = 0;
-  elevation = 0.32;
+  elevation = INSPECT_ELEVATION;
   focus: [number, number, number] | null = null;
   flip = false;
 

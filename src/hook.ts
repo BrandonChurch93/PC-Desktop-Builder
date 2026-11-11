@@ -123,6 +123,14 @@ export function installHook(world: World) {
      * with that part taken out.
      */
     async scrub(sequence: string, progress: number) {
+      if (sequence === 'explode') {
+        const base = revalidate(buildFromPreset(getPreset('night-rig')!)).build;
+        store.setState({ build: base, mode: 'build', instant: true, inspect: null, held: null, selected: null });
+        await world.settle();
+        world.scrubExplode(progress);
+        await world.renderNow(2);
+        return;
+      }
       if (sequence === 'power-on') {
         const base = revalidate(buildFromPreset(getPreset('night-rig')!)).build;
         store.setState({ build: base, power: true, instant: true, inspect: null, held: null, selected: null });

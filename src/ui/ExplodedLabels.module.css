@@ -1,0 +1,64 @@
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+}
+
+.lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.line {
+  stroke: color-mix(in srgb, var(--ink) 55%, transparent);
+  stroke-width: 1;
+}
+
+.dot {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  translate: -50% -50%;
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+  background: var(--panel-solid);
+}
+
+.label {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-width: 220px;
+  padding: 5px 10px 6px;
+  translate: 0 -50%;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--panel-solid);
+  white-space: nowrap;
+}
+
+.left {
+  translate: -100% -50%;
+  text-align: right;
+}
+
+.eyebrow {
+  color: var(--ink-muted);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.name {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: var(--text-control);
+  font-weight: 600;
+  text-overflow: ellipsis;
+}

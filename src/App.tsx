@@ -10,6 +10,7 @@ import { EmptyHint, InspectorBar, Intro, LiveRegion, SharedBanner, StartOverlay 
 import { Shell } from './ui/Shell';
 import { installShortcuts } from './ui/shortcuts';
 import { SocketLabels } from './ui/SocketLabels';
+import { ExplodedLabels } from './ui/ExplodedLabels';
 import { ReasonLabel, ResetView, SelectionMenu, SwapHint } from './ui/Hands';
 import { Tips } from './ui/Tips';
 import { getWorld, setWorld } from './ui/worldRef';
@@ -22,12 +23,14 @@ function UiLayer() {
   const hidden = useApp((s) => s.uiHidden);
   // With the interface hidden nothing covers the scene: the camera frames the whole window.
   useLayoutEffect(() => { if (hidden) getWorld()?.setInsets({ left: 0, right: 0, top: 0, bottom: 0 }); }, [hidden]);
-  if (hidden) return <LiveRegion />;
+  // Scene labels belong to the view, not the interface: the exploded labels stay when the interface is hidden.
+  if (hidden) return <><ExplodedLabels /><LiveRegion /></>;
   return (
     <>
       <Shell />
       <EmptyHint />
       <SharedBanner />
+      <ExplodedLabels />
       <SocketLabels />
       <SelectionMenu />
       <ReasonLabel />

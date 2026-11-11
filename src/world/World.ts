@@ -24,6 +24,7 @@ import { Rig, type RigItem } from './rig';
 import { Choreo, type MotionMode } from './motion/choreo';
 import { PowerSequence } from './motion/power';
 import { Airflow } from './airflow';
+import { EXPLODE_REACH, Exploder } from './motion/explode';
 import { Hands } from './interact/hands';
 import { itemsOfPart } from './interact/pick';
 import { Room } from './room';
@@ -38,7 +39,7 @@ const ROOM_GLASS_CLAMP = 0.1;
  */
 function roomLevel(mode: string, finish: string | undefined): number {
   const pale = !!finish && !!FINISHES[finish]?.light;
-  return mode === 'showcase' ? 0.7 : mode === 'build' ? (pale ? 0.86 : 1.12) : 0.9;
+  return mode === 'showcase' ? 0.7 : mode === 'build' ? (pale ? 0.86 : 1.12) : pale ? 0.62 : 0.9;
 }
 /** A pale interior behind the glass hid the reflections a dark one shows, so the glass read as an empty opening (critic 265). */
 const ROOM_GLASS_CLAMP_LIGHT = 0.26;
@@ -98,6 +99,7 @@ export class World {
   readonly ready: Promise<void> = new Promise((r) => { this.readyResolve = r; });
   private showingInspector = false;
   readonly airflow = new Airflow();
+  readonly exploder: Exploder;
   private airDirty = true;
   private glowAt = -Infinity;
   private glowValue = '';
@@ -121,6 +123,7 @@ export class World {
     this.controls.maxPolarAngle = Math.PI * 0.495;
     this.controls.addEventListener('change', () => { this.dirty = true; this.viewName = null; });
     this.rgb = new RgbEngine(this.scene, true, true);
+    this.exploder = new Exploder(this.rig, () => { this.dirty = true; });
     this.powerSeq = new PowerSequence(this.level, this.rgb.targetPower, () => { this.dirty = true; });
     const roomEnv = studioEnvironment(this.renderer, 'room');
     this.scene.environment = roomEnv;
@@ -201,6 +204,8 @@ export class World {
     if (!prev || s.power !== prev.power) this.setPower(s.power, s.instant || s.frozen !== null);
     if (!prev || s.load !== prev.load || s.build !== prev.build) this.rgb.temps = temps(s.build, s.load);
     if (!prev || s.inspect !== prev.inspect) this.setInspect(s);
+    if (prev && s.mode !== prev.mode && (s.mode === 'exploded' || prev.mode === 'exploded')) this.setExploded(s.mode === 'exploded', s.instant || s.frozen !== null ? 'instant' : s.reducedMotion ? 'fade' : 'motion');
+    else if (!prev && s.mode === 'exploded') this.setExploded(true, 'instant');
     if (!prev || s.airflow !== prev.airflow || s.mode !== prev.mode) { this.airflow.group.visible = s.airflow && s.mode !== 'exploded'; this.airDirty = true; }
     if (!prev || s.frozen !== prev.frozen) { if (s.frozen !== null) this.time = s.frozen; }
     this.rgb.lighting = s.build.lighting;
@@ -214,6 +219,8 @@ export class World {
     this.choreo.mode = mode;
     this.choreo.setBuildFlags({ glass: b.glass });
     this.rig.sync(b);
+    // Parts placed while the view is apart join it apart.
+    if (this.store.getState().mode === 'exploded') { this.exploder.run(true, 'instant', CASE_LAYOUTS[this.rig.caseId ?? '']); this.afterExplode(); }
     if (!this.showingInspector) setGlassStage('room', this.roomGlassClamp(), GLASS_CARDS as GlassCard[]);
   }
 
@@ -239,6 +246,30 @@ export class World {
   private setPower(on: boolean, instant: boolean) {
     this.powerSeq.run(on, instant ? 'instant' : this.store.getState().reducedMotion ? 'fade' : 'motion');
     this.dirty = true;
+  }
+
+  /** Apart or together. When it ends, the LED lamps and shadows are laid out again where the parts now are. */
+  private setExploded(on: boolean, mode: 'instant' | 'motion' | 'fade') {
+    const L = CASE_LAYOUTS[this.rig.caseId ?? ''];
+    this.exploder.run(on, mode, L, false, () => this.afterExplode());
+    if (on && mode !== 'instant' && this.views.exploded) this.glide(this.views.exploded.pos, this.views.exploded.target, 1.6);
+    else if (!on && mode !== 'instant' && this.views.hero && this.viewName === null) this.glide(this.views.hero.pos, this.views.hero.target, 1.6);
+    this.dirty = true;
+  }
+
+  private afterExplode() {
+    this.rgb.setZones(this.rig.zones, this.rig.bounds());
+    this.room?.updateShadow();
+    this.dirty = true;
+  }
+
+  /** The explode sequence from the assembled rig, held at a progress from 0 to 1, for scrubbed frames. */
+  scrubExplode(progress: number) {
+    const L = CASE_LAYOUTS[this.rig.caseId ?? ''];
+    this.exploder.run(false, 'instant', L);
+    const tl = this.exploder.run(true, 'motion', L, true);
+    tl?.progress(Math.max(0, Math.min(1, progress)));
+    this.afterExplode();
   }
 
   /** The power on sequence from the dark, held at a progress from 0 to 1, for scrubbed frames. */
@@ -286,6 +317,12 @@ export class World {
       top: make([0.3, 0.95, 0.95], 1.0, 0.04),
       rear: make([-1.25, 0.24, 0.9], 1.14),
     };
+    // Apart, the rig reaches out toward the open side: the view stands further round to the front, so the layers that came out
+    // along the depth show side by side, and pulls back to hold them all.
+    const reach = EXPLODE_REACH.z * MM;
+    const ex = c.clone(); ex.z += reach * 0.42; ex.y += 0.01;
+    const exDir = new THREE.Vector3(1.45, 0.38, 0.85).normalize();
+    this.views.exploded = { pos: ex.clone().addScaledVector(exDir, fit * 1.55), target: ex };
     const L = CASE_LAYOUTS[this.rig.caseId ?? ''];
     if (L) for (const [name, v] of Object.entries(L.views)) this.views[name] = { pos: new THREE.Vector3(...v.pos).multiplyScalar(MM), target: new THREE.Vector3(...v.target).multiplyScalar(MM) };
     this.macroViews();

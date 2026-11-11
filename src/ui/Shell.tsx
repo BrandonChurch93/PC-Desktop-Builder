@@ -4,6 +4,7 @@ import { setUi } from './uiActions';
 import { useApp, useReducedMotion, useViewport } from './hooks';
 import { Button } from './kit/Button';
 import { LightingPanel } from './LightingPanel';
+import { LoadReadout } from './LoadReadout';
 import { PhoneSheet } from './PhoneSheet';
 import { SpecPanel } from './SpecPanel';
 import { BrandBlock, Menu, ModeSwitch, QuickToggles, ShareButton, UndoRedo } from './TopBar';
@@ -60,15 +61,21 @@ function Desktop() {
   useModeFade(right, building, 12, 0);
   useModeFade(bottom, building, 0, 12);
   useModeFade(top, !hidden, 0, -12);
-  useInsets({ left: building ? left : null, right: building ? right : null, top: hidden ? null : top, bottom: building ? bottom : null }, [building, hidden]);
+  const power = useApp((st) => st.power);
+  const readout = useRef<HTMLDivElement | null>(null);
+  const lowReadout = power && !hidden && mode !== 'build';
+  useInsets({ left: building ? left : null, right: building ? right : null, top: hidden ? null : top, bottom: building ? bottom : lowReadout ? readout : null }, [building, hidden, lowReadout]);
   return (
     <>
       <div ref={top} className={s.top}>
         <BrandBlock />
-        <div className={s.center}>
-          <UndoRedo />
-          <span className={s.divider} aria-hidden="true" />
-          <QuickToggles />
+        <div className={s.centerCol}>
+          <div className={s.center}>
+            <UndoRedo />
+            <span className={s.divider} aria-hidden="true" />
+            <QuickToggles />
+          </div>
+          {power && !hidden && mode === 'build' && <LoadReadout where="top" />}
         </div>
         <div className={s.right}>
           <ModeSwitch />
@@ -79,6 +86,7 @@ function Desktop() {
       <aside ref={left} className={s.left} aria-label="Lighting"><LightingPanel /></aside>
       <aside ref={right} className={s.side} aria-label="Spec sheet"><SpecPanel /></aside>
       <div ref={bottom} className={s.bottom}><Dock /></div>
+      {lowReadout && <LoadReadout ref={readout} where="bottom" />}
     </>
   );
 }
@@ -87,12 +95,15 @@ function Tablet() {
   const mode = useApp((st) => st.mode);
   const side = useApp((st) => st.ui.side);
   const hidden = useApp((st) => st.uiHidden || !!st.ui.overlay || !!st.inspect);
+  const power = useApp((st) => st.power);
   const top = useRef<HTMLDivElement | null>(null); const bottom = useRef<HTMLDivElement | null>(null);
   const sheet = useRef<HTMLElement | null>(null);
   const building = mode === 'build' && !hidden;
   useModeFade(bottom, building, 0, 12);
   useModeFade(top, !hidden, 0, -12);
-  useInsets({ top: hidden ? null : top, bottom: building ? bottom : null, left: building && side === 'lighting' ? sheet : null, right: building && side === 'spec' ? sheet : null }, [building, hidden, side]);
+  const readout = useRef<HTMLDivElement | null>(null);
+  const lowReadout = power && !hidden && mode !== 'build';
+  useInsets({ top: hidden ? null : top, bottom: building ? bottom : lowReadout ? readout : null, left: building && side === 'lighting' ? sheet : null, right: building && side === 'spec' ? sheet : null }, [building, hidden, side, lowReadout]);
   useEffect(() => {
     if (!side) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setUi({ side: null }); };
@@ -123,6 +134,8 @@ function Tablet() {
         </aside>
       )}
       <div ref={bottom} className={s.bottom}><Dock /></div>
+      {power && !hidden && mode === 'build' && <LoadReadout where="under" />}
+      {lowReadout && <LoadReadout ref={readout} where="bottom" />}
     </>
   );
 }
@@ -130,6 +143,8 @@ function Tablet() {
 function Phone() {
   const { landscape } = useViewport();
   const hidden = useApp((st) => st.uiHidden || !!st.ui.overlay || !!st.inspect);
+  const power = useApp((st) => st.power);
+  const mode = useApp((st) => st.mode);
   const top = useRef<HTMLDivElement | null>(null);
   useModeFade(top, !hidden, 0, -12);
   useLayoutEffect(() => { if (hidden) getWorld()?.setInsets({ left: 0, right: 0, top: 0, bottom: 0 }); }, [hidden]);
@@ -146,8 +161,10 @@ function Phone() {
           <QuickToggles compact />
           <ShareButton icon />
         </div>
+        {power && !hidden && mode === 'build' && <LoadReadout where="row" />}
       </div>
       {!hidden && <PhoneSheet topRef={top} />}
+      {power && !hidden && mode !== 'build' && <LoadReadout where="bottom" />}
     </>
   );
 }

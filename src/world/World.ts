@@ -22,6 +22,8 @@ import type { GenOpts } from './parts/types';
 import { Post, TIER_SETTINGS } from './post';
 import { Rig, type RigItem } from './rig';
 import { Choreo, type MotionMode } from './motion/choreo';
+import { PowerSequence } from './motion/power';
+import { Airflow } from './airflow';
 import { Hands } from './interact/hands';
 import { itemsOfPart } from './interact/pick';
 import { Room } from './room';
@@ -51,6 +53,11 @@ const SPIN_IDLE = 9;
 const SPIN_FULL = 42;
 const BLUR_FROM = 20;
 const BLUR_TO = 34;
+/** The supply's status light, a small green LED above its switch. */
+const SUPPLY_LED = 3;
+const GLOW_EVERY_MS = 100;
+/** The average LED level, linear, at which --rig-glow reaches its full strength. */
+const GLOW_FULL = 0.2;
 
 export type View = { pos: THREE.Vector3; target: THREE.Vector3 };
 export type Insets = { left: number; right: number; top: number; bottom: number };
@@ -73,7 +80,8 @@ export class World {
   tier: Tier = 'high';
   private time = 0;
   private spinAngle = 0;
-  readonly level = { power: 0, spin: 0, exposure: 1 };
+  readonly level = { power: 0, spin: 0, led: 0, exposure: 1 };
+  readonly powerSeq: PowerSequence;
   private dirty = true;
   private raf = 0;
   private last = 0;
@@ -89,6 +97,10 @@ export class World {
   private readyResolve!: () => void;
   readonly ready: Promise<void> = new Promise((r) => { this.readyResolve = r; });
   private showingInspector = false;
+  readonly airflow = new Airflow();
+  private airDirty = true;
+  private glowAt = -Infinity;
+  private glowValue = '';
 
   constructor(private canvasEl: HTMLCanvasElement, private store: Store) {
     this.renderer = new THREE.WebGLRenderer({ canvas: canvasEl, antialias: false, powerPreference: 'high-performance', alpha: false, preserveDrawingBuffer: false });
@@ -109,6 +121,7 @@ export class World {
     this.controls.maxPolarAngle = Math.PI * 0.495;
     this.controls.addEventListener('change', () => { this.dirty = true; this.viewName = null; });
     this.rgb = new RgbEngine(this.scene, true, true);
+    this.powerSeq = new PowerSequence(this.level, this.rgb.targetPower, () => { this.dirty = true; });
     const roomEnv = studioEnvironment(this.renderer, 'room');
     this.scene.environment = roomEnv;
     this.scene.environmentIntensity = 1.0;
@@ -116,6 +129,8 @@ export class World {
     setGlassStage('room', ROOM_GLASS_CLAMP, GLASS_CARDS as GlassCard[]);
     this.inspector = new Inspector(studioEnvironment(this.renderer, 'inspector'));
     this.scene.add(this.rig.group);
+    this.airflow.group.userData.noAO = true;
+    this.rig.group.add(this.airflow.group);
     this.choreo = new Choreo(this.rig, () => { this.dirty = true; });
   }
 
@@ -142,7 +157,8 @@ export class World {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, s.pixelRatio));
     if (this.room) { this.room.group.removeFromParent(); }
     this.room = new Room(this.scene, s.mirror);
-    this.room.hideInMirror = () => [...this.rig.glassSpecular(), this.rgb.poolGroup];
+    this.room.hideInMirror = () => [...this.rig.glassSpecular(), this.rgb.poolGroup, this.airflow.group];
+    this.airDirty = true;
     this.room.lights.shadow.shadow.mapSize.set(s.shadow, s.shadow);
     this.room.setFootprint(this.rig.itemBounds('case'));
     this.room.setRearFlag(this.rig.itemBounds('case'), this.rig.itemBounds('psu'));
@@ -185,6 +201,7 @@ export class World {
     if (!prev || s.power !== prev.power) this.setPower(s.power, s.instant || s.frozen !== null);
     if (!prev || s.load !== prev.load || s.build !== prev.build) this.rgb.temps = temps(s.build, s.load);
     if (!prev || s.inspect !== prev.inspect) this.setInspect(s);
+    if (!prev || s.airflow !== prev.airflow || s.mode !== prev.mode) { this.airflow.group.visible = s.airflow && s.mode !== 'exploded'; this.airDirty = true; }
     if (!prev || s.frozen !== prev.frozen) { if (s.frozen !== null) this.time = s.frozen; }
     this.rgb.lighting = s.build.lighting;
     this.inspector.rgb.lighting = s.build.lighting;
@@ -215,16 +232,20 @@ export class World {
     this.room?.setFootprint(this.rig.itemBounds('case'));
     this.room?.setEmptyFootprint(!this.store.getState().build.case);
     this.room?.setRearFlag(this.rig.itemBounds('case'), this.rig.itemBounds('psu'));
+    this.airDirty = true;
     this.dirty = true;
   }
 
   private setPower(on: boolean, instant: boolean) {
-    gsap.killTweensOf(this.level);
-    if (instant) { this.level.power = on ? 1 : 0; this.level.spin = on ? 1 : 0; }
-    else {
-      gsap.to(this.level, { power: on ? 1 : 0, duration: on ? 1.2 : 2.2, ease: on ? 'power2.out' : 'power2.in', onUpdate: () => { this.dirty = true; } });
-      gsap.to(this.level, { spin: on ? 1 : 0, duration: on ? 1.5 : 3, ease: on ? 'power2.out' : 'power2.out' });
-    }
+    this.powerSeq.run(on, instant ? 'instant' : this.store.getState().reducedMotion ? 'fade' : 'motion');
+    this.dirty = true;
+  }
+
+  /** The power on sequence from the dark, held at a progress from 0 to 1, for scrubbed frames. */
+  scrubPower(progress: number) {
+    this.powerSeq.run(false, 'instant');
+    const tl = this.powerSeq.run(true, 'motion', true);
+    tl?.progress(Math.max(0, Math.min(1, progress)));
     this.dirty = true;
   }
 
@@ -386,10 +407,40 @@ export class World {
       }
     }
     this.hands?.update(this.time);
+    if (this.airflow.group.visible) {
+      if (this.airDirty) {
+        this.airDirty = false;
+        this.airflow.build(s.build, CASE_LAYOUTS[this.rig.caseId ?? ''], [...this.rig.items.values()].map((i) => i.placed), TIER_SETTINGS[this.tier].dashes);
+      }
+      this.airflow.update(dt, frozen, s.load, this.level.spin, this.rgb.temps);
+    }
     this.rgb.power = this.level.power;
     this.rgb.update(this.time);
     if (this.showingInspector) { this.inspector.rgb.update(this.time); this.inspector.updateGlow(); }
-    this.renderer.toneMappingExposure = EXPOSURE * (1 + 0.06 * this.level.power) * this.level.exposure;
+    this.writeGlow(frozen !== null);
+    const led = this.rig.items.get('psu')?.part.movers.led as THREE.Mesh | undefined;
+    if (led) (led.material as THREE.MeshStandardMaterial).emissiveIntensity = SUPPLY_LED * this.level.led;
+    // Exposure lifts with the light that is awake, so it rises along the power on sequence instead of at its first frame.
+    const tp = this.rgb.targetPower;
+    const awake = this.level.power * (tp.case + tp.board + tp.cooler + tp.ram + tp.gpu + tp.fans) / 6;
+    this.renderer.toneMappingExposure = EXPOSURE * (1 + 0.06 * awake) * this.level.exposure;
+  }
+
+  /**
+   * The build's average LED color as --rig-glow, for the hairline on panel tops and the Power halo. At most ten times a
+   * second; every frame on a frozen clock, so a shot always carries the color of its own frame.
+   */
+  private writeGlow(always: boolean) {
+    const now = performance.now();
+    if (!always && now - this.glowAt < GLOW_EVERY_MS) return;
+    this.glowAt = now;
+    const a = this.rgb.average;
+    const peak = Math.max(a.r, a.g, a.b);
+    const k = peak > 1e-4 ? 1 / peak : 0;
+    const c = new THREE.Color(a.r * k, a.g * k, a.b * k).convertLinearToSRGB();
+    const alpha = THREE.MathUtils.smoothstep(peak, 0, GLOW_FULL) * 0.85;
+    const v = `rgba(${Math.round(c.r * 255)}, ${Math.round(c.g * 255)}, ${Math.round(c.b * 255)}, ${alpha.toFixed(3)})`;
+    if (v !== this.glowValue) { this.glowValue = v; document.documentElement.style.setProperty('--rig-glow', v); }
   }
 
   private draw() {

@@ -11,11 +11,75 @@
   backdrop-filter: var(--blur);
   -webkit-backdrop-filter: var(--blur);
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--rig-glow) 35%, transparent), var(--shadow-panel);
+  overflow: hidden;
+}
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  margin: 0 calc(-1 * var(--space-5)) calc(-1 * var(--space-5));
+  padding: 2px var(--space-5) var(--space-5);
   overflow-y: auto;
-  mask-image: linear-gradient(to bottom, #0d0b1a calc(100% - var(--space-5)), transparent);
-  -webkit-mask-image: linear-gradient(to bottom, #0d0b1a calc(100% - var(--space-5)), transparent);
+  overscroll-behavior: contain;
+  mask-image: linear-gradient(to bottom, transparent, #0d0b1a 8px, #0d0b1a calc(100% - var(--space-5)), transparent);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #0d0b1a 8px, #0d0b1a calc(100% - var(--space-5)), transparent);
   scrollbar-width: thin;
   scrollbar-color: var(--line-strong) transparent;
+}
+
+.colors {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.scope {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 10px var(--space-3) var(--space-3);
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: var(--radius-control);
+  background: var(--accent-soft);
+}
+
+.scopeHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.scopeName {
+  color: var(--ink);
+  font-size: var(--text-body);
+  font-weight: 700;
+}
+
+.scopeBack {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-dim);
+  font-size: var(--text-meta);
+  font-weight: 500;
+}
+
+.scopeBack:hover {
+  color: var(--ink);
+  background: var(--raise);
+}
+
+.scopeNote {
+  margin: 0;
+  color: var(--ink-dim);
+  font-size: var(--text-meta);
+  line-height: 1.4;
 }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
@@ -138,9 +202,80 @@
   font-size: var(--text-meta);
 }
 
-.preset:hover {
+.preset:hover:not(:disabled) {
   color: var(--ink);
   background: var(--raise);
+}
+
+.preset[aria-pressed='true'] {
+  border-color: var(--line-strong);
+  background: var(--raise-strong);
+  color: var(--ink);
+}
+
+.preset:disabled {
+  opacity: 0.5;
+}
+
+.save {
+  color: var(--ink);
+  border-style: dashed;
+}
+
+.savedChip {
+  display: inline-flex;
+  align-items: stretch;
+}
+
+.savedApply {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.savedDelete {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-left: 0;
+  border-radius: 0 8px 8px 0;
+  background: transparent;
+  color: var(--ink-muted);
+}
+
+.savedDelete:hover {
+  color: var(--ink);
+  background: var(--raise);
+}
+
+.nameForm {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  width: 100%;
+}
+
+.nameInput {
+  flex: 1;
+  min-width: 0;
+  min-height: 32px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-control);
+}
+
+.nameInput:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.nameSave {
+  min-height: 32px;
 }
 
 .presetSwatch {
@@ -159,15 +294,32 @@
 
 .target {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  padding: 6px 0;
+  width: 100%;
+  min-height: 34px;
+  padding: 0 var(--space-2);
+  border: 0;
   border-bottom: 1px solid var(--line);
+  background: transparent;
   color: var(--ink);
   font-size: var(--text-control);
+  text-align: left;
 }
 
-.targetOff {
+.target:hover:not(:disabled) {
+  background: var(--raise);
+}
+
+.target:disabled {
   color: var(--ink-muted);
+}
+
+.targetOn {
+  border-radius: 8px;
+  border-bottom-color: transparent;
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
 .targetState {
@@ -175,9 +327,25 @@
   font-size: var(--text-meta);
 }
 
+.stateOwn {
+  color: var(--accent);
+}
+
+.stateOff {
+  color: var(--ink-muted);
+}
+
 @media (pointer: coarse) {
   .effect,
-  .preset {
+  .preset,
+  .target,
+  .scopeBack,
+  .nameInput,
+  .nameSave {
     min-height: var(--touch);
+  }
+
+  .savedDelete {
+    width: var(--touch);
   }
 }

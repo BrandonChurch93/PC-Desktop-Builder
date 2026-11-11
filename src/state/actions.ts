@@ -1,14 +1,15 @@
-import { K, displayName, getPreset, getStorage, brandName, LABELS, type Category, type StorageType } from '../data/catalog';
+import { K, displayName, getPreset, getStorage, brandName, LABELS, type Category, type LightTarget, type StorageType } from '../data/catalog';
 import { encode } from '../engine/codec';
 import { cascadeNotice, joinAnd } from '../engine/messages';
 import { buildFromPreset, clearFans, emptyBuild, fillFans, install, remove, revalidate, setFinish } from '../engine/rules';
 import { lightingFromPreset, sanitizeLighting } from '../engine/sanitize';
 import { sheet } from '../engine/sheet';
-import type { ActionOpts, Build, Lighting, Removed } from '../engine/types';
-import { KEYS, saveSettings, write } from './persist';
+import type { ActionOpts, Build, Lighting, Profile, Removed } from '../engine/types';
+import { KEYS, newId, saveProfiles, saveSettings, write } from './persist';
 import { store, type Notice, type State } from './store';
 
 let noticeId = 0;
+let liveBase: Build | null = null;
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 
 /** The current build as a share code, written after every change, debounced. */
@@ -57,9 +58,12 @@ export function commit(next: Build, removed: Removed[] = [], o: CommitOpts = {})
     instant: o.instant ?? false,
     cascade: removed.length ? { removed, at: Date.now() } : s.cascade,
   };
-  if (o.history !== false) {
-    patch.history = [...s.history, s.build].slice(-K.maxHistory);
+  // A drag shows live changes without history; its one entry, pushed on release, holds the build from before the drag.
+  if (o.history === false) liveBase ??= s.build;
+  else {
+    patch.history = [...s.history, liveBase ?? s.build].slice(-K.maxHistory);
     patch.future = [];
+    liveBase = null;
   }
   if (s.power && !sheet(next).canPowerOn) patch.power = false;
   if (s.selected && !stillInstalled(next, s.selected.category, s.selected.opts)) patch.selected = null;
@@ -183,13 +187,84 @@ export function setGlass(glass: boolean) {
 
 export function setLighting(patch: Partial<Lighting>, history = true) {
   const s = store.getState();
-  const next = revalidate({ ...s.build, lighting: sanitizeLighting({ ...s.build.lighting, ...patch }) }).build;
-  commit(next, [], { history, instant: true });
+  const lighting = sanitizeLighting({ ...s.build.lighting, ...patch });
+  const same = JSON.stringify(lighting) === JSON.stringify(s.build.lighting);
+  if (same && (!history || !liveBase)) return;
+  if (same && liveBase && JSON.stringify(liveBase.lighting) === JSON.stringify(lighting)) { liveBase = null; return; }
+  commit(revalidate({ ...s.build, lighting }).build, [], { history, instant: true });
 }
 
 export function applyLightingPreset(id: string) {
   const s = store.getState();
   commit({ ...s.build, lighting: lightingFromPreset(id) }, [], { instant: true, announce: 'Lighting preset applied.' });
+}
+
+const profileOf = (p: Profile): Profile => ({ effect: p.effect, speed: p.speed, brightness: p.brightness, direction: p.direction, stops: [...p.stops] });
+
+/** The profile the lighting panel edits: the main one, or the target's own. A target that follows the main profile shows it. */
+export function scopeProfile(l: Lighting, target: LightTarget | null): Profile | 'off' {
+  if (!target) return l;
+  const o = l.overrides[target];
+  return o ?? l;
+}
+
+/**
+ * Edits the profile in scope. Editing a target that follows the main profile gives it its own, started from the main one,
+ * as RGB software unlinks a device the moment you change it.
+ */
+export function setScopeLighting(target: LightTarget | null, patch: Partial<Profile>, history = true) {
+  if (!target) { setLighting(patch, history); return; }
+  const l = store.getState().build.lighting;
+  const o = l.overrides[target];
+  const base = o && o !== 'off' ? o : l;
+  setLighting({ overrides: { ...l.overrides, [target]: { ...profileOf(base), ...patch } } }, history);
+}
+
+export function setTargetMode(target: LightTarget, mode: 'synced' | 'own' | 'off') {
+  const l = store.getState().build.lighting;
+  const cur = l.overrides[target];
+  const overrides = { ...l.overrides };
+  if (mode === 'synced') delete overrides[target];
+  else if (mode === 'off') overrides[target] = 'off';
+  else overrides[target] = cur && cur !== 'off' ? cur : profileOf(l);
+  if (mode === (cur === undefined ? 'synced' : cur === 'off' ? 'off' : 'own')) return;
+  setLighting({ overrides });
+  say(`${LABELS.lightTarget[target]} ${mode === 'synced' ? 'follows the main profile' : mode === 'off' ? 'is off' : 'has its own profile'}.`);
+}
+
+/** A catalog preset or a saved profile, applied to the profile in scope. */
+export function applyProfileTo(target: LightTarget | null, p: Profile, name: string) {
+  if (!target) {
+    const s = store.getState();
+    commit({ ...s.build, lighting: sanitizeLighting({ ...profileOf(p), overrides: s.build.lighting.overrides }) }, [], { instant: true, announce: `${name} applied.` });
+    return;
+  }
+  setScopeLighting(target, profileOf(p));
+  say(`${name} applied to ${LABELS.lightTarget[target]}.`);
+}
+
+const RECENT_COLORS = 8;
+export function pushRecentColor(hex: string) {
+  const list = store.getState().recentColors;
+  store.setState({ recentColors: [hex, ...list.filter((c) => c !== hex)].slice(0, RECENT_COLORS) });
+}
+
+export function saveProfile(name: string, p: Profile): boolean {
+  const s = store.getState();
+  if (s.profiles.length >= K.maxSavedProfiles) return false;
+  const clean = name.replace(/\s+/g, ' ').trim().slice(0, K.maxBuildNameLength) || `Profile ${s.profiles.length + 1}`;
+  const profiles = [...s.profiles, { ...profileOf(p), id: newId(), name: clean }];
+  store.setState({ profiles, announce: `Profile ${clean} saved.` });
+  saveProfiles(profiles);
+  return true;
+}
+
+export function deleteProfile(id: string) {
+  const s = store.getState();
+  const gone = s.profiles.find((p) => p.id === id);
+  const profiles = s.profiles.filter((p) => p.id !== id);
+  store.setState({ profiles, announce: gone ? `Profile ${gone.name} deleted.` : s.announce });
+  saveProfiles(profiles);
 }
 
 /** Loading a preset, a saved build or a link is one history entry like any other action. */
@@ -212,6 +287,7 @@ export function undo() {
   const s = store.getState();
   const prev = s.history[s.history.length - 1];
   if (!prev) return;
+  liveBase = null;
   store.setState({ build: prev, history: s.history.slice(0, -1), future: [s.build, ...s.future].slice(0, K.maxHistory), instant: false, notice: s.notice?.action === 'undo' ? null : s.notice, announce: 'Undone.', selected: null, power: s.power && sheet(prev).canPowerOn });
   scheduleAutosave();
 }
@@ -220,6 +296,7 @@ export function redo() {
   const s = store.getState();
   const next = s.future[0];
   if (!next) return;
+  liveBase = null;
   store.setState({ build: next, future: s.future.slice(1), history: [...s.history, s.build].slice(-K.maxHistory), instant: false, announce: 'Redone.', selected: null, power: s.power && sheet(next).canPowerOn });
   scheduleAutosave();
 }

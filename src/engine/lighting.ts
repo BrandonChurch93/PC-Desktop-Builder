@@ -14,6 +14,9 @@ export type Led = {
   tempC: number;
 };
 
+/** Effects whose time term direction flips. The others look the same either way, so the panel hides Direction for them. */
+export const USES_DIRECTION: ReadonlySet<string> = new Set(['wave', 'comet']);
+
 const fract = (x: number) => x - Math.floor(x);
 const clamp01 = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : Number.isFinite(x) ? x : 0);
 const smooth = (k: number) => k * k * (3 - 2 * k);

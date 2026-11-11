@@ -1,10 +1,10 @@
 import gsap from 'gsap';
-import type { Category } from './data/catalog';
+import type { Category, LightTarget } from './data/catalog';
 import { getPreset } from './data/catalog';
 import { decode, encode } from './engine/codec';
 import { buildFromPreset, emptyBuild, remove, revalidate, setFinish } from './engine/rules';
 import * as A from './state/actions';
-import type { ActionOpts, Build, Lighting } from './engine/types';
+import type { ActionOpts, Build, Lighting, Profile } from './engine/types';
 import { sheet } from './engine/sheet';
 import { store, type DialogName, type Mode, type Quality } from './state/store';
 import { socketsFor } from './engine/queries';
@@ -58,7 +58,7 @@ export function installHook(world: World) {
       store.setState(next);
       await world.settle();
     },
-    async act(action: { type: string; patch?: Record<string, unknown>; id?: string; category?: string; opts?: ActionOpts; finish?: string; name?: string }, o: { instant?: boolean } = {}) {
+    async act(action: { type: string; patch?: Record<string, unknown>; id?: string; category?: string; opts?: ActionOpts; finish?: string; name?: string; target?: LightTarget | null; mode?: 'synced' | 'own' | 'off'; colors?: string[] }, o: { instant?: boolean } = {}) {
       const instant = o.instant !== false;
       const c = action.category as Category | undefined;
       switch (action.type) {
@@ -73,6 +73,10 @@ export function installHook(world: World) {
         case 'finish': if (action.finish) A.setCaseFinish(action.finish, instant); break;
         case 'lighting': if (action.patch) A.setLighting(action.patch as Partial<Lighting>); break;
         case 'lightingPreset': if (action.id) A.applyLightingPreset(action.id); break;
+        case 'targetMode': if (action.target && action.mode) A.setTargetMode(action.target, action.mode); break;
+        case 'scopeLighting': if (action.patch) A.setScopeLighting(action.target ?? null, action.patch as Partial<Profile>); break;
+        /** Colors picked in the color picker this session, oldest first, as the Recent row shows them. */
+        case 'recentColors': for (const c of action.colors ?? []) A.pushRecentColor(c); break;
         case 'fillFans': if (action.id) A.fillFanMounts(action.id, instant); break;
         case 'clearFans': A.clearCaseFans(instant); break;
         case 'name': A.setName(action.name ?? ''); break;
@@ -94,6 +98,8 @@ export function installHook(world: World) {
       else if (name === 'parts' || name === 'specs') store.setState({ ui: { ...ui, sheetTab: name } });
       else if (name === 'lighting-tab') store.setState({ ui: { ...ui, sheetTab: 'lighting' } });
       else if (name.startsWith('tab-')) store.setState({ ui: { ...ui, tab: name.slice(4) as Category } });
+      else if (name.startsWith('target-')) store.setState({ ui: { ...ui, lightTarget: name.slice(7) as LightTarget, stop: null } });
+      else if (name.startsWith('stop-')) store.setState({ ui: { ...ui, stop: Number(name.slice(5)) } });
       else if (name === 'none') store.setState({ ui: { ...ui, dialog: null, menu: false, overlay: null, side: null }, inspect: null, held: null });
       else throw new Error(`no surface ${name}`);
       await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
@@ -117,6 +123,14 @@ export function installHook(world: World) {
      * with that part taken out.
      */
     async scrub(sequence: string, progress: number) {
+      if (sequence === 'power-on') {
+        const base = revalidate(buildFromPreset(getPreset('night-rig')!)).build;
+        store.setState({ build: base, power: true, instant: true, inspect: null, held: null, selected: null });
+        await world.settle();
+        world.scrubPower(progress);
+        await world.renderNow(2);
+        return;
+      }
       const inst = INSTALLS[sequence];
       if (!inst) throw new Error(`no sequence ${sequence}`);
       const base = revalidate(buildFromPreset(getPreset('night-rig')!)).build;

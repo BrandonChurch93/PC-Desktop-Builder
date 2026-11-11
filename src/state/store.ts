@@ -1,5 +1,5 @@
 import { createStore } from 'zustand/vanilla';
-import type { Category } from '../data/catalog';
+import type { Category, LightTarget } from '../data/catalog';
 import { emptyBuild } from '../engine/rules';
 import type { Build, Removed } from '../engine/types';
 import { DEFAULT_SETTINGS, type SavedBuild, type SavedProfile, type Settings } from './persist';
@@ -39,8 +39,10 @@ export type Ui = {
   shared: string | null;
   /** the installed part being swapped: the next card of its category replaces it */
   swap: { category: Category; opts: { index?: number; type?: string; mount?: string } } | null;
-  /** the lighting target the Lighting entry of the selection menu opened */
-  lightTarget: string | null;
+  /** the lighting target the panel edits, or null for the main profile */
+  lightTarget: LightTarget | null;
+  /** the gradient stop open in the color picker, or null */
+  stop: number | null;
 };
 
 export type State = {
@@ -69,13 +71,15 @@ export type State = {
   settings: Settings;
   saved: SavedBuild[];
   profiles: SavedProfile[];
+  /** colors picked in this session, newest first, for the color picker */
+  recentColors: string[];
   /** a drag over a blocked place: the reason beside the pointer */
   reason: { text: string; x: number; y: number } | null;
   /** the part the camera is focused on, by its part key */
   focus: string | null;
 };
 
-export const DEFAULT_UI: Ui = { tab: 'case', side: null, sheet: 'peek', sheetTab: 'parts', dialog: null, menu: false, overlay: null, shared: null, swap: null, lightTarget: null };
+export const DEFAULT_UI: Ui = { tab: 'case', side: null, sheet: 'peek', sheetTab: 'parts', dialog: null, menu: false, overlay: null, shared: null, swap: null, lightTarget: null, stop: null };
 
 export const store = createStore<State>(() => ({
   build: emptyBuild(),
@@ -100,6 +104,7 @@ export const store = createStore<State>(() => ({
   settings: DEFAULT_SETTINGS,
   saved: [],
   profiles: [],
+  recentColors: [],
   reason: null,
   focus: null,
 }));

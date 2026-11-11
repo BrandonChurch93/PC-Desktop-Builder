@@ -1,4 +1,4 @@
-PHASE 10 IN PROGRESS · step 1
+BUILD COMPLETE
 
 <!-- Builder: this file is your memory. Read it first in every session and after every compaction. Keep it current. Replace the first line as you go: "PHASE N IN PROGRESS · step k", "BLOCKED: ...", and at the very end "BUILD COMPLETE" with nothing else on that line. -->
 
@@ -6,11 +6,11 @@ PHASE 10 IN PROGRESS · step 1
 
 ## Where things stand
 
-- Current phase: 10 · Final pass
-- Current step: 1
+- Current phase: done
+- Current step: none
 - Phase 8 plan (survey done): already built in Phase 5: Saved builds dialog (save, rename, load, delete, replace oldest), Share dialog, link landing in boot.ts (banner, dropped parts, bad and newer links), Settings, About, start overlay, still intro, InspectorBar. To build: (1) world/motion/explode.ts: parts out along their insertion axis (board family +z stacked, radiator and fans outward, supply and drives back out of their bays), glass out, cables and tubes faded, lamps rebuilt at the end, an `exploded` camera view, DOM labels with leader lines (ui/ExplodedLabels.tsx), hook scrub explode; world/tour.ts: Showcase loop (arc, push to card, rise past cooler, pass along fans), any input takes over, resumes after 8 s idle, never while frozen or reduced motion, excluded from settle(). (2) Inspector orbit and zoom by pointer, specs list, re-render thumbs. (3) intro sequence in the world (dark room, name, power on, camera push), hook scrub intro. (4) hook link(code). (5) poster dialog and export (2400 × 3000, 3840 × 2160, halved when too large). (6) README.md, check vercel.json. Then shots: mode, motion (explode, intro), ui-desktop 20, ui-tablet 10, ui-phone 13; e2e: preset links, bad and newer links, poster sizes, saved builds.
-- Next action: re-read kit/07-QUALITY-BAR.md, kit/09-QA-GAUNTLET.md and all of PROGRESS from disk, then Phase 10 steps in kit/08-BUILD-ORDER.md (one retake judged by me, critics only for the six rig/<preset>-hero shots; the full QA gauntlet; Handoff; BUILD COMPLETE). Do not end the turn with a status report: updates go here.
-- Last commit: phase 9: gate 9
+- Next action: none. The build is complete; follow up tasks come from the Partner.
+- Last commit: BUILD COMPLETE
 
 ## Phases
 
@@ -26,7 +26,7 @@ PHASE 10 IN PROGRESS · step 1
 | 7 | Light and life | done | see Gate 7 evidence below | phase 7: gate 7 |
 | 8 | Modes and keeping | done | see Gate 8 evidence below | phase 8: gate 8 |
 | 9 | Tiers, performance, access, hardening | done | see Gate 9 evidence below | phase 9: gate 9 |
-| 10 | Final pass | not started | | |
+| 10 | Final pass | done | see Gate 10 evidence below | BUILD COMPLETE |
 
 ### Gate 0 evidence
 
@@ -121,6 +121,12 @@ PHASE 10 IN PROGRESS · step 1
 - `npm run e2e:smoke` equivalent run (`npx playwright test --project=webkit --project=firefox --grep @smoke` on the current build): 4 passed, WebKit and Firefox (the app loads; C18: loads, shows the Pocket with the fixture's code, installs the Mini by tap, no errors).
 - Keyboard only and reduced motion: C1 (build-flow.spec.ts keyboard only Night Rig, share code equals the fixture) and C17 (hardening.spec.ts: an install crossfades in place with every sampled pose at home, the intro is its end frame at once, Showcase leaves the camera still), G1 (Tab walk reaches the bar, panels, tray tabs and cards, every stop shows a 2 px ring), G2 (Share dialog traps Tab and Shift Tab, Escape closes and focus returns to Share). C19 and context loss pass. `npx playwright test --project=chromium`: 40 passed.
 - Faults found in this phase: the automatic tier did not exist and the tier was always High; the texture scale of Medium and Low never applied, because materials read textures() with its default scale 1 and rebuilt the full set (the scale is now set once per tier and every reader shares it); the Menu dropped behind the spec panel, so Settings could not be clicked (the top bar now stacks above the panels); no WebGL 2 meant an exception from three (now a plain message with a still of the Night Rig); a lost context had no handling (the build is saved, a message offers Reload, and a restored context reloads by itself).
+
+### Gate 10 evidence
+
+- Every item in kit/09-QA-GAUNTLET.md is recorded under QA results: all PASS, except the items addendum 01 drops (A5, B1, B8, D5, G5), section P logged only, and E8 overridden by Brandon's instruction to push to GitHub.
+- `npm run check:shots`, run after the last change to any source file (the board thumbnails) and again after `rm -rf dist && npm ci && npm run build`: `shots defined: 358 of 358 · passed: 358 · contact sheets passed: 12 · problems: 0`.
+- Phase 10 judging under addendum 01: one full retake (shots/peek/g10-a.log, 81 changed, all opened and passed), critic 278 on the six rig heroes (all failed; five fixed and the claims checked, see Decisions), three more full retakes after the fixes (g10-b, g10-c, g10-d), every changed image opened and passed on my verdict, contact sheets rebuilt and passed.
 
 ## Environment
 
@@ -280,7 +286,7 @@ What the floor looks like, its weak points, and how each was beaten.
 
 Per shot verdicts live in `kit/VERDICTS.jsonl`, not here. At each gate write one line per `check:shots` command you ran: the command, and the line it printed.
 
-- Critics run so far (the highest number in `kit/critics/`): 253
+- Critics run so far (the highest number in `kit/critics/`): 278
 - Weak shots, if any (name, and why): none
 - Research and rebuild notes for shots that failed four rounds (shot, what you learned, what you rebuilt):
   - part/ram-mono16 and mono32 front and back (failed in critics 134/137, 138, 141, 142, 143: flat uniform face read as plastic, then facets read as a copy of Facet, then no contact shade on the dark disc). Learned (web search 2026-11-09: Crucial DDR5 Pro low profile spreader is machined aluminum in matte black; XPG Lancer and G.Skill Trident Z5 are black with a brushed aluminum finish): plain spreaders read as metal through brushing and machined edges, not through relief. Rebuilt: brushed satin black anodizing (aluSatinBlack, anisotropic brushing), a raised machined border round a flat field whose edges catch the light, no facets, the family notch kept, marks inside the field; the Inspector gives unlit memory the rim and sheen softboxes like cards (they light the disc around it), and a black kit's contact shade spreads 30 mm wide.
@@ -300,7 +306,65 @@ None. This build uses no paid service and no API.
 
 ## QA results
 
-One line per item in kit/09-QA-GAUNTLET.md: `id · PASS · evidence`.
+One line per item in kit/09-QA-GAUNTLET.md: `id · PASS · evidence`. All runs on the final build after `rm -rf dist && npm ci`.
+
+- A1 · PASS · tests/unit/starter.test.ts "keeps the app catalog identical to the kit catalog"
+- A2 · PASS · engine.fixtures.test.ts, presets: revalidate, sheet, temps, code, taken mounts, clearance
+- A3 · PASS · engine.fixtures.test.ts, checks
+- A4 · PASS · engine.fixtures.test.ts, decodes
+- A5 · dropped by addendum 01 (engine.properties.test.ts still runs and passes)
+- A6 · PASS · lighting.test.ts, all eight effects
+- A7 · PASS · messages.test.ts "every blocked code in every listed variant gives its exact sentence"
+- A8 · PASS · engine.imports.test.ts
+- A9 · PASS · tier.test.ts, 6 tests
+- B1 · dropped by addendum 01
+- B2 to B7, B9 · PASS · layout.test.ts (41 tests, every case)
+- B8 · dropped by addendum 01
+- C1 · PASS · build-flow.spec.ts "keyboard only: the Night Rig from an empty bench, part by part, matches the fixture"
+- C2 · PASS · hands-all.spec.ts, every category by mouse drag
+- C3 · PASS · hands.spec.ts touch long press and drag, short swipe; build-flow phone taps
+- C4 · PASS · gauntlet.spec.ts, GPU_LENGTH, COOLER_HEIGHT, RAM_CLEARANCE, PSU_FORM, BOARD_SIZE (sentences built from the kit)
+- C5 · PASS · gauntlet.spec.ts "a case swap removes parts with the notice, Undo restores it exactly and Redo applies it again"; build-flow.spec.ts lines from the fixture
+- C6 · PASS · gauntlet.spec.ts menu, drag out, Delete, sheet Remove
+- C7 · PASS · build-flow.spec.ts reload and storage blocked
+- C8 · PASS · keeping.spec.ts, six presets in fresh contexts
+- C9 · PASS · keeping.spec.ts bad and newer links; gauntlet.spec.ts unknown parts
+- C10 · PASS · keeping.spec.ts saved builds with the limit
+- C11 · PASS · lighting.spec.ts, two tests
+- C12 · PASS · lighting.spec.ts, two tests
+- C13 · PASS · gauntlet.spec.ts, interface and shortcuts
+- C14 · PASS · keeping.spec.ts, 2400 × 3000 and 3840 × 2160 PNG
+- C15 · PASS · gauntlet.spec.ts fans
+- C16 · PASS · gauntlet.spec.ts storage steppers
+- C17 · PASS · hardening.spec.ts reduced motion
+- C18 · PASS · `npx playwright test --project=webkit --project=firefox --grep @smoke`: 4 passed
+- C19 · PASS · hardening.spec.ts no WebGL 2
+- C20 · PASS · build-flow.spec.ts taps, two tests
+- C21 · PASS · hands-all.spec.ts focus, Escape, reset, caps
+- C22 · PASS · hardening.spec.ts forced tiers across reloads
+- C23 · PASS · hands-all.spec.ts remove and swap motion, reduced motion
+- D1 · PASS · `npm run check:shots`: shots defined: 358 of 358
+- D2 · PASS · `npm run check:shots`: `shots defined: 358 of 358 · passed: 358 · contact sheets passed: 12 · problems: 0` (weak 0; addendum 01 rules)
+- D3 · PASS · generators.test.ts thumbnails for every part and finish; ui-desktop/03-build passes
+- D4 · PASS · `npm run check:shots -- rig/night-rig macro/night-rig`: passed 13, problems 0
+- D5 · dropped by addendum 01
+- E1, E2, E6, E7 · PASS · `npm run check:copy`: files scanned: 145 · problems: 0
+- E3 · PASS · check:copy (93 maker names) and `npm run check:shots -- contact`: contact sheets passed: 12, problems 0
+- E4 · PASS · gauntlet.spec.ts, every request on the app's origin
+- E5 · PASS · every e2e test fails on errors; gauntlet.spec.ts collects warnings over a full flow and finds none (three's toNonIndexed warning was the app calling it on already flat geometry, fixed)
+- E8 · overridden by Brandon: he asked during the build for every commit to be pushed to github.com/BrandonChurch93/PC-Desktop-Builder, so the remote origin exists and the branch is pushed. Nothing deployed or published.
+- P1 to P7 · logged only (addendum 01), see Gate 9 evidence
+- G1 · PASS · hardening.spec.ts Tab walk
+- G2 · PASS · hardening.spec.ts dialog focus
+- G3 · PASS · gauntlet.spec.ts live region sentence
+- G4 · PASS · contrast.test.ts, 15 pairs
+- G5 · dropped by addendum 01
+- G6 · PASS · gauntlet.spec.ts canvas label and full sheet Remove buttons
+- H1 · PASS · `rm -rf dist`, `npm ci`, `npm run typecheck` clean, `npx vitest run` 12 files 300 passed, `npm run build` built, `npx playwright test --project=chromium` 56 passed, smoke 4 passed, `npm run check:copy` 0 problems, `npm run check:shots` 0 problems
+- H2 · PASS · README.md covers running, testing, the kit, the Partner and Vercel
+- H3 · PASS · `git log --oneline` has commits for phases 0 to 10
+- H4 · PASS · this file: phase table, environment, decisions, group results, QA results, Handoff
+- H5 · PASS · Feature coverage below, every F01 to F38 has a test or a shot
 
 ## Feature coverage
 
@@ -452,7 +516,7 @@ Written in Phase 10: what was built, every weak shot by name and path, what else
 
 **What was built.** The whole product in the kit: six cases in twelve finishes and forty three parts, each generated in code with real geometry and materials; the rules engine reproducing every fixture; drag, tap and keyboard install with sockets and per category choreography; the spec sheet; per LED lighting with eight effects, gradient editor, color picker, per target overrides and off, nine presets and saved profiles; power sequences, load readout and simulated temperatures; airflow; Showcase with a camera tour; the exploded view with labels; the Inspector with a turntable; saved builds, share links and poster export; desktop, tablet and phone layouts; three quality tiers with an automatic choice; reduced motion, keyboard and screen reader paths; a WebGL 2 fallback and context loss handling. Every decision is under "Decisions made by the Builder".
 
-**Weak shots.** None. kit/WEAK-SHOTS.json is unused under addendum 01. Under addendum 01 most 3D shots had one critic round and then passed on my own verdict; every critic failure was fixed in the product (see the notes per gate).
+**Weak shots.** None. Critics run: 001 to 278. kit/WEAK-SHOTS.json is unused under addendum 01. Under addendum 01 most 3D shots had one critic round and then passed on my own verdict; every critic failure was fixed in the product (see the notes per gate).
 
 **What I know is weaker than the rest.**
 - Draw calls are over the budgets in kit/04-WORLD.md (High scene pass 733 against 400, Low 526 against 220) and the High median frame time is 22.4 ms against a 20 ms target on this machine; Medium and Low hold 60 Hz here. A real phone has not been measured. The way down is merging static parts at rest into shared batches and splitting them again when one moves; it was not done.
@@ -460,6 +524,6 @@ Written in Phase 10: what was built, every weak shot by name and path, what else
 - The intro, the tour and the exploded camera are tuned for the six presets at 16:10; very wide or very tall windows frame the exploded labels tighter.
 - Pushing to GitHub: Brandon authorized it during the build, so the repository has the remote origin and every commit is pushed. Gauntlet item E8 (no remote, nothing pushed) is therefore recorded as overridden by his instruction, not as passed.
 
-**Measured numbers.** See Gate 9 evidence: P1 22.4 / 25.3 ms, P2 16.6 ms, P3 16.6 ms (display capped), P4 0 frames idle, P5 733 calls and 2.16 M triangles High, 526 and 1.22 M Low, P6 575 kB gzipped JavaScript and 1.79 MB thumbnails, P7 1219 ms first frame. Tests: see QA results.
+**Measured numbers.** See Gate 9 evidence: P1 22.4 / 25.3 ms, P2 16.6 ms, P3 16.6 ms (display capped), P4 0 frames idle, P5 733 calls and 2.16 M triangles High, 526 and 1.22 M Low, P6 575 kB gzipped JavaScript and 1.79 MB thumbnails, P7 1219 ms first frame. Tests: 300 unit, 56 Chromium end to end, 4 WebKit and Firefox smoke.
 
 **Look at first.** The six rig/<preset>-hero shots and the macro shots, the exploded views (mode/exploded-*), the posters (Export poster in the menu), and the phone layout (ui-phone/*). Then try a drag on a phone and the Showcase tour on a desktop.

@@ -10,7 +10,10 @@
 //
 // Names chosen for __pcb.open(name): sheet, share, saved, settings, about, poster (dialogs); menu; intro, start (overlays);
 //   lighting, spec (the tablet side sheets); peek, half, full (the phone sheet stops); parts, specs, lighting-tab (the
-//   phone sheet tabs); tab-<category> (the tray tab); none (closes all of them).
+//   phone sheet tabs); tab-<category> (the tray tab); target-<light target> (the lighting panel edits that target);
+//   stop-<index> (the gradient stop open in the color picker); none (closes all of them).
+//   act types added in Phase 7: targetMode { target, mode }, scopeLighting { target, patch }, recentColors { colors }.
+//   scrub('power-on', p) runs the power on sequence on the Night Rig from the dark.
 //
 // Extra hook options used here: inspect(category, id, angle, { zoom, size, finish, ui, flip, focus }),
 //   flip shows the underside, focus aims a close view at a point given as fractions of the part's bounds.
@@ -89,6 +92,23 @@ for (const e of catalog.lighting.effects) {
   SHOTS[`light/effect-${e.id}`] = { steps: [['load', 'night-rig'], ['mode', 'showcase'], ['set', { ui: false, glass: true, power: true, load: 0 }], ['act', { type: 'lighting', patch: { effect: e.id } }, { instant: true }], ['cam', 'hero'], FREEZE] };
 }
 
+const litNight = [['load', 'night-rig'], ['mode', 'showcase'], ['set', { ui: false, glass: true, power: true, load: 0 }]];
+for (const p of catalog.lighting.presets) {
+  SHOTS[`light/preset-${p.id}`] = { steps: [...litNight, ['act', { type: 'lightingPreset', id: p.id }], ['cam', 'hero'], FREEZE] };
+}
+// The graphics target off and memory on its own profile: a steady amber against the synced Aurora wave.
+const memoryOwn = ['act', { type: 'scopeLighting', target: 'ram', patch: { effect: 'static', stops: ['#ff9a1f', '#ff3b1f'] } }];
+SHOTS['light/override'] = { steps: [...litNight, memoryOwn, ['act', { type: 'targetMode', target: 'gpu', mode: 'off' }], ['cam', 'hero'], FREEZE] };
+
+// Airflow at a working load, so the streams run from cool intake air to warmer exhaust.
+for (const id of ['night-rig', 'windbreak']) {
+  SHOTS[`mode/airflow-${id}`] = { steps: [['load', id], ['mode', 'showcase'], ['set', { ui: false, glass: true, power: true, load: 0.6, airflow: true }], ['cam', 'hero'], FREEZE] };
+}
+
+for (const p of [0, 25, 50, 75, 100]) {
+  SHOTS[`motion/power-on-${String(p).padStart(3, '0')}`] = { steps: [['mode', 'showcase'], ['set', { ui: false }], ['scrub', 'power-on', p / 100], ['cam', 'hero'], FREEZE] };
+}
+
 // Install sequences scrubbed to five points, each from a view wide enough for the travel and close enough for the fastening.
 const MOTION_VIEW = { 'install-gpu': 'gpu-wide', 'install-ram': 'ram-wide', 'install-cooler': 'gpu-wide', 'install-nvme': 'nvme-wide', 'install-cpu': 'cpu-wide', 'install-fan': 'rear-fan-wide', 'install-psu': 'psu-wide' };
 for (const [seq, view] of Object.entries(MOTION_VIEW)) for (const p of [0, 25, 50, 75, 100]) {
@@ -115,6 +135,11 @@ SHOTS['ui-desktop/05-select'] = { steps: [['load', 'night-rig'], ['set', { ui: t
 SHOTS['ui-desktop/03-build'] = { steps: ui(inProgress) };
 SHOTS['ui-desktop/06-cascade'] = { steps: ui([['open', 'tab-case'], ['act', { type: 'install', category: 'case', id: 'cub' }]]) };
 SHOTS['ui-desktop/08-spec-sheet'] = { steps: ui([...warned, ['open', 'sheet']]) };
+// Memory on its own profile, its first color open in the picker after a few picks this session.
+const lightingOpen = [['set', { power: true, load: 0 }], ['act', { type: 'recentColors', colors: ['#18e0ff', '#7dff3b', '#ff3b1f', '#ff9a1f'] }], memoryOwn, ['open', 'target-ram'], ['open', 'stop-0']];
+SHOTS['ui-desktop/09-lighting'] = { steps: ui(lightingOpen) };
+SHOTS['ui-desktop/10-power'] = { steps: ui([['set', { power: true, load: 0.62 }]]) };
+SHOTS['ui-desktop/11-airflow'] = { steps: ui([['set', { power: true, load: 0.62, airflow: true }]]) };
 for (const [o, width, height] of [['landscape', 1180, 820], ['portrait', 820, 1180]]) {
   SHOTS[`ui-tablet/${o}-build`] = { width, height, touch: true, steps: ui(inProgress) };
   SHOTS[`ui-tablet/${o}-spec-sheet`] = { width, height, touch: true, steps: ui([...warned, ['open', 'sheet']]) };
@@ -126,6 +151,7 @@ SHOTS['ui-phone/peek'] = { ...phone, steps: ui([['open', 'peek'], ['open', 'tab-
 SHOTS['ui-phone/half'] = { ...phone, steps: ui([['open', 'half'], ['open', 'parts'], ['open', 'tab-ram']]) };
 SHOTS['ui-phone/full'] = { ...phone, steps: ui([['open', 'full'], ['open', 'parts'], ['open', 'tab-case']]) };
 SHOTS['ui-phone/specs'] = { ...phone, steps: ui([['open', 'half'], ['open', 'specs']]) };
+SHOTS['ui-phone/lighting'] = { ...phone, steps: ui([['set', { power: true, load: 0 }], ['open', 'half'], ['open', 'lighting-tab']]) };
 SHOTS['ui-phone/drag'] = { ...phone, steps: held([['act', { type: 'remove', category: 'gpu' }], ['open', 'tab-gpu']], ['gpu', 'apex2x', 0]) };
 
 export { SHOTS };

@@ -45,6 +45,14 @@ function poolTexture(): THREE.Texture {
  * Push the average away from its grey by the same factor the mix lost, then normalize to its peak.
  */
 const CHROMA = 1.6;
+
+/**
+ * The room's share of the rig's light. A dim frame (a comet's trail, the low point of a breath) still tints the wall and the
+ * desk the way the eye sees it, instead of vanishing under the backdrop; at a bright synced effect's level it is linear.
+ */
+const WASH_FULL = 0.85;
+const WASH_CURVE = 0.3;
+const roomShare = (peak: number) => (peak >= WASH_FULL ? peak : WASH_FULL * (Math.max(0, peak) / WASH_FULL) ** WASH_CURVE);
 function saturate(r: number, g: number, b: number, out: THREE.Color) {
   const grey = (r + g + b) / 3;
   const rr = Math.max(0, grey + (r - grey) * CHROMA); const gg = Math.max(0, grey + (g - grey) * CHROMA); const bb = Math.max(0, grey + (b - grey) * CHROMA);
@@ -255,13 +263,13 @@ export class RgbEngine {
     }
     const peak = Math.max(this.average.r, this.average.g, this.average.b, 1e-5);
     saturate(this.average.r, this.average.g, this.average.b, this.wall.color);
-    this.wall.intensity = this.wallWash ? 14 * this.lampGain * peak : 0;
+    this.wall.intensity = this.wallWash ? 14 * this.lampGain * roomShare(peak) : 0;
     for (const p of this.pools) {
       let r = 0; let g = 0; let b = 0;
       for (const { zone, w } of p.weights) { r += zone.avg.r * w; g += zone.avg.g * w; b += zone.avg.b * w; }
       const m = p.mesh.material as THREE.MeshBasicMaterial;
       saturate(r, g, b, m.color);
-      m.color.multiplyScalar(Math.max(r, g, b) * POOL_GAIN * Math.sqrt(p.share));
+      m.color.multiplyScalar(roomShare(Math.max(r, g, b)) * POOL_GAIN * Math.sqrt(p.share));
     }
     for (const p of this.patches) {
       const a = p.zone.avg; const m = p.mesh.material as THREE.MeshBasicMaterial;

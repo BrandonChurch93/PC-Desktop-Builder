@@ -1,4 +1,4 @@
-PHASE 7 IN PROGRESS · step 1
+PHASE 8 IN PROGRESS · step 1
 
 <!-- Builder: this file is your memory. Read it first in every session and after every compaction. Keep it current. Replace the first line as you go: "PHASE N IN PROGRESS · step k", "BLOCKED: ...", and at the very end "BUILD COMPLETE" with nothing else on that line. -->
 
@@ -6,11 +6,10 @@ PHASE 7 IN PROGRESS · step 1
 
 ## Where things stand
 
-- Current phase: 7 · Light and life
-- Current step: 6 (steps 1 to 5 and 7 built, not yet through shots and tests)
-- Done so far: full Lighting panel (scope bar, effects, gradient editor, color picker, speed, brightness, direction, presets, saved profiles, targets), power sequences (world/motion/power.ts, supply LED, scrub power-on), load readout (ui/LoadReadout.tsx), airflow (world/airflow.ts), --rig-glow written by World.writeGlow, hook: open target-<t> and stop-<i>, act targetMode, scopeLighting, recentColors; zones() existed.
-- Next action: shot definitions for light/preset-*, light/override, mode/airflow-night-rig and -windbreak, motion/power-on-*, ui-desktop/09-lighting, 10-power, 11-airflow, ui-phone/lighting; take them, tune per preset lighting (step 6); e2e tests for Gate 7; retake rig bench finish macro cable. Do not end the turn with a status report: updates go here.
-- Last commit: phase 6: gate 6
+- Current phase: 8 · Modes and keeping
+- Current step: 1 (Showcase with the tour, Exploded with labels)
+- Next action: re-read Phase 8's Read first files from disk (01-PRODUCT "The experience, start to finish"; 05-DESIGN Fixed copy, The poster, Screens and states; 03-RULES Share links and Browser storage; 04-WORLD Modes in the scene and Camera), then steps 1 to 6 of kit/08-BUILD-ORDER.md. Do not end the turn with a status report: updates go here.
+- Last commit: phase 7: gate 7
 
 ## Phases
 
@@ -23,7 +22,7 @@ PHASE 7 IN PROGRESS · step 1
 | 4 | Cases and layouts | done | see Gate 4 evidence below | phase 4: gate 4 |
 | 5 | Interface and the build flow | done | see Gate 5 evidence below | phase 5: gate 5 |
 | 6 | Hands | done | see Gate 6 evidence below | phase 6: gate 6 |
-| 7 | Light and life | not started | | |
+| 7 | Light and life | done | see Gate 7 evidence below | phase 7: gate 7 |
 | 8 | Modes and keeping | not started | | |
 | 9 | Tiers, performance, access, hardening | not started | | |
 | 10 | Final pass | not started | | |
@@ -94,6 +93,14 @@ PHASE 7 IN PROGRESS · step 1
 - tests/e2e/hands.spec.ts and hands-all.spec.ts, Chromium, with real input: a card dragged with the mouse from the tray to its place installs; a card too long for the Pocket dragged over its place shows "Too long. This card is 322 mm and the case has 310 mm free." beside it and nothing installs; the selected card dragged out past the case's edge is removed. Raw touch through one CDP session on 390 x 844: a 350 ms press, a drag and a drop installs; a short swipe on the card row scrolls it and installs nothing. Every category (case, board, processor, cooler on the top mount, memory, card, storage, supply, a fan on the rear mount) installs by drag, by tap (then a tap on the place where there are several) and by Enter. C21: a double click focuses the card (camera focus gpu, closer), zoom stops at 0.12 m while focused, Escape and the Reset view control each return, free zoom stops at 0.2 m. C23: remove and swap in every category show poses between the start and the end (or a fade for the case's departure), the part is gone or in place at the end, and with reduced motion no pose moves. `npx playwright test --project=chromium`: 24 passed.
 - Shots, my verdicts under addendum rule 2: motion/install (35 frames, shots/peek/v-motion.txt), drag (5), ui-desktop/04-drag, ui-desktop/05-select, ui-tablet/landscape-drag, ui-tablet/portrait-drag, ui-phone/drag (shots/peek/v-gate6.txt).
 - Every group retaken on the final Phase 6 build (shots/peek/gate6-retake.log): 284 same, 3 changed (drag/valid, drag/radiator-mounts, ui-desktop/03-build), each opened and passed on my verdict (shots/peek/v-gate6b.txt). `npm run check:shots -- motion/install drag ui-desktop/04 ui-desktop/05 ui-tablet/landscape-drag ui-tablet/portrait-drag ui-phone/drag`: passed 45, problems 0. `npm run check:shots -- rig bench finish macro part cable`: passed 229, problems 0. `npx vitest run`: 276 passed. Typecheck clean. check:copy 0 problems (127 files).
+
+### Gate 7 evidence
+
+- Shots: `npm run check:shots -- light mode/airflow motion/power-on ui-desktop/09 ui-desktop/10-power ui-desktop/11 ui-phone/lighting`: `shots defined: 316 of 358 · passed: 29 · contact sheets passed: 0 · problems: 0`. The phone lighting tab shot is ui-phone/lighting. Light presets and override had one critic round (critic 277: 5 pass, 5 fail, all five fixed and passed on my verdict under addendum rule 1); the effect shots had their critic round at Gate 2; mode, motion and ui shots are mine.
+- End to end, tests/e2e/lighting.spec.ts (Chromium, real clicks and keys): every lighting control (effect, direction, speed, brightness, add a color, a stop's hex through the picker, remove a color, a preset, a target's Own, its effect, its Off, Synced) changes the build and its share code and the exact lighting comes back after a reload. An override on memory changes only the memory zones in `__pcb.zones()`, every other zone's colors equal; Off on the card makes only the card zones zero.
+- End to end: Power is disabled with "Needs a processor, a cooler, memory and a power supply to power on." (built from labels.missing in the kit) on a case and board, and with the PSU_OVER message on the Night Rig with the Crest on a 650 W supply; on all six presets the Power control turns on, lights the zones (Windbreak ships Blackout, brightness 0, and stays dark by its data) and turns off to all zones zero.
+- Lighting changed under the rig shots: `npm run shots -- ... rig bench finish macro cable` retook them (shots/peek/g7-c.log: 57 of them changed, bench came back same), each changed image opened and passed on my verdict (shots/peek/v-gate7c.txt). `npm run check:shots -- rig bench finish macro cable`: `shots defined: 316 of 358 · passed: 76 · contact sheets passed: 0 · problems: 0`.
+- `npx playwright test --project=chromium`: 28 passed. `npx vitest run`: 279 passed. Typecheck clean. check:copy 0 problems (136 files).
 
 ## Environment
 
@@ -225,6 +232,7 @@ One line each: the question, what you chose, which step of the decision rule set
 - Power path order: supply LED, board, cooler, memory, card, then fans and case together (case lighting hangs off the case hub with the fans). Steps 0.22 s apart, each waking over 0.5 s, fans ramp 1.5 s; off: light falls over 1.1 s, fans coast 3 s. Exposure lifts with the share of light awake, not at the first frame.
 - Airflow: streams are cubic curves from a point on an intake fan's disk to a point on an exhaust's, leaving each fan along its axis. Where parts are in the way a stream bows toward the glass by the least amount that clears them (air over the face of the card); a stream that cannot clear inside the chamber is re-drawn. Air passes through fans, radiators and an air cooler's fins. With no fans on a side, the empty mounts on that side breathe faintly. Speed follows load and fan spin; color runs from intake air (tempMin hue) to the build's average simulated temperature through the Thermal hue map. Seeded, so frozen frames repeat.
 - The Showcase load readout counts as a bottom inset, so the camera frames the rig above it.
+- Critic 277 (light presets): passed aurora, spectrum, thermal, blackout, override; failed ember and reactor (X13: the room stayed violet in a dim comet or breathing frame) and ice, vapor, starfield (X14: pale colors washed out on the memory bars). Measured the LED average: aurora and spectrum peak near 0.85, ember and reactor near 0.16 at this frame, so a linear wall wash fell to a fifth. Fixes: the wall wash and desk pools take roomShare(peak), 0.85 × (peak / 0.85)^0.3 below 0.85 and linear above (bright presets unchanged); memory bar diffusers run 0.34 and 0.38 instead of 0.42 and 0.48; the diffuser luminance ceiling drops to 40 percent for a color with no saturation, scaling up to the full ceiling for a saturated one. Ember's wall went from rgb(70, 54, 101) to rgb(88, 56, 102) (scripts/pixel.mjs 1150 230 40).
 
 ## Dependencies added
 
@@ -274,6 +282,7 @@ One line per feature id in kit/01-PRODUCT.md: `F01 · where it is tested or show
 
 Newest first. One entry per working session or per compaction: what was done, what is next.
 
+- 2026-11-10 session 2, Phase 7: Gate 6 closed (d4dd8d2). Built the full Lighting panel (ui/LightingPanel.tsx with a scope bar, ui/GradientEditor.tsx, ui/ColorPicker.tsx, ui/color.ts), lighting actions (setScopeLighting, setTargetMode, applyProfileTo, saveProfile, deleteProfile, pushRecentColor), the power sequence (world/motion/power.ts, supply LED, World.scrubPower, hook scrub power-on), the load readout (ui/LoadReadout.tsx: under the toggles in Build, bottom center elsewhere, a camera inset in Showcase), airflow (world/airflow.ts), --rig-glow (World.writeGlow). Faults found and fixed: a slider drag's undo entry held its last live value (commit now keeps the build from before the drag); first airflow drew zigzag streams that read as confetti (rebuilt as cubic jets that bow toward the glass, laminar disk mapping, air passes through air cooler fins); Ice's pale memory bars washed to white (diffuser ceiling lowered by saturation). Tests: tests/unit/color.test.ts (279 unit tests pass), tests/e2e/lighting.spec.ts written. Shots: Gate 7 set taken twice; retake on the final build running.
 - 2026-11-10 session 2, Phase 6: choreography (motion/choreo.ts: travel, seat, the board's fittings, screws, cable growth by reveal, glass lift, cascade, swap overlap, reduced motion fade), picking and outlines (interact/pick.ts, two OutlinePass after the output pass), the hands (interact/hands.ts: hover, select, double click focus, tray drag with mouse and touch, held model with lifted exposure, 3D sockets in an overlay after the output pass with a copy pass so frames without one are unchanged, snapping, blocked reason, shake and return, dragging a part out), selection menu, reset view, swap, pinned reasons for blocked places, hook select, scrub, pose, places, screen, selected and a swap action. Faults found and fixed: World.project scaled by mm twice so every screen point fell to the desk center (the first tray test passed only because the place and the drop shared the error); settle() missed tweens made on the same tick; a GSAP entrance tween overwrote the selection menu's CSS translate and dropped it onto the part, where it took the next click; the overlay RenderPass as the last pass drew only itself to the screen. Next: Gate 6 shots on the current build, then Phase 7.
 
 - 2026-11-10 session 2, Phase 5 steps 1 to 8 in code: tokens (spacing, type, motion added), global focus ring, state (store ui, notice, announce, settings, saved, profiles; actions.ts commit with history, cascade notice, power off, autosave; persist.ts guarded storage; boot.ts link landing, restore, intro), every component (Button, Chip, Segmented, Tabs, Stat with count up, Meter, Slider, Stepper, Dialog with trap and return, Notice, Tips, PartCard, Tray and dock, SpecPanel, full sheet with Remove, Settings, About, Share, Saved builds, Lighting panel basic, socket labels for tap and keyboard placing, start overlay, intro still, Inspector bar, shared banner, live region), shortcuts, three layouts (desktop panels, tablet side sheets, phone sheet with three stops and momentum, landscape panel). Camera: the view offset now comes from measured panels, and the camera zoom fits the rig to the clear area (zoom 1 with no interface, so 3D shots are unchanged). Empty bench dashed footprint in the room. Hook: act through the store actions, open, hold; freeze ends interface transitions and UI tweens only. Next: e2e tests for Gate 5, then the ui shots.

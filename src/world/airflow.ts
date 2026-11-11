@@ -78,22 +78,29 @@ const BOW_STEP = 8;
  * stream that cannot clear without leaving the chamber is dropped and another one is drawn.
  */
 function streamPath(a: Port, e: Port, L: CaseLayout, obstacles: THREE.Box3[], rand: () => number): THREE.Vector3[] | null {
-  const disk = (p: Port) => {
+  // One place on the disk for both ends, in each fan's own frame with depth (z) kept as one axis, so streams between the
+  // same two fans run side by side instead of crossing.
+  const ang = rand() * Math.PI * 2; const rad = Math.sqrt(rand());
+  // Each disk's second axis points at the other fan, so the near edge of the intake feeds the near edge of the exhaust.
+  const disk = (p: Port, other: Port) => {
     const n = v(p.n).normalize();
-    const t1 = new THREE.Vector3().crossVectors(n, Math.abs(n.y) > 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0)).normalize();
-    const t2 = new THREE.Vector3().crossVectors(n, t1);
-    const ang = rand() * Math.PI * 2; const rad = Math.sqrt(rand()) * p.r;
-    return v(p.c).addScaledVector(t1, Math.cos(ang) * rad).addScaledVector(t2, Math.sin(ang) * rad);
+    const depth = new THREE.Vector3(0, 0, 1);
+    const t1 = Math.abs(n.z) > 0.9 ? new THREE.Vector3(1, 0, 0) : depth.clone().addScaledVector(n, -n.z).normalize();
+    const t2 = v(other.c).sub(v(p.c));
+    t2.addScaledVector(n, -t2.dot(n)).addScaledVector(t1, -t2.dot(t1));
+    if (t2.lengthSq() < 1e-6) t2.crossVectors(n, t1);
+    t2.normalize();
+    return v(p.c).addScaledVector(t1, Math.cos(ang) * rad * p.r).addScaledVector(t2, Math.sin(ang) * rad * p.r);
   };
-  const s = disk(a); const x = disk(e);
+  const s = disk(a, e); const x = disk(e, a);
   const na = v(a.n).normalize(); const ne = v(e.n).normalize();
   const room = new THREE.Box3(v(L.interior.min), v(L.interior.max)).expandByScalar(-4);
   const zGlass = Math.min(L.sideInner, L.interior.max[2]) - 12;
   const reach = s.distanceTo(x);
   const bez = new THREE.CubicBezierCurve3(
     s.clone().addScaledVector(na, ENTRY),
-    s.clone().addScaledVector(na, reach * (0.38 + 0.18 * rand())),
-    x.clone().addScaledVector(ne, reach * (0.3 + 0.15 * rand())),
+    s.clone().addScaledVector(na, reach * (0.44 + 0.04 * rand())),
+    x.clone().addScaledVector(ne, reach * (0.34 + 0.04 * rand())),
     x.clone().addScaledVector(ne, -EXIT),
   );
   const base = bez.getSpacedPoints(SAMPLES - 1);

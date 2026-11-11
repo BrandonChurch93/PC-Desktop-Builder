@@ -122,12 +122,17 @@ export class Zone {
 
 /**
  * Light colors with a high luminance (lime, cyan, yellow) clip to white on an emissive diffuser long before pink or blue do.
- * The diffuser texture gets a soft luminance ceiling so every hue stays saturated at the same brightness setting.
+ * The diffuser texture gets a soft luminance ceiling so every hue stays saturated at the same brightness setting. A pale
+ * color (ice blue) has little hue to lose, and tone mapping washes it to white first, so its ceiling sits lower.
  */
 const LUMA_CEILING = 0.4;
+const PALE_CEILING = 0.4;
 function diffuserScale(r: number, g: number, b: number): number {
   const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-  return luma > LUMA_CEILING ? LUMA_CEILING / luma : 1;
+  const hi = Math.max(r, g, b);
+  const sat = hi > 1e-6 ? (hi - Math.min(r, g, b)) / hi : 0;
+  const ceiling = LUMA_CEILING * (PALE_CEILING + (1 - PALE_CEILING) * sat);
+  return luma > ceiling ? ceiling / luma : 1;
 }
 
 const toSrgb = (c: number) => (c <= 0.0031308 ? c * 12.92 : 1.055 * c ** (1 / 2.4) - 0.055);

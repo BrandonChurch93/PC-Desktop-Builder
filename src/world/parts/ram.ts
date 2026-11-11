@@ -222,7 +222,8 @@ export function ramPart(id: string, opts: GenOpts = {}): PartObject {
     const z0 = plateTop - 1.6; const z1 = height;
     const zone = new Zone(key, 'ram', false, stripLeds(new THREE.Vector3(0, -HALF + 3, z1 - 2), new THREE.Vector3(0, HALF - 3, z1 - 2), 7.4), 0.2 + (key.length % 7) * 0.09);
     // Matte bodies: a broad bar face mirrored the white softboxes and washed bright hues such as green toward white.
-    const diff = zone.diffuser(line === 'crown' ? 0.42 : 0.48, frost ? 0xd9dbe0 : 0x1d1e23, 0.86);
+    // The broadest diffusers in a rig: they run lowest, so tone mapping does not wash a pink or a pale blue to pastel (critic 277).
+    const diff = zone.diffuser(line === 'crown' ? 0.34 : 0.38, frost ? 0xd9dbe0 : 0x1d1e23, 0.86);
     // The bar follows the notch in the spreader's top line, so the notch reads with the light on.
     const half = (DIMS.dimmLength - 2) / 2;
     const notched = (lo: number, hi: number): [number, number][] => [[-half, lo], [half, lo], [half, hi - 1.2], [half - 1.2, hi], [9.5, hi], [5.5, hi - 2.6], [-5.5, hi - 2.6], [-9.5, hi], [-half + 1.2, hi], [-half, hi - 1.2]];

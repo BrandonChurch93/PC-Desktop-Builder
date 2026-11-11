@@ -57,11 +57,14 @@ export function SelectionMenu() {
   const x = Math.min(Math.max(at.x, 150), window.innerWidth - 150);
   const y = Math.max(at.y - 12, layout === 'phone' ? 200 : 90);
   return (
-    <div ref={el} className={s.menu} style={{ left: x, top: y }} role="menu" aria-label={`${LABELS.category[sel.category]} actions`}>
+    // Positioned by the outer box and animated on the inner one: a tween on the outer box would overwrite its translate.
+    <div className={s.menuAt} style={{ left: x, top: y }}>
+    <div ref={el} className={s.menu} role="menu" aria-label={`${LABELS.category[sel.category]} actions`}>
       <button role="menuitem" type="button" className={s.item} onClick={() => { if (id) store.setState({ inspect: { category: sel.category, id: sel.category === 'storage' ? String(sel.opts.type) : id, angle: 0, zoom: 0 } }); close(); }}>Inspect</button>
       <button role="menuitem" type="button" className={s.item} onClick={() => { removePart(sel.category, sel.opts as never); close(); }}>Remove</button>
       <button role="menuitem" type="button" className={s.item} onClick={() => { setUi({ swap: { category: sel.category, opts: sel.opts }, tab: sel.category }); close(); }}>Swap</button>
       <button role="menuitem" type="button" className={s.item} disabled={!lightable} onClick={() => { setUi({ lightTarget: target ?? null, side: layout === 'tablet' ? 'lighting' : store.getState().ui.side, sheet: layout === 'phone' ? 'half' : store.getState().ui.sheet, sheetTab: layout === 'phone' ? 'lighting' : store.getState().ui.sheetTab }); close(); }}>Lighting</button>
+    </div>
     </div>
   );
 }

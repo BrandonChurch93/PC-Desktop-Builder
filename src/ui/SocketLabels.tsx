@@ -59,7 +59,7 @@ export function SocketLabels() {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
 
   useEffect(() => {
-    if (!held || held.how === 'drag') return;
+    if (!held) return;
     let raf = 0;
     const tick = () => {
       const w = getWorld();
@@ -81,7 +81,7 @@ export function SocketLabels() {
   useEffect(() => {
     if (!held) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cancelPlacing(); return; }
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); if (held.how === 'drag') getWorld()?.hands.cancelDrag(); else cancelPlacing(); return; }
       if (held.how !== 'keys') return;
       const d = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
       if (d) { e.preventDefault(); const n = ((held.socket ?? 0) + d + sockets.length) % sockets.length; store.setState({ held: { ...held, socket: n } }); }
@@ -90,8 +90,22 @@ export function SocketLabels() {
     return () => document.removeEventListener('keydown', onKey, true);
   }, [held, sockets.length]);
 
-  // During a drag the places show in the scene and the reason follows the pointer; these labels are for tap and keys.
-  if (!held || held.how === 'drag') return null;
+  if (!held) return null;
+  // During a drag the places show in the scene and the pointer carries the reason of the place it is over; each other blocked
+  // place keeps a small tag with its reason, one tag for each different reason.
+  if (held.how === 'drag') {
+    const seen = new Set<string>();
+    return (
+      <div className={s.layer} aria-hidden="true">
+        {sockets.map((sock, i) => {
+          const p = pos[i];
+          if (sock.ok || !p?.front || held.socket === i || !sock.message || seen.has(sock.message)) return null;
+          seen.add(sock.message);
+          return <div key={sock.key} className={s.tag} style={{ left: p.x, top: p.y }}>{sock.message}</div>;
+        })}
+      </div>
+    );
+  }
   const names = sockets.map((x) => socketName(build.case?.id, x));
   const placed = spread(pos, names);
   return (

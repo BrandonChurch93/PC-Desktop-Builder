@@ -1,4 +1,4 @@
-PHASE 6 IN PROGRESS · step 1
+PHASE 7 IN PROGRESS · step 1
 
 <!-- Builder: this file is your memory. Read it first in every session and after every compaction. Keep it current. Replace the first line as you go: "PHASE N IN PROGRESS · step k", "BLOCKED: ...", and at the very end "BUILD COMPLETE" with nothing else on that line. -->
 
@@ -6,10 +6,10 @@ PHASE 6 IN PROGRESS · step 1
 
 ## Where things stand
 
-- Current phase: 6 · Hands
-- Current step: 1 (picking, hover and selection outlines, the selection menu)
-- Next action: Phase 6 steps 1 to 7 per kit/08-BUILD-ORDER.md; first read the Camera, Modes in the scene, Sockets picking and dragging, and Choreography sections of kit/04-WORLD.md, the Components and Motion sections of kit/05-DESIGN.md, and the motion checklist in kit/07-QUALITY-BAR.md. Do not end the turn with a status report: updates go here.
-- Last commit: phase 5: gate 5
+- Current phase: 7 · Light and life
+- Current step: 1
+- Next action: Phase 7 per kit/08-BUILD-ORDER.md; first re-read its Read first files from disk (RGB engine and lighting sections of kit/04-WORLD.md, lighting rules in kit/03-RULES.md, the Lighting panel in kit/05-DESIGN.md, kit/07-QUALITY-BAR.md). Do not end the turn with a status report: updates go here.
+- Last commit: phase 6: gate 6
 
 ## Phases
 
@@ -21,7 +21,7 @@ PHASE 6 IN PROGRESS · step 1
 | 3 | The roster | done | see Gate 3 evidence below | phase 3: the roster |
 | 4 | Cases and layouts | done | see Gate 4 evidence below | phase 4: gate 4 |
 | 5 | Interface and the build flow | done | see Gate 5 evidence below | phase 5: gate 5 |
-| 6 | Hands | not started | | |
+| 6 | Hands | done | see Gate 6 evidence below | phase 6: gate 6 |
 | 7 | Light and life | not started | | |
 | 8 | Modes and keeping | not started | | |
 | 9 | Tiers, performance, access, hardening | not started | | |
@@ -87,6 +87,12 @@ PHASE 6 IN PROGRESS · step 1
 - Weak point 11 (placeholder thumbnails, static controls, desktop only): every card shows the part's real render from public/thumbs (cases in their installed finish); every control is live and drives the engine (tray install and remove, finish switch, steppers that stop at their limits with the reason as tooltip, fill and clear fans, cable swatches, name in place, glass and power and airflow, lighting effect, speed, brightness, direction and presets, undo and redo, full sheet with Remove); the numbers count to new values; three layouts (desktop panels, tablet side sheets with edge buttons, phone bottom sheet with three stops and momentum and a 320 px landscape panel), and the camera frames the rig in the area the panels leave clear.
 - Shots: `npm run check:shots -- ui-desktop/02 ui-desktop/03 ui-desktop/06 ui-desktop/08 ui-tablet/landscape-build ui-tablet/landscape-spec-sheet ui-tablet/portrait-build ui-tablet/portrait-spec-sheet ui-phone/empty-bench ui-phone/peek ui-phone/half ui-phone/full ui-phone/specs`: passed 13, problems 0 (my verdicts under addendum rule 2, shots/peek/v-gate5.txt).
 - Earlier tests: 276 unit tests pass, typecheck clean, check:copy 0 problems. The 3D groups retaken on this build: all 223 rig, bench, finish, macro and part images came back same (zoom 1 and no offset with the interface hidden); the six cable shots changed from the Gate 4 shared changes and passed on my verdict. `npm run check:shots -- rig bench finish macro part cable`: passed 229, problems 0. `npm run check:shots -- contact`: 12 passed.
+
+### Gate 6 evidence
+
+- tests/e2e/hands.spec.ts and hands-all.spec.ts, Chromium, with real input: a card dragged with the mouse from the tray to its place installs; a card too long for the Pocket dragged over its place shows "Too long. This card is 322 mm and the case has 310 mm free." beside it and nothing installs; the selected card dragged out past the case's edge is removed. Raw touch through one CDP session on 390 x 844: a 350 ms press, a drag and a drop installs; a short swipe on the card row scrolls it and installs nothing. Every category (case, board, processor, cooler on the top mount, memory, card, storage, supply, a fan on the rear mount) installs by drag, by tap (then a tap on the place where there are several) and by Enter. C21: a double click focuses the card (camera focus gpu, closer), zoom stops at 0.12 m while focused, Escape and the Reset view control each return, free zoom stops at 0.2 m. C23: remove and swap in every category show poses between the start and the end (or a fade for the case's departure), the part is gone or in place at the end, and with reduced motion no pose moves. `npx playwright test --project=chromium`: 24 passed.
+- Shots, my verdicts under addendum rule 2: motion/install (35 frames, shots/peek/v-motion.txt), drag (5), ui-desktop/04-drag, ui-desktop/05-select, ui-tablet/landscape-drag, ui-tablet/portrait-drag, ui-phone/drag (shots/peek/v-gate6.txt).
+- Every group retaken on the final Phase 6 build (shots/peek/gate6-retake.log): 284 same, 3 changed (drag/valid, drag/radiator-mounts, ui-desktop/03-build), each opened and passed on my verdict (shots/peek/v-gate6b.txt). `npm run check:shots -- motion/install drag ui-desktop/04 ui-desktop/05 ui-tablet/landscape-drag ui-tablet/portrait-drag ui-phone/drag`: passed 45, problems 0. `npm run check:shots -- rig bench finish macro part cable`: passed 229, problems 0. `npx vitest run`: 276 passed. Typecheck clean. check:copy 0 problems (127 files).
 
 ## Environment
 
@@ -257,6 +263,8 @@ One line per feature id in kit/01-PRODUCT.md: `F01 · where it is tested or show
 ## Session log
 
 Newest first. One entry per working session or per compaction: what was done, what is next.
+
+- 2026-11-10 session 2, Phase 6: choreography (motion/choreo.ts: travel, seat, the board's fittings, screws, cable growth by reveal, glass lift, cascade, swap overlap, reduced motion fade), picking and outlines (interact/pick.ts, two OutlinePass after the output pass), the hands (interact/hands.ts: hover, select, double click focus, tray drag with mouse and touch, held model with lifted exposure, 3D sockets in an overlay after the output pass with a copy pass so frames without one are unchanged, snapping, blocked reason, shake and return, dragging a part out), selection menu, reset view, swap, pinned reasons for blocked places, hook select, scrub, pose, places, screen, selected and a swap action. Faults found and fixed: World.project scaled by mm twice so every screen point fell to the desk center (the first tray test passed only because the place and the drop shared the error); settle() missed tweens made on the same tick; a GSAP entrance tween overwrote the selection menu's CSS translate and dropped it onto the part, where it took the next click; the overlay RenderPass as the last pass drew only itself to the screen. Next: Gate 6 shots on the current build, then Phase 7.
 
 - 2026-11-10 session 2, Phase 5 steps 1 to 8 in code: tokens (spacing, type, motion added), global focus ring, state (store ui, notice, announce, settings, saved, profiles; actions.ts commit with history, cascade notice, power off, autosave; persist.ts guarded storage; boot.ts link landing, restore, intro), every component (Button, Chip, Segmented, Tabs, Stat with count up, Meter, Slider, Stepper, Dialog with trap and return, Notice, Tips, PartCard, Tray and dock, SpecPanel, full sheet with Remove, Settings, About, Share, Saved builds, Lighting panel basic, socket labels for tap and keyboard placing, start overlay, intro still, Inspector bar, shared banner, live region), shortcuts, three layouts (desktop panels, tablet side sheets, phone sheet with three stops and momentum, landscape panel). Camera: the view offset now comes from measured panels, and the camera zoom fits the rig to the clear area (zoom 1 with no interface, so 3D shots are unchanged). Empty bench dashed footprint in the room. Hook: act through the store actions, open, hold; freeze ends interface transitions and UI tweens only. Next: e2e tests for Gate 5, then the ui shots.
 

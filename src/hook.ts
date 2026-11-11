@@ -69,6 +69,7 @@ export function installHook(world: World) {
           break;
         }
         case 'remove': if (c) A.removePart(c, action.opts ?? {}, instant); break;
+        case 'swap': { if (!c || !action.id) throw new Error('swap needs a category and an id'); const r = A.swapPart(c, action.opts ?? {}, action.id, instant); if (!r.ok) throw new Error(`swap ${c} ${action.id}: ${r.code}`); break; }
         case 'finish': if (action.finish) A.setCaseFinish(action.finish, instant); break;
         case 'lighting': if (action.patch) A.setLighting(action.patch as Partial<Lighting>); break;
         case 'lightingPreset': if (action.id) A.applyLightingPreset(action.id); break;

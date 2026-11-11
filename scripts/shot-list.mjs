@@ -102,12 +102,23 @@ const inProgress = [['act', { type: 'remove', category: 'gpu' }], ['act', { type
 const warned = [['act', { type: 'install', category: 'psu', id: 't650' }]];
 const emptyBench = [['empty'], ['set', { ui: true }], ['cam', 'hero'], FREEZE];
 SHOTS['ui-desktop/02-empty-bench'] = { steps: emptyBench };
+// Held parts, interface shown. A hold at an index snaps the part to that place; with none it is held clear of every place.
+const held = (pre, hold) => [['load', 'night-rig'], ['set', { ui: true }], ['act', { type: 'name', name: 'Night Rig' }], ...pre, ['cam', 'hero'], ['hold', ...hold], FREEZE];
+const noFans = [['act', { type: 'clearFans' }], ['open', 'tab-fan']];
+SHOTS['drag/valid'] = { steps: held([['act', { type: 'remove', category: 'gpu' }], ['open', 'tab-gpu']], ['gpu', 'apex2x', 0]) };
+SHOTS['drag/blocked'] = { steps: [['load', 'pocket'], ['set', { ui: true }], ['act', { type: 'remove', category: 'gpu' }], ['open', 'tab-gpu'], ['cam', 'hero'], ['hold', 'gpu', 'apex3x', 0], FREEZE] };
+SHOTS['drag/fan-mounts'] = { steps: held(noFans, ['fan', 'gale']) };
+SHOTS['drag/radiator-mounts'] = { steps: held([['act', { type: 'remove', category: 'cooler' }], ['open', 'tab-cooler']], ['cooler', 'tarn240']) };
+SHOTS['drag/memory-slots'] = { steps: held([['open', 'tab-ram']], ['ram', 'facet32']) };
+SHOTS['ui-desktop/04-drag'] = { steps: held(noFans, ['fan', 'gale', 6]) };
+SHOTS['ui-desktop/05-select'] = { steps: [['load', 'night-rig'], ['set', { ui: true }], ['act', { type: 'name', name: 'Night Rig' }], ['open', 'tab-gpu'], ['cam', 'hero'], ['select', 'gpu'], FREEZE] };
 SHOTS['ui-desktop/03-build'] = { steps: ui(inProgress) };
 SHOTS['ui-desktop/06-cascade'] = { steps: ui([['open', 'tab-case'], ['act', { type: 'install', category: 'case', id: 'cub' }]]) };
 SHOTS['ui-desktop/08-spec-sheet'] = { steps: ui([...warned, ['open', 'sheet']]) };
 for (const [o, width, height] of [['landscape', 1180, 820], ['portrait', 820, 1180]]) {
   SHOTS[`ui-tablet/${o}-build`] = { width, height, touch: true, steps: ui(inProgress) };
   SHOTS[`ui-tablet/${o}-spec-sheet`] = { width, height, touch: true, steps: ui([...warned, ['open', 'sheet']]) };
+  SHOTS[`ui-tablet/${o}-drag`] = { width, height, touch: true, steps: held(noFans, ['fan', 'gale', 6]) };
 }
 const phone = { width: 390, height: 844, touch: true };
 SHOTS['ui-phone/empty-bench'] = { ...phone, steps: emptyBench };
@@ -115,5 +126,6 @@ SHOTS['ui-phone/peek'] = { ...phone, steps: ui([['open', 'peek'], ['open', 'tab-
 SHOTS['ui-phone/half'] = { ...phone, steps: ui([['open', 'half'], ['open', 'parts'], ['open', 'tab-ram']]) };
 SHOTS['ui-phone/full'] = { ...phone, steps: ui([['open', 'full'], ['open', 'parts'], ['open', 'tab-case']]) };
 SHOTS['ui-phone/specs'] = { ...phone, steps: ui([['open', 'half'], ['open', 'specs']]) };
+SHOTS['ui-phone/drag'] = { ...phone, steps: held([['act', { type: 'remove', category: 'gpu' }], ['open', 'tab-gpu']], ['gpu', 'apex2x', 0]) };
 
 export { SHOTS };

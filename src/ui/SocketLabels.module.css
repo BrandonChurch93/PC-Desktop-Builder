@@ -105,3 +105,17 @@
     min-height: 36px;
   }
 }
+
+.tag {
+  position: absolute;
+  max-width: 240px;
+  padding: 5px 9px;
+  translate: -50% -50%;
+  border: 1px solid color-mix(in srgb, var(--danger) 55%, transparent);
+  border-radius: 8px;
+  background: var(--panel-solid);
+  color: var(--ink-dim);
+  font-size: var(--text-meta);
+  line-height: 1.35;
+  text-align: center;
+}

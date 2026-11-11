@@ -13,13 +13,16 @@
   box-shadow: var(--shadow-panel);
 }
 
-.menu {
+.menuAt {
   position: fixed;
   z-index: 30;
+  translate: -50% -100%;
+}
+
+.menu {
   display: flex;
   gap: 2px;
   padding: 4px;
-  translate: -50% -100%;
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
   background: var(--panel-solid);

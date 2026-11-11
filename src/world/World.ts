@@ -417,7 +417,8 @@ export class World {
   async settle() {
     await document.fonts.ready;
     for (let i = 0; i < 600; i++) {
-      const busy = gsap.globalTimeline.getChildren(true, true, false).some((t) => t.isActive());
+      // A tween made this tick is not active until the next one; count every running one that has not finished.
+      const busy = gsap.globalTimeline.getChildren(false, true, true).some((t) => t.isActive() || (!t.paused() && t.progress() < 1 && t.totalDuration() > 0));
       if (!busy) break;
       await new Promise((r) => setTimeout(r, 16));
     }
@@ -540,7 +541,7 @@ export class World {
 
   cameraInfo() {
     if (this.showingInspector) return { distance: this.inspector.distance, target: [0, 0, 0], view: 'inspector' };
-    return { distance: this.camera.position.distanceTo(this.controls.target), target: this.controls.target.toArray(), view: this.viewName, position: this.camera.position.toArray() };
+    return { distance: this.camera.position.distanceTo(this.controls.target), target: this.controls.target.toArray(), view: this.viewName ?? this.store.getState().focus, focus: this.store.getState().focus, position: this.camera.position.toArray() };
   }
 
   /** What the camera sees at a pixel: the nearest hits with their object path and material, for finding a stray highlight. */

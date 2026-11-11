@@ -5,6 +5,7 @@ import type { Build } from '../engine/types';
 import { CASE_LAYOUTS } from '../world/layout/cases';
 import type { V3 } from '../world/layout/math';
 import { place, radiatorPose } from '../world/layout/place';
+import { forcePlace } from '../world/layout/force';
 
 const center = (boxes: { min: V3; max: V3 }[]): V3 | null => {
   if (!boxes.length) return null;
@@ -29,6 +30,9 @@ export function socketPoint(b: Build, s: Socket): V3 {
     const c = center(p[p.length - 1]?.boxes ?? []);
     if (c) return c;
   }
+  // A blocked place: where the part would sit, placed without the rules.
+  const forced = center(forcePlace(b, s.category, s.id, s.opts).flatMap((p) => p.boxes));
+  if (forced) return forced;
   const inner = L.interior;
   return [(inner.min[0] + inner.max[0]) / 2, (inner.min[1] + inner.max[1]) / 2, (inner.min[2] + inner.max[2]) / 2];
 }

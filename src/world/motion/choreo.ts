@@ -128,8 +128,10 @@ export class Choreo {
       tl.to(h.rotation, { x: toRot.x, y: toRot.y, z: toRot.z, duration: 0.8, ease: 'power3.inOut' }, t);
     }
 
-    left.forEach((i, k) => tl.add(dropOut ? this.dropAway(i) : this.leave(i), t + k * STAGGER));
-    const leftEnd = left.length ? t + (left.length - 1) * STAGGER + REMOVE * 1.0 : t;
+    // A long cascade keeps its order but not its pace: the whole stagger stays under half a second.
+    const gap = left.length > 1 ? Math.min(STAGGER, 0.45 / (left.length - 1)) : STAGGER;
+    left.forEach((i, k) => tl.add(dropOut ? this.dropAway(i) : this.leave(i), t + k * gap));
+    const leftEnd = left.length ? t + (left.length - 1) * gap + REMOVE * 1.0 : t;
     for (const r of c.rebuilt) this.crossfade(tl, r.old, r.next, 0.3, t);
 
     // A swap overlaps: the new part starts arriving while the old one is still on its way out.

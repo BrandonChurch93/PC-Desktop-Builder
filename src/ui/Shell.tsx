@@ -129,7 +129,7 @@ function Tablet() {
         </>
       )}
       {building && side && (
-        <aside ref={sheet} className={[s.sideSheet, side === 'lighting' ? s.sheetLeft : s.sheetRight].join(' ')} aria-label={side === 'lighting' ? 'Lighting' : 'Spec sheet'}>
+        <aside ref={sheet} className={[s.sideSheet, side === 'lighting' ? s.sheetLeft : s.sheetRight, power ? s.sheetLow : ''].join(' ')} aria-label={side === 'lighting' ? 'Lighting' : 'Spec sheet'}>
           {side === 'lighting' ? <LightingPanel onClose={() => setUi({ side: null })} /> : <SpecPanel onClose={() => setUi({ side: null })} />}
         </aside>
       )}

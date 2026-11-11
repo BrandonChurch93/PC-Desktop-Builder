@@ -6,6 +6,7 @@ import { fitOf } from '../engine/queries';
 import { store } from '../state/store';
 import { setUi } from './uiActions';
 import { useApp, useReducedMotion } from './hooks';
+import { getWorld } from './worldRef';
 import { Button } from './kit/Button';
 import { partName } from '../state/actions';
 import { specRows } from './parts';
@@ -58,25 +59,52 @@ export function StartOverlay() {
   );
 }
 
-/** The intro's still: the name and the subtitle over the house build. Any input skips it. The full sequence comes with the camera work. */
+/** How long the reduced motion intro holds its still before the start overlay. */
+const STILL_MS = 1800;
+
+/**
+ * The intro over the scene: the world plays the sequence (dark room, power on, camera push) and this shows the name as the
+ * world fades it in. Any input ends it at its last frame; then the start overlay follows. A sequence already set up, as the
+ * hook's scrub does, is left alone.
+ */
 export function Intro() {
   const overlay = useApp((st) => st.ui.overlay);
   const reduced = useReducedMotion();
-  const el = useRef<HTMLDivElement | null>(null);
+  const title = useRef<HTMLHeadingElement | null>(null);
+  const sub = useRef<HTMLParagraphElement | null>(null);
   useEffect(() => {
     if (overlay !== 'intro') return;
-    const skip = () => setUi({ overlay: 'start' });
-    const t = setTimeout(skip, reduced ? 1800 : 6000);
+    let raf = 0; let timer: ReturnType<typeof setTimeout> | null = null; let alive = true;
+    const next = () => { if (alive) setUi({ overlay: 'start' }); };
+    const skip = () => { const w = getWorld(); if (w?.introTl) w.finishIntro(); else next(); };
+    const paint = () => {
+      const w = getWorld();
+      if (w && title.current && sub.current) {
+        title.current.style.opacity = String(w.intro.title); title.current.style.transform = `translateY(${(1 - w.intro.title) * 8}px)`;
+        sub.current.style.opacity = String(w.intro.subtitle); sub.current.style.transform = `translateY(${(1 - w.intro.subtitle) * 8}px)`;
+      }
+      raf = requestAnimationFrame(paint);
+    };
+    paint();
+    const begin = () => {
+      const w = getWorld();
+      if (!w) { raf = requestAnimationFrame(begin); return; }
+      void w.ready.then(() => {
+        if (!alive || w.introTl || w.introDone) return;
+        if (reduced) { w.playIntro('still'); timer = setTimeout(next, STILL_MS); }
+        else w.playIntro('motion', next);
+      });
+    };
+    begin();
     window.addEventListener('pointerdown', skip);
     window.addEventListener('keydown', skip);
-    if (el.current && !reduced) gsap.fromTo(el.current.children, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 1.2, ease: 'power2.out', stagger: 0.4, delay: 0.4 });
-    return () => { clearTimeout(t); window.removeEventListener('pointerdown', skip); window.removeEventListener('keydown', skip); };
+    return () => { alive = false; cancelAnimationFrame(raf); if (timer) clearTimeout(timer); window.removeEventListener('pointerdown', skip); window.removeEventListener('keydown', skip); };
   }, [overlay, reduced]);
   if (overlay !== 'intro') return null;
   return (
-    <div ref={el} className={s.intro} aria-live="polite">
-      <h1 className={s.title}>{K.productName}</h1>
-      <p className={s.subtitle}>Build it part by part.</p>
+    <div className={s.intro} aria-live="polite">
+      <h1 ref={title} className={s.title} style={{ opacity: 0 }}>{K.productName}</h1>
+      <p ref={sub} className={s.subtitle} style={{ opacity: 0 }}>Build it part by part.</p>
     </div>
   );
 }

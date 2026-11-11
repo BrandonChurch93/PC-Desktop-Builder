@@ -1,4 +1,4 @@
-PHASE 8 IN PROGRESS · step 1
+PHASE 9 IN PROGRESS · step 1
 
 <!-- Builder: this file is your memory. Read it first in every session and after every compaction. Keep it current. Replace the first line as you go: "PHASE N IN PROGRESS · step k", "BLOCKED: ...", and at the very end "BUILD COMPLETE" with nothing else on that line. -->
 
@@ -6,11 +6,11 @@ PHASE 8 IN PROGRESS · step 1
 
 ## Where things stand
 
-- Current phase: 8 · Modes and keeping
-- Current step: 1 (Showcase with the tour, Exploded with labels)
+- Current phase: 9 · Tiers, performance, access, hardening
+- Current step: 1
 - Phase 8 plan (survey done): already built in Phase 5: Saved builds dialog (save, rename, load, delete, replace oldest), Share dialog, link landing in boot.ts (banner, dropped parts, bad and newer links), Settings, About, start overlay, still intro, InspectorBar. To build: (1) world/motion/explode.ts: parts out along their insertion axis (board family +z stacked, radiator and fans outward, supply and drives back out of their bays), glass out, cables and tubes faded, lamps rebuilt at the end, an `exploded` camera view, DOM labels with leader lines (ui/ExplodedLabels.tsx), hook scrub explode; world/tour.ts: Showcase loop (arc, push to card, rise past cooler, pass along fans), any input takes over, resumes after 8 s idle, never while frozen or reduced motion, excluded from settle(). (2) Inspector orbit and zoom by pointer, specs list, re-render thumbs. (3) intro sequence in the world (dark room, name, power on, camera push), hook scrub intro. (4) hook link(code). (5) poster dialog and export (2400 × 3000, 3840 × 2160, halved when too large). (6) README.md, check vercel.json. Then shots: mode, motion (explode, intro), ui-desktop 20, ui-tablet 10, ui-phone 13; e2e: preset links, bad and newer links, poster sizes, saved builds.
-- Next action: re-read Phase 8's Read first files from disk (01-PRODUCT "The experience, start to finish"; 05-DESIGN Fixed copy, The poster, Screens and states; 03-RULES Share links and Browser storage; 04-WORLD Modes in the scene and Camera), then steps 1 to 6 of kit/08-BUILD-ORDER.md. Do not end the turn with a status report: updates go here.
-- Last commit: phase 7: gate 7
+- Next action: re-read Phase 9 Read first files from disk (04-WORLD Quality tiers and Performance rules, 05-DESIGN Accessibility, 09-QA-GAUNTLET), then steps 1 to 5 of kit/08-BUILD-ORDER.md. Do not end the turn with a status report: updates go here.
+- Last commit: phase 8: gate 8
 
 ## Phases
 
@@ -24,7 +24,7 @@ PHASE 8 IN PROGRESS · step 1
 | 5 | Interface and the build flow | done | see Gate 5 evidence below | phase 5: gate 5 |
 | 6 | Hands | done | see Gate 6 evidence below | phase 6: gate 6 |
 | 7 | Light and life | done | see Gate 7 evidence below | phase 7: gate 7 |
-| 8 | Modes and keeping | not started | | |
+| 8 | Modes and keeping | done | see Gate 8 evidence below | phase 8: gate 8 |
 | 9 | Tiers, performance, access, hardening | not started | | |
 | 10 | Final pass | not started | | |
 
@@ -102,6 +102,15 @@ PHASE 8 IN PROGRESS · step 1
 - End to end: Power is disabled with "Needs a processor, a cooler, memory and a power supply to power on." (built from labels.missing in the kit) on a case and board, and with the PSU_OVER message on the Night Rig with the Crest on a 650 W supply; on all six presets the Power control turns on, lights the zones (Windbreak ships Blackout, brightness 0, and stays dark by its data) and turns off to all zones zero.
 - Lighting changed under the rig shots: `npm run shots -- ... rig bench finish macro cable` retook them (shots/peek/g7-c.log: 57 of them changed, bench came back same), each changed image opened and passed on my verdict (shots/peek/v-gate7c.txt). `npm run check:shots -- rig bench finish macro cable`: `shots defined: 316 of 358 · passed: 76 · contact sheets passed: 0 · problems: 0`.
 - `npx playwright test --project=chromium`: 28 passed. `npx vitest run`: 279 passed. Typecheck clean. check:copy 0 problems (136 files).
+
+### Gate 8 evidence
+
+- Shots: `npm run check:shots -- mode motion ui-desktop ui-tablet ui-phone`: `shots defined: 355 of 358 · passed: 103 · contact sheets passed: 0 · problems: 0` (whole groups 10, 50, 20, 10 and 13; my verdicts under addendum rule 2, shots/peek/v-gate8.txt, every image opened, in review sheets shots/peek/r1 to r11 and the explode and intro sheets).
+- End to end, tests/e2e/keeping.spec.ts (Chromium): for each of the six presets the Share dialog's Copy link, read back from the clipboard and opened in a fresh browser context, gives the fixture's `encoded` share code and the Shared build banner; the fixtures' garbage string and newer version links each show "This link does not hold a build." and "This link comes from a newer version." with Start from an empty bench, which empties the bench; the poster downloads as night-rig.png at 2400 × 3000 and 3840 × 2160 (read from the PNG header); save, rename, load and delete a build, then at constants.maxSavedBuilds one more save asks "Replace the oldest?", keeps the count, and replacing drops the oldest.
+- Fault found by the link test: with ?hook=1 the boot ignored the URL hash, so the hook could not arrive on a link the way a visitor does. The hook boot now lands on a link the same way.
+- Thumbnails: `npm run thumbs` re-rendered all 55 from the Inspector (23 changed, three drive thumbnails fixed, see Decisions).
+- README.md written (what it is, run, test, how the kit and the Partner work, Vercel free plan deploy). vercel.json: buildCommand npm run build, outputDirectory dist, framework vite.
+- `npx playwright test --project=chromium`: 32 passed. `npx vitest run`: 279 passed. Typecheck clean. check:copy 0 problems (142 files).
 
 ## Environment
 
@@ -233,6 +242,13 @@ One line each: the question, what you chose, which step of the decision rule set
 - Power path order: supply LED, board, cooler, memory, card, then fans and case together (case lighting hangs off the case hub with the fans). Steps 0.22 s apart, each waking over 0.5 s, fans ramp 1.5 s; off: light falls over 1.1 s, fans coast 3 s. Exposure lifts with the share of light awake, not at the first frame.
 - Airflow: streams are cubic curves from a point on an intake fan's disk to a point on an exhaust's, leaving each fan along its axis. Where parts are in the way a stream bows toward the glass by the least amount that clears them (air over the face of the card); a stream that cannot clear inside the chamber is re-drawn. Air passes through fans, radiators and an air cooler's fins. With no fans on a side, the empty mounts on that side breathe faintly. Speed follows load and fan spin; color runs from intake air (tempMin hue) to the build's average simulated temperature through the Thermal hue map. Seeded, so frozen frames repeat.
 - The Showcase load readout counts as a bottom inset, so the camera frames the rig above it.
+- Exploded view: the board family comes out toward the open side in layers (board 70, NVMe 120, processor 150, memory 175, card and its support 215, cooler head 260 mm), the radiator out through the panel it sits under, the supply and bay drives back out of their bays, fans along their own axis away from the middle except tray and floor fans, which come forward (into the tray they vanished behind it, down they went into the desk). The glass goes out furthest (340 mm) at 35 percent. Cables and tubes fade. The camera glides to an `exploded` view further round to the front, so depth layers separate on screen. Labels are two callout columns split at the middle, sorted top to bottom, so leaders never cross; they stay when the interface is hidden because they belong to the view. A pale finish takes a lower room level apart, where its frost parts out of the case bloomed under the softboxes.
+- Showcase tour: one closed smooth path through key frames built from the rig's views (arc round the hero, gpu-wide, cooler-wide low and high, fan-wide), 29 s a loop, starting from wherever the camera is. Starts 2.5 s after entering Showcase, stops on any controls input or programmatic camera move, resumes after 8 s idle; never with reduced motion, a frozen clock or the Inspector open; excluded from settle().
+- Poster: rendered offscreen at full size with pixel ratio 1, from the hero view with the text area as a camera inset (portrait: the bottom 34 percent, landscape: the left 36 percent), then the name, an eight line spec list, the power line and the product name on a 2D canvas over a scrim of --bg. Half size when the tier is low or the frame exceeds the device's texture, renderbuffer or viewport limits, said in the dialog.
+- Intro: one World timeline: exposure from 0.22 up and the room level in, the title and subtitle fade (the overlay reads them each frame), the power on sequence nested at 1.6 s, the camera from 1.35 × the hero distance to the hero over 6 s. Any input ends it at its last frame; reduced motion shows the end frame for 1.8 s.
+- Gate 8 first look (shots/peek/g8-a.log), faults found and fixed: motion/intro-100 showed the start overlay because the overlay saw the scrubbed intro already ended and played a new one (World.introDone now marks it played once); the phone Showcase load readout shrink-wrapped and wrapped after a separator dot (temperatures are one unit on their own line, the strip spans the width on phones); on tablets the readout overlapped the build name and the lighting side sheet (readout moved below the name row, side sheets start below it while powered).
+- Inspector shots changed between two runs of the same code: the turntable's slow turn ran between opening the part and freezing the clock. The turn is now Inspector.spin, an offset over the requested angle that a frozen clock sets to 0, so every frozen Inspector frame shows exactly the asked angle.
+- Thumbnails re-rendered from the Inspector (step 2): 23 changed since they were last made (lighting and diffuser changes since Phase 4). Found a fault: scripts/thumbs.mjs passed the catalog id to the Inspector, which shows storage by its type, so all three drive thumbnails were the NVMe. It now uses the front shot's inspect id; arrow, flint and vault thumbnails are each their own drive (opened).
 - Critic 277 (light presets): passed aurora, spectrum, thermal, blackout, override; failed ember and reactor (X13: the room stayed violet in a dim comet or breathing frame) and ice, vapor, starfield (X14: pale colors washed out on the memory bars). Measured the LED average: aurora and spectrum peak near 0.85, ember and reactor near 0.16 at this frame, so a linear wall wash fell to a fifth. Fixes: the wall wash and desk pools take roomShare(peak), 0.85 × (peak / 0.85)^0.3 below 0.85 and linear above (bright presets unchanged); memory bar diffusers run 0.34 and 0.38 instead of 0.42 and 0.48; the diffuser luminance ceiling drops to 40 percent for a color with no saturation, scaling up to the full ceiling for a saturated one. Ember's wall went from rgb(70, 54, 101) to rgb(88, 56, 102) (scripts/pixel.mjs 1150 230 40).
 
 ## Dependencies added

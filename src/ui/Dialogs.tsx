@@ -1,8 +1,8 @@
 import { useState, type KeyboardEvent } from 'react';
 import { K } from '../data/catalog';
 import { decode, encode, shareUrl } from '../engine/codec';
-import { emptyBench, loadBuild, say, updateSettings } from '../state/actions';
-import { newId, resetAll, saveSaved, type SavedBuild } from '../state/persist';
+import { emptyBench, loadBuild, saveCurrentBuild, say, updateSettings } from '../state/actions';
+import { resetAll, saveSaved, type SavedBuild } from '../state/persist';
 import { DEFAULT_UI, store } from '../state/store';
 import { closeDialog } from './uiActions';
 import { useApp } from './hooks';
@@ -84,12 +84,8 @@ function SavedDialog() {
   const [draft, setDraft] = useState('');
   const [full, setFull] = useState(false);
   const put = (list: SavedBuild[]) => { store.setState({ saved: list }); saveSaved(list); };
-  const entry = (): SavedBuild => ({ id: newId(), name: build.name || 'Untitled build', code: encode(build), savedAt: Date.now() });
-  const save = () => {
-    if (saved.length >= K.maxSavedBuilds) { setFull(true); return; }
-    put([entry(), ...saved]); say(`${build.name || 'Untitled build'} saved.`);
-  };
-  const replaceOldest = () => { put([entry(), ...saved.slice(0, K.maxSavedBuilds - 1)]); setFull(false); say('Saved over the oldest build.'); };
+  const save = () => { if (saveCurrentBuild() === 'full') setFull(true); };
+  const replaceOldest = () => { saveCurrentBuild(true); setFull(false); };
   const load = (e: SavedBuild) => {
     const d = decode(e.code);
     if ('error' in d) { say('This saved build could not be read.'); return; }

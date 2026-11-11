@@ -59,6 +59,10 @@ const BLUR_TO = 34;
 /** The supply's status light, a small green LED above its switch. */
 const SUPPLY_LED = 3;
 const GLOW_EVERY_MS = 100;
+/** The intro starts this much further out than the hero view, with the exposure this low, and lasts this long. */
+const INTRO_PULL = 1.35;
+const INTRO_DARK = 0.22;
+const INTRO_SECONDS = 6;
 /** The average LED level, linear, at which --rig-glow reaches its full strength. */
 const GLOW_FULL = 0.2;
 
@@ -307,6 +311,62 @@ export class World {
     return out;
   }
 
+  /** What the intro's title shows, from 0 to 1, read by the intro overlay each frame. */
+  readonly intro = { title: 0, subtitle: 0 };
+  introTl: gsap.core.Timeline | null = null;
+  /** True once the intro has run, been skipped or been set up for a scrub: it plays once. */
+  introDone = false;
+
+  /**
+   * The intro: a dark room, the name fades in, the house build powers on along its path, and the camera pushes in slowly from
+   * further out, about six seconds. still: the end frame at once, for reduced motion. scrub: built paused for the hook.
+   * onDone runs when it ends, also when it is skipped.
+   */
+  playIntro(how: 'motion' | 'still' | 'scrub', onDone?: () => void): gsap.core.Timeline | null {
+    this.introTl?.kill();
+    const s = this.store.getState();
+    const hero = this.views.hero;
+    this.introDone = true;
+    const end = () => { this.introTl = null; this.store.setState({ power: sheet(this.store.getState().build).canPowerOn, instant: true }); onDone?.(); };
+    if (!hero || how === 'still') {
+      if (hero) this.jump('hero');
+      this.powerSeq.run(true, 'instant');
+      this.level.exposure = 1; this.room.setLevel(roomLevel(s.mode, s.build.case?.finish));
+      this.intro.title = 1; this.intro.subtitle = 1;
+      end();
+      return null;
+    }
+    const wide = hero.target.clone().add(hero.pos.clone().sub(hero.target).multiplyScalar(INTRO_PULL)).add(new THREE.Vector3(0, -0.04, 0));
+    const room = { k: 0 };
+    const cam = { t: 0 };
+    // Its own object: the power sequence clears every tween on this.level when it starts.
+    const ex = { v: INTRO_DARK };
+    const apply = () => {
+      this.camera.position.lerpVectors(wide, hero.pos, cam.t);
+      this.controls.target.copy(hero.target);
+      this.controls.update();
+      this.room.setLevel(room.k);
+      this.level.exposure = ex.v;
+      this.dirty = true;
+    };
+    this.powerSeq.run(false, 'instant');
+    this.level.exposure = INTRO_DARK; this.intro.title = 0; this.intro.subtitle = 0;
+    room.k = 0; cam.t = 0; apply();
+    const tl = gsap.timeline({ paused: how === 'scrub', data: 'intro', onUpdate: apply, onComplete: end });
+    tl.to(ex, { v: 1, duration: 2.6, ease: 'power2.inOut' }, 0.2);
+    tl.to(room, { k: roomLevel(s.mode, s.build.case?.finish), duration: 2.4, ease: 'power2.inOut' }, 0.6);
+    tl.to(this.intro, { title: 1, duration: 1.2, ease: 'power2.out' }, 0.4);
+    tl.to(this.intro, { subtitle: 1, duration: 1.2, ease: 'power2.out' }, 0.9);
+    const power = this.powerSeq.run(true, 'motion', true);
+    if (power) tl.add(power.paused(false), 1.6);
+    tl.to(cam, { t: 1, duration: INTRO_SECONDS, ease: 'sine.inOut' }, 0);
+    this.introTl = tl;
+    return tl;
+  }
+
+  /** Any input during the intro ends it at its last frame. */
+  finishIntro() { this.introTl?.progress(1); }
+
   /** Apart or together. When it ends, the LED lamps and shadows are laid out again where the parts now are. */
   private setExploded(on: boolean, mode: 'instant' | 'motion' | 'fade') {
     const L = CASE_LAYOUTS[this.rig.caseId ?? ''];
@@ -351,6 +411,7 @@ export class World {
     this.inspector.show(i.category, i.id, opts, Boolean((i as { flip?: boolean }).flip));
     this.inspector.angle = i.angle;
     this.inspector.elevation = INSPECT_ELEVATION;
+    this.inspector.spin = 0;
     this.inspector.zoom = i.zoom;
     this.inspector.focus = (i as { focus?: [number, number, number] }).focus ?? null;
     this.showingInspector = true;

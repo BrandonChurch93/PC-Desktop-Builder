@@ -32,7 +32,8 @@ for (const [cat, key] of Object.entries(CATEGORIES)) {
     for (const finish of finishes) {
       const opts = { ...inspect[4], ...(finish ? { finish } : {}) };
       const file = finish ? `${OUT}/case-${part.id}-${finish}.jpg` : `${OUT}/${cat}-${part.id}.jpg`;
-      jobs.push({ file, steps: [['inspect', cat, part.id, inspect[3], opts], ...rest] });
+      // The Inspector takes the id the shot uses: storage is shown by its type, not its catalog id.
+      jobs.push({ file, steps: [['inspect', cat, inspect[2], inspect[3], opts], ...rest] });
     }
   }
 }

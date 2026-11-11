@@ -52,7 +52,7 @@
 
 .under {
   position: fixed;
-  top: calc(var(--inset) + 56px);
+  top: calc(var(--inset) + 92px);
   left: 50%;
   z-index: 12;
   translate: -50% 0;
@@ -134,6 +134,13 @@
   background: var(--line-strong);
 }
 
+.temps {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  white-space: nowrap;
+}
+
 .temp b {
   color: var(--ink);
   font-weight: 600;
@@ -179,5 +186,16 @@
     height: 0;
     margin: 0;
     background: none;
+  }
+
+  .temps {
+    justify-content: center;
+    padding-bottom: 4px;
+  }
+
+  .bottom {
+    left: var(--inset);
+    right: var(--inset);
+    translate: none;
   }
 }

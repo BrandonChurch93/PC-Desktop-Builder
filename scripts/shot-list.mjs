@@ -22,6 +22,8 @@ import fs from 'node:fs';
 
 const catalog = JSON.parse(fs.readFileSync('kit/data/catalog.json', 'utf8'));
 const FREEZE = ['freeze', 3.2];
+const fixtures = JSON.parse(fs.readFileSync('kit/data/fixtures.json', 'utf8'));
+const fixtureCode = (id) => fixtures.presets.find((p) => p.id === id).encoded;
 const SHOTS = {};
 
 const lit = (preset, view) => [['load', preset], ['mode', 'showcase'], ['set', { ui: false, glass: true, power: true, load: 0 }], ['cam', view], FREEZE];
@@ -109,6 +111,19 @@ for (const p of [0, 25, 50, 75, 100]) {
   SHOTS[`motion/power-on-${String(p).padStart(3, '0')}`] = { steps: [['mode', 'showcase'], ['set', { ui: false }], ['scrub', 'power-on', p / 100], ['cam', 'hero'], FREEZE] };
 }
 
+// The exploded view of each preset, lit, from the view the mode glides to, with its labels.
+for (const p of catalog.presets) {
+  SHOTS[`mode/exploded-${p.id}`] = { steps: [['load', p.id], ['mode', 'exploded'], ['set', { ui: false, glass: true, power: true, load: 0 }], ['cam', 'exploded'], FREEZE] };
+}
+SHOTS['mode/showcase'] = { steps: [['load', 'night-rig'], ['act', { type: 'name', name: 'Night Rig' }], ['mode', 'showcase'], ['set', { ui: true, glass: true, power: true, load: 1 }], ['cam', 'hero'], FREEZE] };
+SHOTS['mode/inspector'] = { steps: [['load', 'night-rig'], ['inspect', 'gpu', 'apex3x', -28, { zoom: 0 }], FREEZE] };
+for (const p of [0, 25, 50, 75, 100]) {
+  const n = String(p).padStart(3, '0');
+  SHOTS[`motion/explode-${n}`] = { steps: [['set', { ui: false }], ['scrub', 'explode', p / 100], ['cam', 'exploded'], FREEZE] };
+  // The intro shows its own overlay, the name, over the scene; the rest of the interface is behind it.
+  SHOTS[`motion/intro-${n}`] = { steps: [['scrub', 'intro', p / 100], FREEZE] };
+}
+
 // Install sequences scrubbed to five points, each from a view wide enough for the travel and close enough for the fastening.
 const MOTION_VIEW = { 'install-gpu': 'gpu-wide', 'install-ram': 'ram-wide', 'install-cooler': 'gpu-wide', 'install-nvme': 'nvme-wide', 'install-cpu': 'cpu-wide', 'install-fan': 'rear-fan-wide', 'install-psu': 'psu-wide' };
 for (const [seq, view] of Object.entries(MOTION_VIEW)) for (const p of [0, 25, 50, 75, 100]) {
@@ -140,10 +155,26 @@ const lightingOpen = [['set', { power: true, load: 0 }], ['act', { type: 'recent
 SHOTS['ui-desktop/09-lighting'] = { steps: ui(lightingOpen) };
 SHOTS['ui-desktop/10-power'] = { steps: ui([['set', { power: true, load: 0.62 }]]) };
 SHOTS['ui-desktop/11-airflow'] = { steps: ui([['set', { power: true, load: 0.62, airflow: true }]]) };
+SHOTS['ui-desktop/01-intro'] = { steps: [['scrub', 'intro', 0.62], FREEZE] };
+SHOTS['ui-desktop/01-start'] = { steps: [['load', 'night-rig'], ['set', { ui: true }], ['open', 'start'], ['cam', 'hero'], FREEZE] };
+SHOTS['ui-desktop/07-inspector'] = { steps: [['load', 'night-rig'], ['set', { ui: true }], ['inspect', 'gpu', 'apex3x', -28, { zoom: 0 }], FREEZE] };
+SHOTS['ui-desktop/10-showcase'] = { steps: ui([['mode', 'showcase'], ['set', { power: true, load: 1 }]]) };
+SHOTS['ui-desktop/12-exploded'] = { steps: [['load', 'night-rig'], ['set', { ui: true }], ['act', { type: 'name', name: 'Night Rig' }], ['mode', 'exploded'], ['set', { power: true }], ['cam', 'exploded'], FREEZE] };
+const saves = [['act', { type: 'name', name: 'Windbreak' }], ['act', { type: 'saveBuild' }], ['load', 'pocket'], ['act', { type: 'name', name: 'Pocket' }], ['act', { type: 'saveBuild' }], ['load', 'night-rig'], ['act', { type: 'name', name: 'Night Rig' }], ['act', { type: 'saveBuild' }]];
+SHOTS['ui-desktop/13-share'] = { steps: ui([['open', 'share']]) };
+SHOTS['ui-desktop/13-poster'] = { steps: ui([['open', 'poster']]) };
+SHOTS['ui-desktop/13-saved'] = { steps: [['load', 'windbreak'], ['set', { ui: true }], ...saves, ['open', 'saved'], ['cam', 'hero'], FREEZE] };
+SHOTS['ui-desktop/13-settings'] = { steps: ui([['open', 'settings']]) };
+SHOTS['ui-desktop/13-about'] = { steps: ui([['open', 'about']]) };
+// A shared link landing: Showcase, the banner and the power on, as a visitor arrives on the Flagship's link.
+const shared = [['link', fixtureCode('flagship')], ['set', { ui: true }], ['cam', 'hero'], FREEZE];
+SHOTS['ui-desktop/14-shared'] = { steps: shared };
 for (const [o, width, height] of [['landscape', 1180, 820], ['portrait', 820, 1180]]) {
   SHOTS[`ui-tablet/${o}-build`] = { width, height, touch: true, steps: ui(inProgress) };
   SHOTS[`ui-tablet/${o}-spec-sheet`] = { width, height, touch: true, steps: ui([...warned, ['open', 'sheet']]) };
   SHOTS[`ui-tablet/${o}-drag`] = { width, height, touch: true, steps: held(noFans, ['fan', 'gale', 6]) };
+  SHOTS[`ui-tablet/${o}-lighting-sheet`] = { width, height, touch: true, steps: ui([['set', { power: true, load: 0 }], ['open', 'lighting']]) };
+  SHOTS[`ui-tablet/${o}-share-dialog`] = { width, height, touch: true, steps: ui([['open', 'share']]) };
 }
 const phone = { width: 390, height: 844, touch: true };
 SHOTS['ui-phone/empty-bench'] = { ...phone, steps: emptyBench };
@@ -151,6 +182,13 @@ SHOTS['ui-phone/peek'] = { ...phone, steps: ui([['open', 'peek'], ['open', 'tab-
 SHOTS['ui-phone/half'] = { ...phone, steps: ui([['open', 'half'], ['open', 'parts'], ['open', 'tab-ram']]) };
 SHOTS['ui-phone/full'] = { ...phone, steps: ui([['open', 'full'], ['open', 'parts'], ['open', 'tab-case']]) };
 SHOTS['ui-phone/specs'] = { ...phone, steps: ui([['open', 'half'], ['open', 'specs']]) };
+SHOTS['ui-phone/start'] = { ...phone, steps: [['load', 'night-rig'], ['set', { ui: true }], ['open', 'start'], ['cam', 'hero'], FREEZE] };
+SHOTS['ui-phone/inspector'] = { ...phone, steps: [['load', 'night-rig'], ['set', { ui: true }], ['inspect', 'gpu', 'apex3x', -28, { zoom: 0 }], FREEZE] };
+SHOTS['ui-phone/spec-sheet'] = { ...phone, steps: ui([...warned, ['open', 'sheet']]) };
+SHOTS['ui-phone/showcase'] = { ...phone, steps: ui([['mode', 'showcase'], ['set', { power: true, load: 1 }]]) };
+const phoneWide = { width: 844, height: 390, touch: true };
+SHOTS['ui-phone/landscape-build'] = { ...phoneWide, steps: ui(inProgress) };
+SHOTS['ui-phone/landscape-showcase'] = { ...phoneWide, steps: ui([['mode', 'showcase'], ['set', { power: true, load: 1 }]]) };
 SHOTS['ui-phone/lighting'] = { ...phone, steps: ui([['set', { power: true, load: 0 }], ['open', 'half'], ['open', 'lighting-tab']]) };
 SHOTS['ui-phone/drag'] = { ...phone, steps: held([['act', { type: 'remove', category: 'gpu' }], ['open', 'tab-gpu']], ['gpu', 'apex2x', 0]) };
 

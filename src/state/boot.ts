@@ -36,6 +36,9 @@ export function boot(hook: boolean) {
   const reducedMotion = settings.reducedMotion === 'on' || systemReducedMotion();
   store.setState({ settings, quality: settings.quality, reducedMotion, saved: loadSaved(), profiles: loadProfiles(), ui: DEFAULT_UI });
   if (hook) {
+    // A link arrives the same way with the hook as without it.
+    const link = codeFromHash(location.hash);
+    if (link) { history.replaceState(null, '', location.pathname + location.search); landOnLink(link); return; }
     // A fresh context has nothing saved, so harness frames always start on the house build; a reload in a test restores.
     const saved = read(KEYS.current);
     const d = saved ? decode(saved) : null;

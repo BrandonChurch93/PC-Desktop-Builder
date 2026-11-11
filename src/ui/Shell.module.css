@@ -169,3 +169,8 @@
     right: calc(320px + 2 * var(--inset));
   }
 }
+
+/* With the power on the tablet's load readout sits under the top bar; the side sheets start below it. */
+.sheetLow {
+  top: calc(var(--inset) + 148px);
+}

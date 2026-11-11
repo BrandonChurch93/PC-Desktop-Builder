@@ -76,6 +76,7 @@ export function installHook(world: World) {
         case 'finish': if (action.finish) A.setCaseFinish(action.finish, instant); break;
         case 'lighting': if (action.patch) A.setLighting(action.patch as Partial<Lighting>); break;
         case 'lightingPreset': if (action.id) A.applyLightingPreset(action.id); break;
+        case 'saveBuild': A.saveCurrentBuild(); break;
         case 'targetMode': if (action.target && action.mode) A.setTargetMode(action.target, action.mode); break;
         case 'scopeLighting': if (action.patch) A.setScopeLighting(action.target ?? null, action.patch as Partial<Profile>); break;
         /** Colors picked in the color picker this session, oldest first, as the Recent row shows them. */
@@ -126,6 +127,17 @@ export function installHook(world: World) {
      * with that part taken out.
      */
     async scrub(sequence: string, progress: number) {
+      if (sequence === 'intro') {
+        const base = revalidate(buildFromPreset(getPreset('night-rig')!)).build;
+        store.setState({ build: base, mode: 'build', power: false, instant: true, inspect: null, held: null, selected: null, uiHidden: false });
+        await world.settle();
+        const tl = world.playIntro('scrub');
+        store.setState({ ui: { ...store.getState().ui, overlay: 'intro' } });
+        tl?.progress(Math.max(0, Math.min(1, progress)));
+        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+        await world.renderNow(2);
+        return;
+      }
       if (sequence === 'explode') {
         const base = revalidate(buildFromPreset(getPreset('night-rig')!)).build;
         store.setState({ build: base, mode: 'build', instant: true, inspect: null, held: null, selected: null });

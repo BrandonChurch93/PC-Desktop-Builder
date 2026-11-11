@@ -137,6 +137,8 @@ export class Inspector {
   private light = new TurntableGlow();
   private lights: { key: THREE.RectAreaLight; fill: THREE.RectAreaLight; rim: THREE.RectAreaLight; sheen: THREE.RectAreaLight };
   angle = 0;
+  /** The slow turn on top of the angle, in degrees; a frozen frame drops it, so a shot shows exactly the angle asked for. */
+  spin = 0;
   zoom = 0;
   elevation = INSPECT_ELEVATION;
   focus: [number, number, number] | null = null;
@@ -306,7 +308,7 @@ export class Inspector {
   /** Places the camera from the turntable angle, zoom and focus. */
   frame(aspect: number) {
     this.camera.aspect = aspect;
-    this.table.rotation.y = (this.angle * Math.PI) / 180;
+    this.table.rotation.y = ((this.angle + this.spin) * Math.PI) / 180;
     const fovR = (FOV * Math.PI) / 360;
     const fit = Math.max(this.radius / Math.sin(fovR), (this.radius / Math.sin(fovR)) / Math.min(1, aspect)) * 1.02;
     const near = 0.12;

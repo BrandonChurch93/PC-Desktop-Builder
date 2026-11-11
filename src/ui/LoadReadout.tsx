@@ -17,12 +17,14 @@ export const LoadReadout = forwardRef<HTMLDivElement, { where: 'top' | 'under' |
       <input id={id} type="range" min={0} max={100} step={1} value={pct} className={s.range} style={{ '--pct': `${pct}%` } as React.CSSProperties}
         aria-valuetext={`${pct} percent`} onChange={(e) => store.setState({ load: Number(e.target.value) / 100 })} />
       <span className={s.value}>{pct} percent</span>
-      {(t.cpuC !== null || t.gpuC !== null) && <span className={s.sep} aria-hidden="true" />}
-      {t.cpuC !== null && <span className={s.temp}>Processor <b>{t.cpuC} °C</b></span>}
-      {t.cpuC !== null && t.gpuC !== null && <span className={s.dot} aria-hidden="true">·</span>}
-      {t.gpuC !== null && <span className={s.temp}>Graphics <b>{t.gpuC} °C</b></span>}
-      <span className={s.dot} aria-hidden="true">·</span>
-      <span className={s.sim}>Simulated</span>
+      <span className={s.sep} aria-hidden="true" />
+      <span className={s.temps}>
+        {t.cpuC !== null && <span className={s.temp}>Processor <b>{t.cpuC} °C</b></span>}
+        {t.cpuC !== null && t.gpuC !== null && <span className={s.dot} aria-hidden="true">·</span>}
+        {t.gpuC !== null && <span className={s.temp}>Graphics <b>{t.gpuC} °C</b></span>}
+        {(t.cpuC !== null || t.gpuC !== null) && <span className={s.dot} aria-hidden="true">·</span>}
+        <span className={s.sim}>Simulated</span>
+      </span>
     </div>
   );
 });

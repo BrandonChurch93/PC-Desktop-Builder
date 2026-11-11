@@ -29,8 +29,9 @@ export class Turntable {
 
   /** The slow turn, unless the clock is frozen or someone touched it a moment ago. */
   step(dt: number, frozen: boolean) {
-    if (!this.active || frozen || this.pointers.size || performance.now() - this.lastTouch < RESUME_MS) return false;
-    this.insp.angle = (this.insp.angle + SPIN * dt) % 360;
+    if (frozen) { this.insp.spin = 0; return false; }
+    if (!this.active || this.pointers.size || performance.now() - this.lastTouch < RESUME_MS) return false;
+    this.insp.spin = (this.insp.spin + SPIN * dt) % 360;
     return true;
   }
 

@@ -5,7 +5,7 @@ import { buildFromPreset, clearFans, emptyBuild, fillFans, install, remove, reva
 import { lightingFromPreset, sanitizeLighting } from '../engine/sanitize';
 import { sheet } from '../engine/sheet';
 import type { ActionOpts, Build, Lighting, Profile, Removed } from '../engine/types';
-import { KEYS, newId, saveProfiles, saveSettings, write } from './persist';
+import { KEYS, newId, saveProfiles, saveSaved, saveSettings, write } from './persist';
 import { store, type Notice, type State } from './store';
 
 let noticeId = 0;
@@ -241,6 +241,21 @@ export function applyProfileTo(target: LightTarget | null, p: Profile, name: str
   }
   setScopeLighting(target, profileOf(p));
   say(`${name} applied to ${LABELS.lightTarget[target]}.`);
+}
+
+/**
+ * Saves the current build at the top of the saved list. When the list is full it changes nothing and says so, unless asked
+ * to replace the oldest.
+ */
+export function saveCurrentBuild(replaceOldest = false): 'saved' | 'full' {
+  const s = store.getState();
+  if (s.saved.length >= K.maxSavedBuilds && !replaceOldest) return 'full';
+  const name = s.build.name || 'Untitled build';
+  const keep = s.saved.length >= K.maxSavedBuilds ? s.saved.slice(0, K.maxSavedBuilds - 1) : s.saved;
+  const saved = [{ id: newId(), name, code: encode(s.build), savedAt: Date.now() }, ...keep];
+  store.setState({ saved, announce: replaceOldest ? 'Saved over the oldest build.' : `${name} saved.` });
+  saveSaved(saved);
+  return 'saved';
 }
 
 const RECENT_COLORS = 8;

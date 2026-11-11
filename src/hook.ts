@@ -2,12 +2,28 @@ import gsap from 'gsap';
 import type { Category } from './data/catalog';
 import { getPreset } from './data/catalog';
 import { decode, encode } from './engine/codec';
-import { buildFromPreset, emptyBuild, revalidate, setFinish } from './engine/rules';
+import { buildFromPreset, emptyBuild, remove, revalidate, setFinish } from './engine/rules';
 import * as A from './state/actions';
-import type { ActionOpts, Lighting } from './engine/types';
+import type { ActionOpts, Build, Lighting } from './engine/types';
 import { sheet } from './engine/sheet';
 import { store, type DialogName, type Mode, type Quality } from './state/store';
+import { socketsFor } from './engine/queries';
+import { forcePlace } from './world/layout/force';
 import type { World } from './world/World';
+
+/** The install sequences: each runs on the Night Rig with that part taken out. */
+const INSTALLS: Record<string, { category: Category; id: string; opts: ActionOpts; without: (b: Build) => Build }> = {
+  'install-gpu': { category: 'gpu', id: 'apex3x', opts: {}, without: (b) => remove(b, 'gpu').build },
+  'install-ram': { category: 'ram', id: 'facet32', opts: {}, without: (b) => remove(b, 'ram', { index: 0 }).build },
+  'install-cooler': { category: 'cooler', id: 'tarn360-lux', opts: { mount: 'top' }, without: (b) => remove(b, 'cooler').build },
+  'install-nvme': { category: 'storage', id: 'nvme', opts: {}, without: (b) => remove(b, 'storage', { type: 'nvme' }).build },
+  'install-cpu': { category: 'cpu', id: 'ember8', opts: {}, without: (b) => remove(b, 'cpu').build },
+  'install-fan': { category: 'fan', id: 'gale-lux', opts: { mount: 'rear-1' }, without: (b) => remove(b, 'fan', { mount: 'rear-1' }).build },
+  'install-psu': { category: 'psu', id: 't850', opts: {}, without: (b) => remove(b, 'psu').build },
+};
+
+const selectionKey = (category: Category, o: { index?: number; type?: string; mount?: string }) =>
+  category === 'ram' ? `ram:${o.index ?? 0}` : category === 'storage' ? `storage:${o.type ?? 'nvme'}` : category === 'fan' ? `fan:${o.mount ?? ''}` : category;
 
 type SetArgs = { power?: boolean; glass?: boolean; airflow?: boolean; load?: number; quality?: Quality; ui?: boolean; reducedMotion?: boolean };
 
@@ -83,9 +99,57 @@ export function installHook(world: World) {
       await world.settle();
     },
     /** Holds a part as placing by tap, so its sockets show; with an index, the keyboard's active socket is that one. */
+    /** Shows a held part at a socket preview, valid or blocked, for drag shots. With no index it shows every socket and holds the part clear of them. */
     async hold(category: Category, id: string, socket?: number) {
-      store.setState({ held: { category, id, how: socket === undefined ? 'tap' : 'keys', socket: socket ?? null } });
+      world.hands.holdAt(category, id, socket);
       await world.settle();
+      world.choreo.resetGlass();
+      await world.renderNow(2);
+    },
+    /** Selects an installed part and shows its selection menu. opts names the memory index, the storage type or the fan mount. */
+    async select(category: Category, opts: { index?: number; type?: string; mount?: string } = {}) {
+      store.setState({ selected: { category, key: selectionKey(category, opts), opts }, instant: true });
+      await world.settle();
+    },
+    /**
+     * Sets up a named sequence from its start state and jumps it to a progress from 0 to 1. The installs run on the Night Rig
+     * with that part taken out.
+     */
+    async scrub(sequence: string, progress: number) {
+      const inst = INSTALLS[sequence];
+      if (!inst) throw new Error(`no sequence ${sequence}`);
+      const base = revalidate(buildFromPreset(getPreset('night-rig')!)).build;
+      store.setState({ build: inst.without(base), instant: true, inspect: null, held: null, selected: null });
+      await world.settle();
+      world.choreo.scrubbing = true;
+      const r = A.installPart(inst.category, inst.id, inst.opts, false);
+      world.choreo.scrubbing = false;
+      if (!r.ok) throw new Error(`scrub ${sequence}: ${r.code}`);
+      world.choreo.last?.progress(Math.max(0, Math.min(1, progress)));
+      world.markDirty();
+      await world.renderNow(2);
+    },
+    /** Every place a part could go, with its screen center in client pixels, so a test can drag there with real input. */
+    places(category: Category, id: string) {
+      const b = store.getState().build;
+      return socketsFor(b, category, id).map((s) => {
+        let placed = forcePlace(b, s.category, s.id, s.opts);
+        if (s.category === 'cooler' && placed.some((p) => p.kind === 'radiator')) placed = placed.filter((p) => p.kind === 'radiator');
+        const c = world.screenOfBoxes(placed.flatMap((p) => p.boxes));
+        return { key: s.key, ok: s.ok, message: s.message ?? null, x: c?.x ?? null, y: c?.y ?? null };
+      });
+    },
+    /** The screen center of an installed part, in client pixels, or null. */
+    screen(category: Category, opts: { index?: number; type?: string; mount?: string } = {}) {
+      const item = world.itemFor(category, opts);
+      return item ? world.screenOfBoxes(item.placed.boxes) : null;
+    },
+    /** Where a part's object is right now, in mm in case space, and its opacity; null when it has no object. */
+    pose(category: Category, opts: { index?: number; type?: string; mount?: string } = {}) {
+      const item = world.itemFor(category, opts);
+      if (!item) return null;
+      const p = item.holder.position;
+      return { position: [p.x, p.y, p.z].map((v) => Math.round(v * 100) / 100), opacity: Math.round(world.choreo.opacity(item) * 1000) / 1000 };
     },
     async finish(f: string) { store.setState({ build: setFinish(store.getState().build, f), instant: true }); await world.settle(); },
     async cam(view: string) { if (!world.jump(view)) throw new Error(`no view ${view}`); await world.settle(); },
@@ -109,6 +173,8 @@ export function installHook(world: World) {
     timing: () => ({ firstFrameMs: Math.round(world.firstFrame) }),
     build: () => ({ build: store.getState().build, code: encode(store.getState().build) }),
     camera: () => world.cameraInfo(),
+    /** The selected part, or null. */
+    selected: () => store.getState().selected,
     tier: () => ({ setting: store.getState().quality, active: world.tier }),
     sheet: () => sheet(store.getState().build),
     zones: () => world.rgb.snapshot(),

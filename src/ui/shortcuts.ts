@@ -3,6 +3,7 @@ import { redo, removePart, setGlass, setPower, undo } from '../state/actions';
 import { store, type Mode } from '../state/store';
 import { cancelPlacing } from './activate';
 import { setUi } from './uiActions';
+import { getWorld } from './worldRef';
 
 const typing = (t: EventTarget | null) => t instanceof HTMLElement && (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName));
 const setMode = (mode: Mode) => store.setState({ mode, selected: null, held: null });
@@ -23,7 +24,9 @@ export function installShortcuts(): () => void {
     if (s.ui.dialog) return;
     switch (e.key) {
       case 'Escape':
-        if (s.held) { cancelPlacing(); return; }
+        if (s.held) { if (getWorld()?.hands.dragging) getWorld()?.hands.cancelDrag(); else cancelPlacing(); return; }
+        if (s.ui.swap) { setUi({ swap: null }); return; }
+        if (s.focus) { getWorld()?.resetView(); return; }
         if (s.ui.menu) { setUi({ menu: false }); return; }
         if (s.inspect) { store.setState({ inspect: null }); return; }
         if (s.ui.side) { setUi({ side: null }); return; }

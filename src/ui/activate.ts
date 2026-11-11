@@ -1,7 +1,8 @@
 import { getCooler, type Category } from '../data/catalog';
 import { firstPlace, fitOf, isSinglePlace, placeCount, socketsFor, usableFanMounts } from '../engine/queries';
-import { installPart, removePart, say, setCables } from '../state/actions';
+import { installPart, removePart, say, setCables, swapPart } from '../state/actions';
 import { store } from '../state/store';
+import type { ActionOpts } from '../engine/types';
 
 /** Start placing a part: its sockets show, and a tap, a click or Enter on one installs it. */
 export function startPlacing(category: Category, id: string, how: 'tap' | 'keys' | 'drag') {
@@ -33,6 +34,13 @@ export function placeAt(index: number) {
  */
 export function activateCard(category: Category, id: string, how: 'tap' | 'enter') {
   const b = store.getState().build;
+  const swap = store.getState().ui.swap;
+  if (swap && swap.category === category) {
+    const r = swapPart(category, swap.opts as ActionOpts, id);
+    store.setState({ ui: { ...store.getState().ui, swap: null } });
+    if (!r.ok) say(fitOf(b, category, id).message ?? '');
+    return;
+  }
   if (category === 'cables') { setCables(id); return; }
   const fit = fitOf(b, category, id);
   if (fit.status === 'installed' && isSinglePlace(category)) { removePart(category); return; }

@@ -165,6 +165,12 @@ function latchPlug(run: Run, frame: THREE.Matrix4): THREE.BufferGeometry[] {
   return parts;
 }
 
+function runLength(path: V[]): number {
+  let n = 0;
+  for (let i = 1; i < path.length; i++) n += path[i]!.distanceTo(path[i - 1]!);
+  return n;
+}
+
 function sweep(points: V[], r: number, radial: number): THREE.BufferGeometry {
   const curve = new THREE.CatmullRomCurve3(points, false, 'centripetal', 0.5);
   const len = curve.getLength();
@@ -219,6 +225,8 @@ export function buildRun(run: Run, group: THREE.Group, detail = 1) {
     if (!merged) continue;
     const mesh = new THREE.Mesh(merged, color.startsWith('#') ? wireSleeve(color) : mat('rubber'));
     mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.flexible = true; mesh.name = `run:${run.name}`;
+    // For growing in: the run's length in mm (the tubes' u runs along it) and which end the supply is at.
+    mesh.userData.run = run.name; mesh.userData.length = runLength(run.path); mesh.userData.fromEnd = run.plugAt === 'start';
     group.add(mesh);
   }
   if (run.rows * run.cols < 2 && run.plugAt === 'none') return;
@@ -248,7 +256,7 @@ export function buildRun(run: Run, group: THREE.Group, detail = 1) {
   }
   if (holes.length) {
     const merged = mergeGeometries(holes.map((x) => x.toNonIndexed()), false);
-    if (merged) { const mesh = new THREE.Mesh(merged, combMat); mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.flexible = true; group.add(mesh); }
+    if (merged) { const mesh = new THREE.Mesh(merged, combMat); mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.flexible = true; mesh.name = `comb:${run.name}`; mesh.userData.run = run.name; group.add(mesh); }
   }
   for (const g of holes) g.dispose();
   comb.dispose();
@@ -264,7 +272,7 @@ function plugAt(run: Run, atEnd: boolean, T: V[], N: V[], ch: number, cw: number
     const parts = latchPlug(run, frame);
     const merged = mergeGeometries(parts.map((x) => x.toNonIndexed()), false);
     for (const g of parts) g.dispose();
-    if (merged) { const mesh = new THREE.Mesh(merged, mat('plasticDark')); mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.flexible = true; group.add(mesh); }
+    if (merged) { const mesh = new THREE.Mesh(merged, mat('plasticDark')); mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.flexible = true; mesh.name = `plug:${run.name}`; mesh.userData.run = run.name; group.add(mesh); }
   } else {
     const i = atEnd ? run.path.length - 1 : 0;
     const dir = atEnd ? T[i]!.clone() : T[i]!.clone().negate();
@@ -275,7 +283,7 @@ function plugAt(run: Run, atEnd: boolean, T: V[], N: V[], ch: number, cw: number
     clip.applyMatrix4(new THREE.Matrix4().multiplyMatrices(m, new THREE.Matrix4().makeTranslation(0, ch / 2 + 0.8, 0)));
     const merged = mergeGeometries([housing.toNonIndexed(), clip.toNonIndexed()], false);
     housing.dispose(); clip.dispose();
-    if (merged) { const mesh = new THREE.Mesh(merged, mat('plasticDark')); mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.flexible = true; group.add(mesh); }
+    if (merged) { const mesh = new THREE.Mesh(merged, mat('plasticDark')); mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.flexible = true; mesh.name = `plug:${run.name}`; mesh.userData.run = run.name; group.add(mesh); }
   }
 }
 
@@ -310,6 +318,39 @@ function openRouting(L: CaseLayout) {
     flat: (hold: V, x: number, y: number): Align[] => [{ at: hold }, { at: v(x, (y + yr) / 2, zr), normal: v(0, 0, 1) }],
     behind: (pts: V[], x: number, straight = DIMS.plugLength + 12) => filletPath([...pts, v(x, yr, zr), v(x, yr, mid)], 18, 2.5, straight, 4),
   };
+}
+
+
+/** The liquid cooler's two tubes, from the pump and the radiator where they stand now, so they flex as either moves. */
+export function coolerTubes(items: Map<string, RigItem>): THREE.Mesh[] {
+  const out: THREE.Mesh[] = [];
+  const pump = items.get('cooler'); const rad = items.get('radiator');
+  if (!pump || !rad || !pump.part.anchors.fitting0 || !rad.part.anchors.fitting0) return out;
+  const frost = rad.placed.id.includes('frost');
+  // Two tubes run side by side: each keeps its own depth along the run and meets the fitting on its own side, so they never cross.
+  const from = [0, 1].map((i) => toCase(pump, pump.part.anchors[`fitting${i}`]!)).sort((p, q) => p.p.x - q.p.x);
+  const to = [0, 1].map((i) => toCase(rad, rad.part.anchors[`fitting${i}`]!)).sort((p, q) => p.p.z - q.p.z);
+  const zMid = (to[0]!.p.z + to[1]!.p.z) / 2;
+  for (let i = 0; i < 2; i++) {
+    const a = from[i]!; const b = to[i]!;
+    const dz = i === 0 ? -9 : 9;
+    const up = a.p.clone().addScaledVector(a.d, 14);
+    const near = b.p.clone().addScaledVector(b.d, 28);
+    const side = near.clone().addScaledVector(b.d, 2); side.x -= 36 * Math.sign(b.p.x - a.p.x || 1); side.z = zMid + dz;
+    // Stepped in height as well as depth, so from the glass the two runs read as two tubes and not one thick hose.
+    if (i === 0) side.y -= 12;
+    const p1 = a.p.clone().addScaledVector(a.d, 30); p1.z = a.p.z + 14 + dz;
+    const pts = [a.p, up, p1, side, near, b.p];
+    const curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal', 0.5);
+    const len = curve.getLength();
+    const geo = new THREE.TubeGeometry(curve, Math.max(64, Math.round(len / 3)), 6.1, 18, false);
+    const uv = geo.getAttribute('uv');
+    for (let k = 0; k < uv.count; k++) uv.setXY(k, uv.getX(k) * len, uv.getY(k) * 6.1 * 2 * Math.PI);
+    const m = new THREE.Mesh(geo, sleeve(frost ? '#f1f2f5' : '#2c2c34', 2.2));
+    m.castShadow = true; m.receiveShadow = true; m.userData.flexible = true; m.name = 'tube';
+    out.push(m);
+  }
+  return out;
 }
 
 /** Everything flexible between parts: sleeved power runs, fan leads and liquid cooler tubes. Built in case space, mm. */
@@ -410,33 +451,8 @@ export function buildCables(build: Build, items: Map<string, RigItem>, detail = 
         path: filletPath([p.clone(), v(o.lane, p.y, p.z), v(o.lane, open.yr, p.z), v(o.lane, open.yr, open.mid)], 18, 2.5, DIMS.plugLength + 2, 4) });
     }
   }
-  const pump = items.get('cooler'); const rad = items.get('radiator');
-  if (pump && rad && pump.part.anchors.fitting0 && rad.part.anchors.fitting0) {
-    const frost = rad.placed.id.includes('frost');
-    // Two tubes run side by side: each keeps its own depth along the run and meets the fitting on its own side, so they never cross.
-    const from = [0, 1].map((i) => toCase(pump, pump.part.anchors[`fitting${i}`]!)).sort((p, q) => p.p.x - q.p.x);
-    const to = [0, 1].map((i) => toCase(rad, rad.part.anchors[`fitting${i}`]!)).sort((p, q) => p.p.z - q.p.z);
-    const zMid = (to[0]!.p.z + to[1]!.p.z) / 2;
-    for (let i = 0; i < 2; i++) {
-      const a = from[i]!; const b = to[i]!;
-      const dz = i === 0 ? -9 : 9;
-      const up = a.p.clone().addScaledVector(a.d, 14);
-      const near = b.p.clone().addScaledVector(b.d, 28);
-      const side = near.clone().addScaledVector(b.d, 2); side.x -= 36 * Math.sign(b.p.x - a.p.x || 1); side.z = zMid + dz;
-      // Stepped in height as well as depth, so from the glass the two runs read as two tubes and not one thick hose.
-      if (i === 0) side.y -= 12;
-      const p1 = a.p.clone().addScaledVector(a.d, 30); p1.z = a.p.z + 14 + dz;
-      const pts = [a.p, up, p1, side, near, b.p];
-      const curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal', 0.5);
-      const len = curve.getLength();
-      const geo = new THREE.TubeGeometry(curve, Math.max(64, Math.round(len / 3)), 6.1, 18, false);
-      const uv = geo.getAttribute('uv');
-      for (let k = 0; k < uv.count; k++) uv.setXY(k, uv.getX(k) * len, uv.getY(k) * 6.1 * 2 * Math.PI);
-      const m = new THREE.Mesh(geo, sleeve(frost ? '#f1f2f5' : '#2c2c34', 2.2));
-      m.castShadow = true; m.receiveShadow = true; m.userData.flexible = true; m.name = 'tube';
-      group.add(m);
-    }
-  }
+  const pump = items.get('cooler');
+  for (const t of coolerTubes(items)) group.add(t);
   const pumpCable = pump?.part.anchors.cable; const header = board?.part.anchors.fan1;
   if (pump && board && pumpCable && header) {
     const e = toCase(pump, pumpCable); const h = toCase(board, header);

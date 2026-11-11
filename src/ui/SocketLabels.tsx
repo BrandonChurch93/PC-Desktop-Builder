@@ -59,7 +59,7 @@ export function SocketLabels() {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
 
   useEffect(() => {
-    if (!held) return;
+    if (!held || held.how === 'drag') return;
     let raf = 0;
     const tick = () => {
       const w = getWorld();
@@ -90,7 +90,8 @@ export function SocketLabels() {
     return () => document.removeEventListener('keydown', onKey, true);
   }, [held, sockets.length]);
 
-  if (!held) return null;
+  // During a drag the places show in the scene and the reason follows the pointer; these labels are for tap and keys.
+  if (!held || held.how === 'drag') return null;
   const names = sockets.map((x) => socketName(build.case?.id, x));
   const placed = spread(pos, names);
   return (

@@ -37,6 +37,10 @@ export type Ui = {
   overlay: Overlay;
   /** a shared link landing: the build's name for the banner */
   shared: string | null;
+  /** the installed part being swapped: the next card of its category replaces it */
+  swap: { category: Category; opts: { index?: number; type?: string; mount?: string } } | null;
+  /** the lighting target the Lighting entry of the selection menu opened */
+  lightTarget: string | null;
 };
 
 export type State = {
@@ -65,9 +69,13 @@ export type State = {
   settings: Settings;
   saved: SavedBuild[];
   profiles: SavedProfile[];
+  /** a drag over a blocked place: the reason beside the pointer */
+  reason: { text: string; x: number; y: number } | null;
+  /** the part the camera is focused on, by its part key */
+  focus: string | null;
 };
 
-export const DEFAULT_UI: Ui = { tab: 'case', side: null, sheet: 'peek', sheetTab: 'parts', dialog: null, menu: false, overlay: null, shared: null };
+export const DEFAULT_UI: Ui = { tab: 'case', side: null, sheet: 'peek', sheetTab: 'parts', dialog: null, menu: false, overlay: null, shared: null, swap: null, lightTarget: null };
 
 export const store = createStore<State>(() => ({
   build: emptyBuild(),
@@ -92,6 +100,8 @@ export const store = createStore<State>(() => ({
   settings: DEFAULT_SETTINGS,
   saved: [],
   profiles: [],
+  reason: null,
+  focus: null,
 }));
 
 export type Store = typeof store;

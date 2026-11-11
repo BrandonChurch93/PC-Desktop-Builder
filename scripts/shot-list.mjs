@@ -89,6 +89,12 @@ for (const e of catalog.lighting.effects) {
   SHOTS[`light/effect-${e.id}`] = { steps: [['load', 'night-rig'], ['mode', 'showcase'], ['set', { ui: false, glass: true, power: true, load: 0 }], ['act', { type: 'lighting', patch: { effect: e.id } }, { instant: true }], ['cam', 'hero'], FREEZE] };
 }
 
+// Install sequences scrubbed to five points, each from a view wide enough for the travel and close enough for the fastening.
+const MOTION_VIEW = { 'install-gpu': 'gpu-wide', 'install-ram': 'ram-wide', 'install-cooler': 'gpu-wide', 'install-nvme': 'nvme-wide', 'install-cpu': 'cpu-wide', 'install-fan': 'rear-fan-wide', 'install-psu': 'psu-wide' };
+for (const [seq, view] of Object.entries(MOTION_VIEW)) for (const p of [0, 25, 50, 75, 100]) {
+  SHOTS[`motion/${seq}-${String(p).padStart(3, '0')}`] = { steps: [['set', { ui: false, power: false }], ['scrub', seq, p / 100], ['cam', view], FREEZE] };
+}
+
 // Interface shots: the interface shown, a named build, a frozen clock. A build in progress is the Night Rig before its card,
 // supply and fans; the spec sheet with warnings is the Night Rig on a 650 W supply.
 const ui = (pre) => [['load', 'night-rig'], ['set', { ui: true }], ['act', { type: 'name', name: 'Night Rig' }], ...pre, ['cam', 'hero'], FREEZE];

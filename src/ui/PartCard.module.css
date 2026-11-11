@@ -16,6 +16,9 @@
   border-radius: var(--radius-card);
   background: var(--raise);
   scroll-snap-align: start;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
   transition: border-color var(--dur-control) var(--ease-out), background var(--dur-control) var(--ease-out), opacity var(--dur-control) var(--ease-out);
 }
 

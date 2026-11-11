@@ -1,15 +1,18 @@
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
+import { OutlinePass } from 'three/addons/postprocessing/OutlinePass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { Pass } from 'three/addons/postprocessing/Pass.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { CopyShader } from 'three/addons/shaders/CopyShader.js';
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { SimplexNoise } from 'three/addons/math/SimplexNoise.js';
 import type { Tier } from '../state/store';
 import { seeded } from './kit/rng';
+import { token } from './tokens';
 
 export const TIER_SETTINGS: Record<Tier, { pixelRatio: number; msaa: number; ao: 'full' | 'half' | 'off'; bloomHalf: boolean; mirror: number; shadow: number; lamps: number; texScale: number; detail: number; dashes: number }> = {
   high: { pixelRatio: 2, msaa: 4, ao: 'full', bloomHalf: false, mirror: 1024, shadow: 2048, lamps: 8, texScale: 1, detail: 1, dashes: 1 },
@@ -61,6 +64,13 @@ class CountPass extends Pass {
 /** Occlusion reach in meters for the room views. */
 export const AO_RADIUS = 0.03;
 
+/** A color for a pass that draws after the output pass: its sRGB components written as they are, with no conversion. */
+export function displayColor(hex: string): THREE.Color {
+  const c = new THREE.Color(); c.setStyle(hex, THREE.SRGBColorSpace);
+  const s = c.clone().convertLinearToSRGB();
+  return new THREE.Color().setRGB(s.r, s.g, s.b, THREE.LinearSRGBColorSpace);
+}
+
 /** Camera layer used only to draw the occlusion exempt mask. */
 const AO_EXEMPT_LAYER = 7;
 
@@ -72,6 +82,14 @@ export class Post {
   aoMix: ShaderPass | null = null;
   readonly bloom: UnrealBloomPass;
   smaa: SMAAPass | null = null;
+  readonly hover: OutlinePass;
+  readonly select: OutlinePass;
+  /** Socket outlines and fills, drawn over the finished frame. The scene belongs to the world and outlives a tier change. */
+  readonly overlayScene: THREE.Scene;
+  readonly overlay: RenderPass;
+  private readonly copy: ShaderPass;
+
+  setOverlay(on: boolean) { this.overlay.enabled = on; this.copy.enabled = on && !this.smaa; }
   readonly output: OutputPass;
   /** objects hidden while the occlusion pass renders depth and normals */
   hideForAO: () => THREE.Object3D[] = () => [];
@@ -84,8 +102,9 @@ export class Post {
   private exemptMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, depthWrite: false, depthFunc: THREE.LessEqualDepth, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 });
   private tier: Tier;
 
-  constructor(private renderer: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.PerspectiveCamera, tier: Tier) {
+  constructor(private renderer: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.PerspectiveCamera, tier: Tier, overlay: THREE.Scene) {
     this.tier = tier;
+    this.overlayScene = overlay;
     const s = TIER_SETTINGS[tier];
     const rt = new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, samples: s.msaa, stencilBuffer: true });
     this.composer = new EffectComposer(renderer, rt);
@@ -120,6 +139,26 @@ export class Post {
     this.composer.addPass(this.bloom);
     this.output = new OutputPass();
     this.composer.addPass(this.output);
+    // After the output pass the buffer holds display colors, so outlines and sockets show the token colors exactly. Both are
+    // off unless they have something to draw, so a frame with nothing selected, hovered or held is unchanged.
+    this.hover = new OutlinePass(new THREE.Vector2(4, 4), scene, camera);
+    this.select = new OutlinePass(new THREE.Vector2(4, 4), scene, camera);
+    // The selection takes the accent, a hover the secondary ink.
+    for (const [p, c, strength] of [[this.hover, token('ink-dim'), 2.2], [this.select, token('accent'), 3.2]] as [OutlinePass, string, number][]) {
+      const col = displayColor(c);
+      p.visibleEdgeColor.copy(col); p.hiddenEdgeColor.copy(col);
+      p.edgeStrength = strength; p.edgeThickness = 1; p.edgeGlow = 0; p.pulsePeriod = 0;
+      p.enabled = false;
+      this.composer.addPass(p);
+    }
+    this.overlay = new RenderPass(this.overlayScene, camera);
+    this.overlay.clear = false; this.overlay.needsSwap = false; this.overlay.enabled = false;
+    this.composer.addPass(this.overlay);
+    // A render pass cannot be the last one: it would draw only its own scene to the screen. While the overlay is on, a copy
+    // takes the finished frame to the screen; otherwise the output pass stays last and frames are exactly as before.
+    this.copy = new ShaderPass(CopyShader);
+    this.copy.enabled = false;
+    this.composer.addPass(this.copy);
     if (s.msaa === 0) { this.smaa = new SMAAPass(); this.composer.addPass(this.smaa); }
   }
 
@@ -173,5 +212,6 @@ export class Post {
     this.gtao?.dispose();
     this.exemptTarget.dispose(); this.exemptMaterial.dispose();
     this.bloom.dispose();
+    this.hover.dispose(); this.select.dispose();
   }
 }

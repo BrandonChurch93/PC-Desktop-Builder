@@ -16,6 +16,9 @@ const MM = 0.001;
 
 export type RigItem = { key: string; sig: string; placed: Placed; part: PartObject; holder: THREE.Group };
 
+/** What one sync changed: parts that arrived, parts that left, and parts rebuilt in place (a new finish, a new support height). */
+export type RigChange = { entered: RigItem[]; left: RigItem[]; rebuilt: { old: RigItem; next: RigItem }[]; moved: { item: RigItem; from: THREE.Vector3; fromRot: THREE.Euler }[] };
+
 const OUTWARD: Record<string, V3> = { rear: [-1, 0, 0], front: [1, 0, 0], top: [0, 1, 0], bottom: [0, -1, 0], side: [0, 0, -1], spine: [1, 0, 0] };
 
 /** The assembled rig: one object per placed part, posed from the layout, scaled to meters. */
@@ -24,13 +27,20 @@ export class Rig {
   readonly items = new Map<string, RigItem>();
   detail = 1;
   onChange: () => void = () => {};
+  /** Told what each sync changed. An item that left stays in the scene until release() is called for it, so it can move out. */
+  onItems: (c: RigChange) => void = (c) => { for (const i of c.left) this.release(i); for (const r of c.rebuilt) this.release(r.old); };
+  /** Told when the cables are rebuilt. The old set stays in the scene until it is disposed here, so runs can retract or a colorway can sweep. */
+  onCables: (old: THREE.Group | null, next: THREE.Group) => void = (old) => { if (old) Rig.disposeCables(old); };
+  static disposeCables(g: THREE.Group) { g.removeFromParent(); disposeTree(g); }
+  /** Items that have left the build and are still moving out. */
+  readonly leaving = new Set<RigItem>();
 
   constructor() {
     this.group.name = 'rig';
     this.group.scale.setScalar(MM);
   }
 
-  private optsFor(p: Placed): GenOpts {
+  optsFor(p: Placed): GenOpts {
     const o: GenOpts = { detail: this.detail, key: p.key };
     if (p.kind === 'case') o.finish = String(p.meta.finish);
     if (p.kind === 'fan') {
@@ -65,12 +75,14 @@ export class Rig {
     this.caseId = build.case?.id ?? null;
     const placed = place(build);
     const seen = new Set<string>();
+    const change: RigChange = { entered: [], left: [], rebuilt: [], moved: [] };
     for (const p of placed) {
       const opts = this.optsFor(p);
       const sig = `${p.kind}|${p.id}|${JSON.stringify(opts)}`;
       seen.add(p.key);
       let item = this.items.get(p.key);
-      if (item && item.sig !== sig) { this.drop(item); item = undefined; }
+      let old: RigItem | null = null;
+      if (item && item.sig !== sig) { old = item; this.items.delete(item.key); item = undefined; }
       if (!item) {
         const part = generate(p.kind, p.id, opts);
         const holder = new THREE.Group();
@@ -79,12 +91,20 @@ export class Rig {
         this.group.add(holder);
         item = { key: p.key, sig, placed: p, part, holder };
         this.items.set(p.key, item);
+        if (old && old.placed.id === p.id) change.rebuilt.push({ old, next: item });
+        else { if (old) change.left.push(old); change.entered.push(item); }
       }
+      const was = item.placed;
       item.placed = p;
+      if (was !== p && !change.entered.includes(item) && (Math.hypot(was.pose.pos[0] - p.pose.pos[0], was.pose.pos[1] - p.pose.pos[1], was.pose.pos[2] - p.pose.pos[2]) > 0.5 || was.pose.rot.some((r, i) => Math.abs(r - p.pose.rot[i]!) > 1e-3))) {
+        change.moved.push({ item, from: item.holder.position.clone(), fromRot: item.holder.rotation.clone() });
+      }
       item.holder.position.set(...p.pose.pos);
       item.holder.rotation.set(...p.pose.rot);
     }
-    for (const item of [...this.items.values()]) if (!seen.has(item.key)) this.drop(item);
+    for (const item of [...this.items.values()]) if (!seen.has(item.key)) { this.items.delete(item.key); change.left.push(item); }
+    for (const i of change.left) this.leaving.add(i);
+    for (const r of change.rebuilt) this.leaving.add(r.old);
     this.group.updateMatrixWorld(true);
     for (const item of this.items.values()) for (const z of item.part.zones) if (!z.owner) z.owner = item.part.root;
     const kase = this.items.get('case');
@@ -95,7 +115,7 @@ export class Rig {
     for (let k = 1; k <= 8; k++) { const c = kase?.part.movers[`slot-cover-${k}`]; if (c) c.visible = k > used; }
     const sig = `${cableSignature(build)}|${[...this.items.keys()].join(',')}`;
     if (sig !== this.cableSig) {
-      if (this.cables) { this.cables.removeFromParent(); disposeTree(this.cables); }
+      const old = this.cables;
       this.cables = buildCables(build, this.items, this.detail);
       const layout = build.case ? CASE_LAYOUTS[build.case.id] : undefined;
       const shades = layout ? wellShades(layout, this.items) : null;
@@ -106,14 +126,17 @@ export class Rig {
       this.patches = inner?.patches ?? [];
       this.group.add(this.cables);
       this.cableSig = sig;
+      this.onCables(old, this.cables);
     }
     this.onChange();
+    if (change.entered.length || change.left.length || change.rebuilt.length || change.moved.length) this.onItems(change);
   }
 
-  private drop(item: RigItem) {
+  /** An item that has finished leaving: out of the scene and disposed. */
+  release(item: RigItem) {
+    if (!this.leaving.delete(item)) return;
     item.holder.removeFromParent();
     item.part.dispose();
-    this.items.delete(item.key);
   }
 
   get zones(): Zone[] { return [...this.items.values()].flatMap((i) => i.part.zones); }
@@ -161,7 +184,9 @@ export class Rig {
   }
 
   dispose() {
-    for (const item of [...this.items.values()]) this.drop(item);
+    for (const item of [...this.leaving]) this.release(item);
+    for (const item of [...this.items.values()]) { item.holder.removeFromParent(); item.part.dispose(); }
+    this.items.clear();
     if (this.cables) disposeTree(this.cables);
   }
 }

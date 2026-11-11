@@ -20,7 +20,10 @@ import { RgbEngine } from './light/rgb';
 import { inspectPart } from './parts';
 import type { GenOpts } from './parts/types';
 import { Post, TIER_SETTINGS } from './post';
-import { Rig } from './rig';
+import { Rig, type RigItem } from './rig';
+import { Choreo, type MotionMode } from './motion/choreo';
+import { Hands } from './interact/hands';
+import { itemsOfPart } from './interact/pick';
 import { Room } from './room';
 
 const FOV = 30;
@@ -40,6 +43,8 @@ const ROOM_GLASS_CLAMP_LIGHT = 0.26;
 /** Under the bloom threshold even over a white interior. */
 const STUDIO_GLASS_CLAMP = 0.55;
 const MM = 0.001;
+/** How close the camera may come to its target, in meters: free, and focused on a part. Detail holds at these caps. */
+export const ZOOM_CAP = { free: 0.2, focused: 0.12 };
 /** In the named views the rig spans about this many window heights across. */
 const FRAME_RIG_WIDTH = 1;
 const SPIN_IDLE = 9;
@@ -56,6 +61,11 @@ export class World {
   readonly camera = new THREE.PerspectiveCamera(FOV, 1, 0.02, 40);
   readonly controls: OrbitControls;
   readonly rig = new Rig();
+  readonly choreo: Choreo;
+  /** Socket outlines over the finished frame. */
+  readonly overlayScene = new THREE.Scene();
+  hands!: Hands;
+  private focusSaved: { pos: THREE.Vector3; target: THREE.Vector3 } | null = null;
   readonly rgb: RgbEngine;
   readonly inspector: Inspector;
   room!: Room;
@@ -94,7 +104,7 @@ export class World {
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.08;
     this.controls.zoomToCursor = true;
-    this.controls.minDistance = 0.2;
+    this.controls.minDistance = ZOOM_CAP.free;
     this.controls.maxDistance = 3.2;
     this.controls.maxPolarAngle = Math.PI * 0.495;
     this.controls.addEventListener('change', () => { this.dirty = true; this.viewName = null; });
@@ -106,6 +116,7 @@ export class World {
     setGlassStage('room', ROOM_GLASS_CLAMP, GLASS_CARDS as GlassCard[]);
     this.inspector = new Inspector(studioEnvironment(this.renderer, 'inspector'));
     this.scene.add(this.rig.group);
+    this.choreo = new Choreo(this.rig, () => { this.dirty = true; });
   }
 
   async init(tier: Tier) {
@@ -116,6 +127,7 @@ export class World {
     this.resize();
     new ResizeObserver(() => this.resize()).observe(this.canvasEl.parentElement ?? this.canvasEl);
     this.rig.onChange = () => this.onRigChange();
+    this.hands = new Hands(this, this.store);
     this.syncFromStore(this.store.getState(), null);
     this.unsub = this.store.subscribe((s, prev) => this.syncFromStore(s, prev));
     this.loop(performance.now());
@@ -135,19 +147,40 @@ export class World {
     this.room.setFootprint(this.rig.itemBounds('case'));
     this.room.setRearFlag(this.rig.itemBounds('case'), this.rig.itemBounds('psu'));
     this.post?.dispose();
-    this.post = new Post(this.renderer, this.scene, this.camera, tier);
+    this.post = new Post(this.renderer, this.scene, this.camera, tier, this.overlayScene);
     this.post.aoExempt = () => (this.showingInspector ? this.inspector.emitters() : this.rig.emitters());
     this.post.hideForAO = () => (this.showingInspector ? this.inspector.noAO() : [...this.rig.glassObjects(), ...(this.room.mirror ? [this.room.mirror] : [])]);
     this.rgb.lampCount = s.lamps;
     this.rig.detail = s.detail;
     this.resize();
+    this.hands?.refresh();
     this.dirty = true;
+  }
+
+  get canvas() { return this.canvasEl; }
+
+  /** The screen center of a set of case space boxes, in client pixels, or null. */
+  screenOfBoxes(boxes: { min: [number, number, number]; max: [number, number, number] }[]): { x: number; y: number } | null {
+    if (!boxes.length) return null;
+    const b = new THREE.Box3();
+    for (const x of boxes) { b.expandByPoint(new THREE.Vector3(...x.min)); b.expandByPoint(new THREE.Vector3(...x.max)); }
+    const c = b.getCenter(new THREE.Vector3());
+    const p = this.project([c.x, c.y, c.z]);
+    const r = this.canvasEl.getBoundingClientRect();
+    return { x: Math.round(p.x + r.left), y: Math.round(p.y + r.top) };
+  }
+
+  /** The part of the canvas no panel covers, in client pixels. */
+  clearArea() {
+    const r = this.canvasEl.getBoundingClientRect();
+    const i = this.insets;
+    return { left: r.left + i.left, top: r.top + i.top, width: Math.max(1, r.width - i.left - i.right), height: Math.max(1, r.height - i.top - i.bottom) };
   }
 
   get firstFrame() { return this.firstFrameMs; }
 
   private syncFromStore(s: State, prev: State | null) {
-    if (!prev || s.build !== prev.build) this.setBuild(s.build);
+    if (!prev || s.build !== prev.build) this.setBuild(s.build, !prev || s.instant || s.frozen !== null ? 'instant' : s.reducedMotion ? 'fade' : 'motion');
     if (!prev || s.mode !== prev.mode || s.build.case?.finish !== prev.build.case?.finish) this.room.setLevel(roomLevel(s.mode, s.build.case?.finish));
     if (!prev || s.power !== prev.power) this.setPower(s.power, s.instant || s.frozen !== null);
     if (!prev || s.load !== prev.load || s.build !== prev.build) this.rgb.temps = temps(s.build, s.load);
@@ -158,7 +191,11 @@ export class World {
     this.dirty = true;
   }
 
-  private setBuild(b: Build) {
+  private setBuild(b: Build, mode: MotionMode) {
+    // A new action finishes the running one at once; then the change plays as motion, a fade, or not at all.
+    this.choreo.finishAll();
+    this.choreo.mode = mode;
+    this.choreo.setBuildFlags({ glass: b.glass });
     this.rig.sync(b);
     if (!this.showingInspector) setGlassStage('room', this.roomGlassClamp(), GLASS_CARDS as GlassCard[]);
   }
@@ -242,10 +279,15 @@ export class World {
       it.holder.updateWorldMatrix(true, false);
       return new THREE.Vector3(...a.pos).applyMatrix4(it.part.root.matrixWorld);
     };
+    // Each macro view has a wide twin from the same side at twice the distance, so an install shows its travel and its fastening.
     const set = (name: string, target: THREE.Vector3 | null, offset: [number, number, number]) => {
       if (!target) return;
       this.views[name] = { pos: target.clone().add(new THREE.Vector3(...offset)), target };
+      this.views[`${name}-wide`] = { pos: target.clone().add(new THREE.Vector3(...offset).multiplyScalar(2)), target };
     };
+    set('cpu', center('cpu'), [0.1, 0.05, 0.3]);
+    set('nvme', center('storage:nvme:0'), [0.1, 0.06, 0.3]);
+    set('rear-fan', center('fan:rear-1'), [0.16, 0.06, 0.36]);
     const g = box('gpu');
     set('gpu', g ? new THREE.Vector3(g.min.x + (g.max.x - g.min.x) * 0.58, g.max.y - 0.012, g.max.z - 0.02) : null, [0.17, 0.1, 0.45]);
     set('cooler', center('cooler'), [0.1, 0.05, 0.36]);
@@ -316,7 +358,7 @@ export class World {
     this.last = now;
     if (document.hidden) return;
     const moving = this.controls.update();
-    if (!(this.dirty || moving || this.animating())) return;
+    if (!(this.dirty || moving || this.animating() || this.hands?.sockets.active)) return;
     this.dirty = false;
     this.step(dt);
     this.draw();
@@ -343,6 +385,7 @@ export class World {
         r.blades.visible = blur < 0.99;
       }
     }
+    this.hands?.update(this.time);
     this.rgb.power = this.level.power;
     this.rgb.update(this.time);
     if (this.showingInspector) { this.inspector.rgb.update(this.time); this.inspector.updateGlow(); }
@@ -433,9 +476,63 @@ export class World {
     return String(ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER));
   }
 
+  /** Glides the camera to a close view of a part, keeping the angle it is seen from. The zoom cap comes in to 0.12 m. */
+  focusOn(part: string) {
+    const items = itemsOfPart(this.rig, part);
+    if (!items.length) return;
+    const box = new THREE.Box3();
+    for (const i of items) for (const b of i.placed.boxes) { box.expandByPoint(new THREE.Vector3(...b.min)); box.expandByPoint(new THREE.Vector3(...b.max)); }
+    box.min.multiplyScalar(MM); box.max.multiplyScalar(MM);
+    const c = box.getCenter(new THREE.Vector3());
+    const r = box.getSize(new THREE.Vector3()).length() / 2;
+    const d = Math.max(ZOOM_CAP.focused, (r / Math.sin(THREE.MathUtils.degToRad(FOV) / 2)) * 0.85);
+    const dir = this.camera.position.clone().sub(this.controls.target).normalize();
+    if (!this.focusSaved) this.focusSaved = { pos: this.camera.position.clone(), target: this.controls.target.clone() };
+    this.controls.minDistance = ZOOM_CAP.focused;
+    this.store.setState({ focus: part });
+    this.glide(c.clone().addScaledVector(dir, d), c);
+  }
+
+  /** Back from a focus to where the camera was. */
+  resetView() {
+    const back = this.focusSaved ?? (this.views.hero ? { pos: this.views.hero.pos.clone(), target: this.views.hero.target.clone() } : null);
+    this.focusSaved = null;
+    this.controls.minDistance = ZOOM_CAP.free;
+    this.store.setState({ focus: null });
+    if (back) this.glide(back.pos, back.target);
+  }
+
+  /** Camera moves between views: position and target together, power3.inOut. */
+  glide(pos: THREE.Vector3, target: THREE.Vector3, duration = 1.4) {
+    gsap.killTweensOf(this.camera.position); gsap.killTweensOf(this.controls.target);
+    const reduced = this.store.getState().reducedMotion;
+    if (reduced) { this.camera.position.copy(pos); this.controls.target.copy(target); this.controls.update(); this.dirty = true; return; }
+    gsap.to(this.camera.position, { x: pos.x, y: pos.y, z: pos.z, duration, ease: 'power3.inOut', onUpdate: () => { this.dirty = true; } });
+    gsap.to(this.controls.target, { x: target.x, y: target.y, z: target.z, duration, ease: 'power3.inOut' });
+    this.viewName = null;
+  }
+
+  /** The scene object of an installed part, or of one still moving out: memory by kit index, storage by type, a fan by mount. */
+  itemFor(category: Category, opts: { index?: number; type?: string; mount?: string } = {}): RigItem | null {
+    const all = [...this.rig.items.values(), ...this.rig.leaving];
+    const match = (i: RigItem) => {
+      const p = i.placed;
+      switch (category) {
+        case 'ram': return p.kind === 'ram' && p.part === `ram:${opts.index ?? 0}`;
+        case 'storage': return p.kind === 'storage' && p.id === (opts.type ?? 'nvme');
+        case 'fan': return p.kind === 'fan' && String(p.meta.mount) === opts.mount;
+        case 'cooler': return p.kind === 'cooler';
+        case 'gpu': return p.kind === 'gpu';
+        default: return p.kind === category;
+      }
+    };
+    const hits = all.filter(match);
+    return hits[hits.length - 1] ?? null;
+  }
+
   /** A case space point in mm on the screen, in CSS pixels, and whether it is in front of the camera. */
   project(mm: [number, number, number]): { x: number; y: number; front: boolean } {
-    const p = new THREE.Vector3(...mm).multiplyScalar(MM).applyMatrix4(this.rig.group.matrixWorld);
+    const p = new THREE.Vector3(...mm).applyMatrix4(this.rig.group.matrixWorld);
     p.project(this.camera);
     const el = this.renderer.domElement;
     return { x: (p.x * 0.5 + 0.5) * el.clientWidth, y: (0.5 - p.y * 0.5) * el.clientHeight, front: p.z < 1 };

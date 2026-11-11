@@ -10,6 +10,7 @@ import { EmptyHint, InspectorBar, Intro, LiveRegion, SharedBanner, StartOverlay 
 import { Shell } from './ui/Shell';
 import { installShortcuts } from './ui/shortcuts';
 import { SocketLabels } from './ui/SocketLabels';
+import { ReasonLabel, ResetView, SelectionMenu, SwapHint } from './ui/Hands';
 import { Tips } from './ui/Tips';
 import { getWorld, setWorld } from './ui/worldRef';
 import { World } from './world/World';
@@ -28,6 +29,10 @@ function UiLayer() {
       <EmptyHint />
       <SharedBanner />
       <SocketLabels />
+      <SelectionMenu />
+      <ReasonLabel />
+      <ResetView />
+      <SwapHint />
       <InspectorBar />
       <Notice />
       <Intro />

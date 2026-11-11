@@ -101,6 +101,21 @@ export function installPart(category: Category, id: string, opts: ActionOpts = {
   return { ok: true };
 }
 
+/**
+ * Swap: the installed part out and another of its category in, as one history entry. A fan keeps its mount; memory keeps the
+ * kit's place in the order. The motion overlaps the old part leaving and the new one arriving.
+ */
+export function swapPart(category: Category, opts: ActionOpts, id: string, instant = false): { ok: true } | { ok: false; code: string } {
+  const s = store.getState();
+  const old = installedIdFor(s.build, category, opts);
+  const out = remove(s.build, category, opts);
+  const at: ActionOpts = category === 'fan' && opts.mount ? { mount: opts.mount } : {};
+  const r = install(out.build, category, id, at);
+  if (!r.ok) return { ok: false, code: r.code };
+  commit(r.build, [...out.removed.filter((x) => !(x.category === category)), ...r.removed], { instant, announce: `${old ? partName(category, old) : ''} swapped for ${partName(category, id)}.`.trim() });
+  return { ok: true };
+}
+
 export function removePart(category: Category, opts: ActionOpts = {}, instant = false) {
   const s = store.getState();
   const id = installedIdFor(s.build, category, opts);

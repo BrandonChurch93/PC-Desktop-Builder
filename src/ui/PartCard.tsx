@@ -3,6 +3,7 @@ import type { Category } from '../data/catalog';
 import { cardStatus } from '../engine/messages';
 import type { Fit } from '../engine/queries';
 import s from './PartCard.module.css';
+import { useCardDrag } from './useCardDrag';
 
 type Props = {
   category: Category;
@@ -27,6 +28,7 @@ type Props = {
 
 /** Thumbnail, brand and name, one line of numbers, one status line. The thumbnail is its own button and opens the Inspector. */
 export function PartCard(p: Props) {
+  const drag = useCardDrag(p.category, p.id, p.category !== 'cables' && p.fit.status !== 'installed');
   const status = p.statusOverride ?? cardStatus(p.fit);
   const tone = p.fit.status === 'blocked' ? s.blocked : p.fit.status === 'installed' || p.active ? s.installed : p.fit.preview ? s.warn : s.fits;
   const onKey = (e: KeyboardEvent<HTMLButtonElement>) => {
@@ -35,7 +37,7 @@ export function PartCard(p: Props) {
     if (e.shiftKey) p.onPlace(); else p.onActivate('enter');
   };
   return (
-    <article className={[s.card, p.fit.status === 'installed' || p.active ? s.cardOn : '', p.fit.status === 'blocked' ? s.cardBlocked : '', p.held ? s.cardHeld : ''].join(' ')} data-part={`${p.category}:${p.id}`}>
+    <article onPointerDown={drag.onPointerDown} onClickCapture={drag.onClickCapture} className={[s.card, p.fit.status === 'installed' || p.active ? s.cardOn : '', p.fit.status === 'blocked' ? s.cardBlocked : '', p.held ? s.cardHeld : ''].join(' ')} data-part={`${p.category}:${p.id}`}>
       {p.swatch ? (
         <div className={s.swatch} aria-hidden="true">
           {p.swatch.map((c, i) => <span key={i} style={{ background: c }} />)}

@@ -9,8 +9,10 @@
   pointer-events: auto;
 }
 
+/* Above the panels: the mode fade gives every panel a transform, so each is its own layer, and the menu drops over them. */
 .top {
   position: absolute;
+  z-index: 2;
   top: var(--inset);
   left: var(--inset);
   right: var(--inset);

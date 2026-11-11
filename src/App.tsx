@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { installHook } from './hook';
 import { flushAutosave } from './state/actions';
 import { boot } from './state/boot';
@@ -13,6 +13,7 @@ import { SocketLabels } from './ui/SocketLabels';
 import { ExplodedLabels } from './ui/ExplodedLabels';
 import { ReasonLabel, ResetView, SelectionMenu, SwapHint } from './ui/Hands';
 import { Tips } from './ui/Tips';
+import { hasWebGL2, NoWebGL } from './ui/NoWebGL';
 import { getWorld, setWorld } from './ui/worldRef';
 import { World } from './world/World';
 import styles from './App.module.css';
@@ -49,23 +50,31 @@ function UiLayer() {
 
 export function App() {
   const stage = useRef<HTMLCanvasElement | null>(null);
+  const [gl] = useState(hasWebGL2);
+  const [lost, setLost] = useState(false);
   useEffect(() => {
     const el = stage.current;
-    if (!el || world) return;
+    if (!el || world || !gl) return;
     const hook = new URLSearchParams(location.search).get('hook') === '1';
     boot(hook);
+    // A lost context keeps the build: it is saved now, and the page reloads by itself if the browser gives the context back.
+    el.addEventListener('webglcontextlost', (e) => { e.preventDefault(); flushAutosave(); setLost(true); });
+    el.addEventListener('webglcontextrestored', () => { flushAutosave(); location.reload(); });
     world = new World(el, store);
     setWorld(world);
     const api = hook ? installHook(world) : null;
-    void world.init('high').then(() => { if (api) api.ready = true; });
+    world.autoTier = !hook;
+    const q = store.getState().quality;
+    void world.init(q === 'auto' ? 'high' : q).then(() => { if (api) api.ready = true; });
     const off = installShortcuts();
     window.addEventListener('pagehide', flushAutosave);
     return () => { off(); window.removeEventListener('pagehide', flushAutosave); };
-  }, []);
+  }, [gl]);
+  if (!gl) return <main className={styles.stage}><NoWebGL /></main>;
   return (
     <main className={styles.stage}>
       <canvas ref={stage} className={styles.canvas} aria-label="A 3D view of the PC build on a desk. The full spec sheet lists every part." />
-      <UiLayer />
+      {lost ? <NoWebGL lost /> : <UiLayer />}
     </main>
   );
 }

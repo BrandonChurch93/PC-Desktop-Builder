@@ -6,13 +6,14 @@ import type { Category } from '../data/catalog';
 import { getCase } from '../data/catalog';
 import { sheet, temps } from '../engine/sheet';
 import type { Build } from '../engine/types';
-import type { State, Store, Tier } from '../state/store';
+import type { Quality, State, Store, Tier } from '../state/store';
+import { feedAuto, probeTier, startAuto, type AutoState } from '../state/tier';
 import { glassEnvironment, studioEnvironment } from './env';
 import { forEachVertex } from './kit/geometry';
-import { FINISHES, setGlassEnvironment, setGlassStage, setPerfAspect, type GlassCard } from './kit/materials';
+import { FINISHES, resetMaterials, setGlassEnvironment, setGlassStage, setPerfAspect, type GlassCard } from './kit/materials';
 import GLASS_CARDS from './glass-cards.json';
 import STUDIO_GLASS_CARDS from './studio-glass-cards.json';
-import { setMaxAnisotropy, textures } from './kit/textures';
+import { setMaxAnisotropy, setTextureScale } from './kit/textures';
 import { loadFonts } from './kit/type';
 import { CASE_LAYOUTS } from './layout/cases';
 import { INSPECT_ELEVATION, Inspector } from './inspector';
@@ -59,6 +60,8 @@ const BLUR_TO = 34;
 /** The supply's status light, a small green LED above its switch. */
 const SUPPLY_LED = 3;
 const GLOW_EVERY_MS = 100;
+/** Frames in the automatic tier's first probe. */
+const PROBE_FRAMES = 40;
 /** The intro starts this much further out than the hero view, with the exposure this low, and lasts this long. */
 const INTRO_PULL = 1.35;
 const INTRO_DARK = 0.22;
@@ -131,7 +134,8 @@ export class World {
     this.controls.maxPolarAngle = Math.PI * 0.495;
     this.controls.addEventListener('change', () => { this.dirty = true; this.viewName = null; });
     this.tour = new Tour(this.camera, this.controls, () => this.views, () => { this.dirty = true; });
-    this.controls.addEventListener('start', () => this.tour.input());
+    this.controls.addEventListener('start', () => { this.tour.input(); this.interacting = true; });
+    this.controls.addEventListener('end', () => { this.interacting = false; });
     this.rgb = new RgbEngine(this.scene, true, true);
     this.exploder = new Exploder(this.rig, () => { this.dirty = true; });
     this.powerSeq = new PowerSequence(this.level, this.rgb.targetPower, () => { this.dirty = true; });
@@ -149,7 +153,7 @@ export class World {
 
   async init(tier: Tier) {
     await loadFonts();
-    textures(TIER_SETTINGS[tier].texScale);
+    setTextureScale(TIER_SETTINGS[tier].texScale);
     setPerfAspect();
     this.applyTier(tier);
     this.resize();
@@ -162,6 +166,8 @@ export class World {
     this.loop(performance.now());
     await this.renderNow(2);
     this.firstFrameMs = performance.now();
+    // Auto measures after the first build is shown.
+    if (this.store.getState().quality === 'auto') this.applyQuality('auto');
     this.readyResolve();
   }
 
@@ -184,6 +190,27 @@ export class World {
     this.rig.detail = s.detail;
     this.resize();
     this.hands?.refresh();
+    this.dirty = true;
+  }
+
+  /**
+   * A different tier while running: textures and shared materials at the new size, every part built again at the new detail,
+   * then the tier's renderer, room and post chain. Nothing moves; the build looks as it did, at the new cost.
+   */
+  setTier(tier: Tier) {
+    if (tier === this.tier) return;
+    this.choreo.finishAll();
+    this.exploder.run(false, 'instant', CASE_LAYOUTS[this.rig.caseId ?? '']);
+    setTextureScale(TIER_SETTINGS[tier].texScale);
+    this.rig.clearAll();
+    resetMaterials();
+    this.applyTier(tier);
+    const s = this.store.getState();
+    this.setBuild(s.build, 'instant');
+    if (s.mode === 'exploded') { this.exploder.run(true, 'instant', CASE_LAYOUTS[this.rig.caseId ?? '']); this.afterExplode(); }
+    this.inspector.clear();
+    if (s.inspect) this.setInspect(s);
+    this.airDirty = true;
     this.dirty = true;
   }
 
@@ -215,6 +242,7 @@ export class World {
     if (!prev || s.power !== prev.power) this.setPower(s.power, s.instant || s.frozen !== null);
     if (!prev || s.load !== prev.load || s.build !== prev.build) this.rgb.temps = temps(s.build, s.load);
     if (!prev || s.inspect !== prev.inspect) this.setInspect(s);
+    if (prev && s.quality !== prev.quality) this.applyQuality(s.quality);
     this.tour.setEnabled(s.mode === 'showcase' && !s.reducedMotion && s.frozen === null && !s.inspect);
     if (prev && s.mode !== prev.mode && (s.mode === 'exploded' || prev.mode === 'exploded')) this.setExploded(s.mode === 'exploded', s.instant || s.frozen !== null ? 'instant' : s.reducedMotion ? 'fade' : 'motion');
     else if (!prev && s.mode === 'exploded') this.setExploded(true, 'instant');
@@ -536,15 +564,53 @@ export class World {
 
   private loop = (now: number) => {
     this.raf = requestAnimationFrame(this.loop);
-    const dt = Math.min(0.05, Math.max(0, (now - (this.last || now)) / 1000));
+    const rawMs = this.last ? now - this.last : 0;
+    const dt = Math.min(0.05, Math.max(0, rawMs / 1000));
     this.last = now;
-    if (document.hidden) return;
+    if (document.hidden) { this.drewLast = false; return; }
     const moving = this.controls.update();
-    if (!(this.dirty || moving || this.animating() || this.hands?.sockets.active)) return;
+    if (!(this.probeSamples || this.dirty || moving || this.animating() || this.hands?.sockets.active)) { this.drewLast = false; return; }
     this.dirty = false;
     this.step(dt);
     this.draw();
+    // Only back to back frames measure the frame time; the first after an idle stretch would count the idle.
+    if (this.drewLast && rawMs > 0) this.sampleFrame(rawMs);
+    this.drewLast = true;
   };
+
+  // ---- the automatic tier ----------------------------------------------------------------------
+
+  /** Set by the app: Auto measures and chooses. With the test hook Auto stays on High, as every shot is defined on High. */
+  autoTier = false;
+  private probeSamples: number[] | null = null;
+  private auto: AutoState | null = null;
+  private drewLast = false;
+  private interacting = false;
+
+  /** The quality setting: a forced tier at once, or Auto, which probes and then watches. */
+  private applyQuality(q: Quality) {
+    this.auto = null; this.probeSamples = null;
+    if (q !== 'auto') { this.setTier(q); return; }
+    if (!this.autoTier) { this.setTier('high'); return; }
+    this.probeSamples = [];
+    this.dirty = true;
+  }
+
+  private sampleFrame(ms: number) {
+    if (this.probeSamples) {
+      this.probeSamples.push(ms);
+      if (this.probeSamples.length < PROBE_FRAMES) return;
+      const coarse = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
+      const tier = probeTier(this.probeSamples, { coarse, shortSide: Math.min(window.innerWidth, window.innerHeight) });
+      this.probeSamples = null;
+      this.auto = startAuto(tier);
+      this.setTier(tier);
+      return;
+    }
+    if (!this.auto || this.store.getState().quality !== 'auto') return;
+    this.auto = feedAuto(this.auto, ms, this.interacting || this.store.getState().held !== null);
+    if (this.auto.tier !== this.tier) this.setTier(this.auto.tier);
+  }
 
   private step(dt: number) {
     const s = this.store.getState();

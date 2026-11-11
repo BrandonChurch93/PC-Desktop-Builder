@@ -153,7 +153,18 @@ export const TILE_MM = { grain: 24, grainFine: 9, peel: 18, brushed: 48, bead: 1
 let cached: TextureSet | null = null;
 let cachedScale = 0;
 
-export function textures(scale = 1): TextureSet {
+/** The texture size scale of the quality tier in use. Every reader shares the one set made at this scale. */
+let tierScale = 1;
+
+/** Sets the tier's texture scale; the next read builds the set again at that size and the old one is released. */
+export function setTextureScale(scale: number) {
+  if (scale === tierScale && cached) return;
+  tierScale = scale;
+  if (cached) for (const v of Object.values(cached)) (v as THREE.Texture).dispose?.();
+  cached = null;
+}
+
+export function textures(scale = tierScale): TextureSet {
   if (cached && cachedScale === scale) return cached;
   const s = (n: number) => Math.max(64, Math.round((n * scale) / 64) * 64);
   const tile = (t: THREE.Texture, mm: number) => { t.repeat.set(1 / mm, 1 / mm); return t; };

@@ -1,4 +1,4 @@
-PHASE 9 IN PROGRESS · step 1
+PHASE 10 IN PROGRESS · step 1
 
 <!-- Builder: this file is your memory. Read it first in every session and after every compaction. Keep it current. Replace the first line as you go: "PHASE N IN PROGRESS · step k", "BLOCKED: ...", and at the very end "BUILD COMPLETE" with nothing else on that line. -->
 
@@ -6,11 +6,11 @@ PHASE 9 IN PROGRESS · step 1
 
 ## Where things stand
 
-- Current phase: 9 · Tiers, performance, access, hardening
+- Current phase: 10 · Final pass
 - Current step: 1
 - Phase 8 plan (survey done): already built in Phase 5: Saved builds dialog (save, rename, load, delete, replace oldest), Share dialog, link landing in boot.ts (banner, dropped parts, bad and newer links), Settings, About, start overlay, still intro, InspectorBar. To build: (1) world/motion/explode.ts: parts out along their insertion axis (board family +z stacked, radiator and fans outward, supply and drives back out of their bays), glass out, cables and tubes faded, lamps rebuilt at the end, an `exploded` camera view, DOM labels with leader lines (ui/ExplodedLabels.tsx), hook scrub explode; world/tour.ts: Showcase loop (arc, push to card, rise past cooler, pass along fans), any input takes over, resumes after 8 s idle, never while frozen or reduced motion, excluded from settle(). (2) Inspector orbit and zoom by pointer, specs list, re-render thumbs. (3) intro sequence in the world (dark room, name, power on, camera push), hook scrub intro. (4) hook link(code). (5) poster dialog and export (2400 × 3000, 3840 × 2160, halved when too large). (6) README.md, check vercel.json. Then shots: mode, motion (explode, intro), ui-desktop 20, ui-tablet 10, ui-phone 13; e2e: preset links, bad and newer links, poster sizes, saved builds.
-- Next action: re-read Phase 9 Read first files from disk (04-WORLD Quality tiers and Performance rules, 05-DESIGN Accessibility, 09-QA-GAUNTLET), then steps 1 to 5 of kit/08-BUILD-ORDER.md. Do not end the turn with a status report: updates go here.
-- Last commit: phase 8: gate 8
+- Next action: re-read kit/07-QUALITY-BAR.md, kit/09-QA-GAUNTLET.md and all of PROGRESS from disk, then Phase 10 steps in kit/08-BUILD-ORDER.md (one retake judged by me, critics only for the six rig/<preset>-hero shots; the full QA gauntlet; Handoff; BUILD COMPLETE). Do not end the turn with a status report: updates go here.
+- Last commit: phase 9: gate 9
 
 ## Phases
 
@@ -25,7 +25,7 @@ PHASE 9 IN PROGRESS · step 1
 | 6 | Hands | done | see Gate 6 evidence below | phase 6: gate 6 |
 | 7 | Light and life | done | see Gate 7 evidence below | phase 7: gate 7 |
 | 8 | Modes and keeping | done | see Gate 8 evidence below | phase 8: gate 8 |
-| 9 | Tiers, performance, access, hardening | not started | | |
+| 9 | Tiers, performance, access, hardening | done | see Gate 9 evidence below | phase 9: gate 9 |
 | 10 | Final pass | not started | | |
 
 ### Gate 0 evidence
@@ -111,6 +111,16 @@ PHASE 9 IN PROGRESS · step 1
 - Thumbnails: `npm run thumbs` re-rendered all 55 from the Inspector (23 changed, three drive thumbnails fixed, see Decisions).
 - README.md written (what it is, run, test, how the kit and the Partner work, Vercel free plan deploy). vercel.json: buildCommand npm run build, outputDirectory dist, framework vite.
 - `npx playwright test --project=chromium`: 32 passed. `npx vitest run`: 279 passed. Typecheck clean. check:copy 0 problems (142 files).
+
+### Gate 9 evidence
+
+- Shots: `npm run check:shots -- tier`: `shots defined: 358 of 358 · passed: 3 · contact sheets passed: 0 · problems: 0` (my verdicts, shots/peek/v-gate9.txt).
+- A9: tests/unit/tier.test.ts, 6 tests pass: the probe picks by median (High at or under 12 ms, Medium at or under 20, else Low; a phone with a coarse pointer and a short side under 500 px starts on Low), one step down when a full 90 frame window's median is over 24 ms and never a second, interaction clears the window and never changes the tier, Low has nowhere to go, pure. `npx vitest run`: 285 passed.
+- C22: tests/e2e/hardening.spec.ts "forcing High, Medium and Low in Settings": each choice gives `__pcb.tier()` `{ setting, active }` equal to it, and after a reload the same.
+- Section P (logging only, addendum rule 7), scripts/perf.mjs on the hardware renderer (ANGLE Metal, Apple M4 Pro, headless, pixel ratio 1), lit Night Rig hero: P1 High 1440 × 900 median 22.4 ms, p95 25.3 ms (target 20 and 33: the median is over by 2.4 ms); P2 Medium median 16.6 ms, p95 18.1 (at the 60 Hz display cap, so the work is under it); P3 Low 390 × 844 median 16.6 ms, p95 19.6 (the same cap: rAF deltas cannot show under 16.7 ms, so the 10 ms target cannot be seen this way); P4 power off and no input: `stats(2)` 0 frames; P5 scene pass High 733 calls and 2.16 M triangles (targets 400 and 2 M), whole frame 1135 calls; Low 526 calls and 1.22 M triangles (targets 220 and 700 k). Over budget because each part stays its own object so it can move in the choreography and explode, and parts carry their own label, decal and LED diffuser materials; each part's geometry is already merged per material in PartBuilder.finish, and merging across parts would break motion; the frame rate holds the display rate on Medium and Low here. P6 built JavaScript 575,345 bytes gzipped (under 1.5 MB), public/thumbs 1,785,181 bytes (under 4 MB). P7 firstFrameMs 1219 on a second load (under 4000).
+- `npm run e2e:smoke` equivalent run (`npx playwright test --project=webkit --project=firefox --grep @smoke` on the current build): 4 passed, WebKit and Firefox (the app loads; C18: loads, shows the Pocket with the fixture's code, installs the Mini by tap, no errors).
+- Keyboard only and reduced motion: C1 (build-flow.spec.ts keyboard only Night Rig, share code equals the fixture) and C17 (hardening.spec.ts: an install crossfades in place with every sampled pose at home, the intro is its end frame at once, Showcase leaves the camera still), G1 (Tab walk reaches the bar, panels, tray tabs and cards, every stop shows a 2 px ring), G2 (Share dialog traps Tab and Shift Tab, Escape closes and focus returns to Share). C19 and context loss pass. `npx playwright test --project=chromium`: 40 passed.
+- Faults found in this phase: the automatic tier did not exist and the tier was always High; the texture scale of Medium and Low never applied, because materials read textures() with its default scale 1 and rebuilt the full set (the scale is now set once per tier and every reader shares it); the Menu dropped behind the spec panel, so Settings could not be clicked (the top bar now stacks above the panels); no WebGL 2 meant an exception from three (now a plain message with a still of the Night Rig); a lost context had no handling (the build is saved, a message offers Reload, and a restored context reloads by itself).
 
 ## Environment
 

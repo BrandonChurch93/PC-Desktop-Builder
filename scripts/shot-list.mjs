@@ -124,6 +124,11 @@ for (const p of [0, 25, 50, 75, 100]) {
   SHOTS[`motion/intro-${n}`] = { steps: [['scrub', 'intro', p / 100], FREEZE] };
 }
 
+// The Night Rig lit hero on each tier: High and Medium at the default size, Low at a phone's.
+for (const t of ['high', 'medium', 'low']) {
+  SHOTS[`tier/${t}`] = { ...(t === 'low' ? { width: 390, height: 844, touch: true } : {}), steps: [['set', { quality: t }], ...lit('night-rig', 'hero')] };
+}
+
 // Install sequences scrubbed to five points, each from a view wide enough for the travel and close enough for the fastening.
 const MOTION_VIEW = { 'install-gpu': 'gpu-wide', 'install-ram': 'ram-wide', 'install-cooler': 'gpu-wide', 'install-nvme': 'nvme-wide', 'install-cpu': 'cpu-wide', 'install-fan': 'rear-fan-wide', 'install-psu': 'psu-wide' };
 for (const [seq, view] of Object.entries(MOTION_VIEW)) for (const p of [0, 25, 50, 75, 100]) {

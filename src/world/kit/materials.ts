@@ -479,6 +479,12 @@ export const PART_FINISHES: Record<'graphite' | 'frost', PartFinish> = {
   frost: { body: 'plasticWhite', metal: 'aluBrushed', pcb: 'pcbWhite', plastic: 'plasticWhite', fin: 'finSilver', blade: 'bladeWhite' },
 };
 
+/** Drops every shared material and the texture set they read, for a tier change: the next part built takes the new ones. */
+export function resetMaterials() {
+  disposeMaterials();
+  T = null;
+}
+
 export function disposeMaterials() {
   for (const m of cache.values()) m.dispose();
   cache.clear();

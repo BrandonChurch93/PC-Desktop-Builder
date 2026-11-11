@@ -132,6 +132,16 @@ export class Rig {
     if (change.entered.length || change.left.length || change.rebuilt.length || change.moved.length) this.onItems(change);
   }
 
+  /** Every part and the cables out of the scene and disposed, so the next sync builds them all again, as a tier change needs. */
+  clearAll() {
+    for (const item of [...this.items.values(), ...this.leaving]) { item.holder.removeFromParent(); item.part.dispose(); }
+    this.items.clear();
+    this.leaving.clear();
+    if (this.cables) Rig.disposeCables(this.cables);
+    this.cables = null;
+    this.cableSig = '';
+  }
+
   /** An item that has finished leaving: out of the scene and disposed. */
   release(item: RigItem) {
     if (!this.leaving.delete(item)) return;

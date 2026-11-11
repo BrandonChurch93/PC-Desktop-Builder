@@ -48,7 +48,7 @@ function surface(b: BoardSpec, L: BoardLayout, look: Look, ppm: number): { map: 
     const bundle = 1 + Math.floor(r() * 5);
     for (let k = 0; k < bundle; k++) {
       const o = k * 0.62;
-      for (const [ctx, style, wdt, s2] of [[g, look.frost ? 'rgba(196,199,207,0.95)' : 'rgba(44,54,70,0.95)', 0.32, ppm], [hg, 'rgba(150,150,150,1)', 0.4, ppm / 2]] as [CanvasRenderingContext2D, string, number, number][]) {
+      for (const [ctx, style, wdt, s2] of [[g, look.frost ? 'rgba(218,220,225,0.85)' : 'rgba(31,38,49,0.9)', 0.32, ppm], [hg, 'rgba(150,150,150,1)', 0.4, ppm / 2]] as [CanvasRenderingContext2D, string, number, number][]) {
         ctx.strokeStyle = style; ctx.lineWidth = wdt * s2; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
         ctx.beginPath();
         pts.forEach(([xx, yy], j) => { const X = (xx + o) * s2; const Y = (-yy + o) * s2; if (j) ctx.lineTo(X, Y); else ctx.moveTo(X, Y); });
@@ -79,7 +79,8 @@ function surface(b: BoardSpec, L: BoardLayout, look: Look, ppm: number): { map: 
   // Tinned pads for small parts not placed on this side, and a few small IC footprints with their pad rows, so the bare
   // board between the big parts reads as a populated circuit board and not as line art.
   {
-    const tin = look.frost ? 'rgba(178,180,186,1)' : 'rgba(118,116,108,1)';
+    // Under the mask, traces barely show; bare pads a little more. Stronger, they averaged into blotches at a distance (critic 278).
+    const tin = look.frost ? 'rgba(212,214,218,1)' : 'rgba(92,91,86,1)';
     g.fillStyle = tin;
     for (let i = 0; i < 900; i++) {
       const x = 3 + r() * (L.w - 6); const y = -3 - r() * (L.h - 6); const along = r() > 0.5;
@@ -358,7 +359,7 @@ export function boardPart(id: string, opts: GenOpts = {}): PartObject {
   // 12 px a millimeter: at 9 the baked silkscreen went soft in the close board view.
   const ppm = Math.max(4, Math.round(12 * detail));
   const surf = surface(b, L, look, ppm);
-  const topMat = pb.own(new THREE.MeshPhysicalMaterial({ map: pb.own(surf.map), bumpMap: pb.own(surf.bump), bumpScale: 0.6, roughness: look.frost ? 0.42 : 0.38, metalness: 0.05, clearcoat: look.frost ? 0.18 : 0.55, clearcoatRoughness: look.frost ? 0.35 : 0.22, alphaTest: 0.5 }));
+  const topMat = pb.own(new THREE.MeshPhysicalMaterial({ map: pb.own(surf.map), bumpMap: pb.own(surf.bump), bumpScale: 0.35, roughness: look.frost ? 0.42 : 0.38, metalness: 0.05, clearcoat: look.frost ? 0.18 : 0.55, clearcoatRoughness: look.frost ? 0.35 : 0.22, alphaTest: 0.5 }));
   const top = new THREE.PlaneGeometry(L.w, L.h); top.translate(L.w / 2, -L.h / 2, T + 0.02);
   // The trace relief fades out once a millimeter of board falls under about 1.5 pixels: further off, the relief under the
   // clearcoat caught the LED colors as blotchy speckle instead of reading as traces (critic 265). Close views keep it whole.

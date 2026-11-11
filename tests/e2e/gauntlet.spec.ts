@@ -266,3 +266,41 @@ test('G6: the canvas has a descriptive label and the full sheet lists every inst
   await expect(dialog.getByRole('button', { name: /^Remove / })).toHaveCount(singles + kits + fans + drives);
   await noErrors(errors);
 });
+
+test('F05: the Inspector turns and zooms by hand, shows the specs and installs the part', async ({ page }) => {
+  const errors = watchErrors(page);
+  await openApp(page);
+  await hook(page, 'load', 'night-rig');
+  await hook(page, 'act', { type: 'remove', category: 'gpu' });
+  await openTab(page, 'gpu');
+  await page.getByRole('button', { name: 'Inspect Veltrin Apex 2X' }).click();
+  const region = page.getByRole('region', { name: 'Inspector' });
+  await expect(region).toBeVisible();
+  await expect(region.getByText('Length')).toBeVisible();
+  const read = () => page.evaluate(() => { const i = (window as unknown as { __world: { inspector: { angle: number; zoom: number } } }).__world.inspector; return { angle: i.angle, zoom: i.zoom }; });
+  const a = await read();
+  await page.mouse.move(700, 300); await page.mouse.down(); await page.mouse.move(820, 300, { steps: 6 }); await page.mouse.up();
+  const b = await read();
+  expect(b.angle).not.toBe(a.angle);
+  await page.mouse.move(700, 300); await page.mouse.wheel(0, -400);
+  const c = await read();
+  expect(c.zoom).toBeGreaterThan(b.zoom);
+  await region.getByRole('button', { name: 'Install' }).click();
+  await settle(page);
+  expect((await getBuild(page)).gpu).toBe('apex2x');
+  await expect(region).toHaveCount(0);
+  await noErrors(errors);
+});
+
+test('F01: the intro plays and any input skips it to the start overlay', async ({ page }) => {
+  const errors = watchErrors(page);
+  await openApp(page);
+  // Not awaited: the hook's open waits for motion to settle, and the intro would play to its end.
+  await page.evaluate(() => { void (window as unknown as { __pcb: { open: (n: string) => Promise<void> } }).__pcb.open('intro'); });
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __world: { introTl: unknown } }).__world.introTl !== null)).toBe(true);
+  await page.keyboard.press('Space');
+  await expect(page.locator('#start-title')).toBeVisible();
+  await page.getByRole('button', { name: 'Start with this build' }).click();
+  await expect(page.locator('#start-title')).toHaveCount(0);
+  await noErrors(errors);
+});

@@ -60,6 +60,9 @@ const BLUR_TO = 34;
 /** The supply's status light, a small green LED above its switch. */
 const SUPPLY_LED = 3;
 const GLOW_EVERY_MS = 100;
+/** Showcase softbox level given back to a build that lights nothing, and the LED average at which the build carries itself. */
+const SHOWCASE_FILL = 0.35;
+const SHOWCASE_LIT = 0.35;
 /** Frames in the automatic tier's first probe. */
 const PROBE_FRAMES = 40;
 /** The intro starts this much further out than the hero view, with the exposure this low, and lasts this long. */
@@ -337,6 +340,22 @@ export class World {
     this.tour.setEnabled(s.mode === 'showcase' && !s.reducedMotion && s.frozen === null && !s.inspect);
     await this.renderNow(1);
     return out;
+  }
+
+  private showcaseLight = -1;
+
+  /**
+   * In Showcase the softboxes drop so the rig's own light carries the frame. A build with little or no light of its own (Blackout,
+   * a sparse Starfield, no lit parts) would sink into the dark, so the softboxes give back what the rig does not light, eased
+   * over about a second so a breathing or comet effect does not pump the room.
+   */
+  private showcaseRoom(dt: number, frozen: boolean, s: State) {
+    if (s.mode !== 'showcase' || this.showingInspector || this.introTl) { this.showcaseLight = -1; return; }
+    const a = this.rgb.average;
+    const lit = Math.max(a.r, a.g, a.b) * this.level.power;
+    const target = roomLevel('showcase', s.build.case?.finish) + SHOWCASE_FILL * (1 - THREE.MathUtils.smoothstep(lit, 0, SHOWCASE_LIT));
+    this.showcaseLight = frozen || this.showcaseLight < 0 ? target : this.showcaseLight + (target - this.showcaseLight) * Math.min(1, dt * 2);
+    this.room.setLevel(this.showcaseLight);
   }
 
   /** What the intro's title shows, from 0 to 1, read by the intro overlay each frame. */
@@ -645,6 +664,7 @@ export class World {
     this.rgb.update(this.time);
     if (this.showingInspector) { this.turntable.step(dt, frozen !== null); this.inspector.rgb.update(this.time); this.inspector.updateGlow(); }
     this.writeGlow(frozen !== null);
+    this.showcaseRoom(dt, frozen !== null, s);
     const led = this.rig.items.get('psu')?.part.movers.led as THREE.Mesh | undefined;
     if (led) (led.material as THREE.MeshStandardMaterial).emissiveIntensity = SUPPLY_LED * this.level.led;
     // Exposure lifts with the light that is awake, so it rises along the power on sequence instead of at its first frame.

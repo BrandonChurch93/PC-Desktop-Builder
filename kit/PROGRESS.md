@@ -259,6 +259,7 @@ One line each: the question, what you chose, which step of the decision rule set
 - Gate 8 first look (shots/peek/g8-a.log), faults found and fixed: motion/intro-100 showed the start overlay because the overlay saw the scrubbed intro already ended and played a new one (World.introDone now marks it played once); the phone Showcase load readout shrink-wrapped and wrapped after a separator dot (temperatures are one unit on their own line, the strip spans the width on phones); on tablets the readout overlapped the build name and the lighting side sheet (readout moved below the name row, side sheets start below it while powered).
 - Inspector shots changed between two runs of the same code: the turntable's slow turn ran between opening the part and freezing the clock. The turn is now Inspector.spin, an offset over the requested angle that a frozen clock sets to 0, so every frozen Inspector frame shows exactly the asked angle.
 - Thumbnails re-rendered from the Inspector (step 2): 23 changed since they were last made (lighting and diffuser changes since Phase 4). Found a fault: scripts/thumbs.mjs passed the catalog id to the Inspector, which shows storage by its type, so all three drive thumbnails were the NVMe. It now uses the front shot's inspect id; arrow, flint and vault thumbnails are each their own drive (opened).
+- Critic 278 (Phase 10, the six rig/<preset>-hero shots, addendum rule 4) failed all six. Checked each claim on the pixels. Real and fixed: the board surface broke into blue speckle (black) and grey grime (white) at hero distance, because 520 trace bundles and 900 tin pads at high contrast plus a 0.6 bump averaged into blotches and glinted under the LEDs; traces are now close to the mask color (black 31,38,49 over 20,24,30; white 211,214,220 over 226,228,233), pads quieter, bump 0.35. Real and fixed: Windbreak (Blackout lighting) and Open Frame (sparse Starfield) sank into the dark in Showcase, where the softboxes drop for the rig's own light; the Showcase room level now gives back up to 0.35 when the rig's LED average is under 0.35, eased over a second, exact on a frozen frame. Not changed, with reasons: Flagship "only one tube" is a misread, both braided tubes run to the front radiator and stack in that view (macro/flagship-cooler shows both); White Out's blue cast is its Ice lighting preset; the Night Rig's lower glass carries the studio card reflections that make the glass read as glass (critics 001 to 035 failed it without them); the Night Rig front fans sit behind a perforated steel front as real mesh cases hide them; Gantry's top rail and spine are the open frame's structure; Pocket's pastel pump is the Vapor preset's pink #ff6ad5 on a frost diffuser and its card power loops keep their bend radius. Under addendum rule 1 the fixed images pass on my own verdict. White Out's hero came back `same` after the first board change, so its FAIL stood: the "blotch" is the frost board right of the memory lit ice blue, mottled by grey pad and trace print. The frost print went quieter again (traces 218,220,225 at 0.85, pads 212,214,218 on the 226,228,233 mask); the board now reads clean white (shots/peek/h-wo2.png), and every shot was retaken once more (shots/peek/g10-c.log).
 - Critic 277 (light presets): passed aurora, spectrum, thermal, blackout, override; failed ember and reactor (X13: the room stayed violet in a dim comet or breathing frame) and ice, vapor, starfield (X14: pale colors washed out on the memory bars). Measured the LED average: aurora and spectrum peak near 0.85, ember and reactor near 0.16 at this frame, so a linear wall wash fell to a fifth. Fixes: the wall wash and desk pools take roomShare(peak), 0.85 × (peak / 0.85)^0.3 below 0.85 and linear above (bright presets unchanged); memory bar diffusers run 0.34 and 0.38 instead of 0.42 and 0.48; the diffuser luminance ceiling drops to 40 percent for a color with no saturation, scaling up to the full ceiling for a saturated one. Ember's wall went from rgb(70, 54, 101) to rgb(88, 56, 102) (scripts/pixel.mjs 1150 230 40).
 
 ## Dependencies added
@@ -304,6 +305,45 @@ One line per item in kit/09-QA-GAUNTLET.md: `id · PASS · evidence`.
 ## Feature coverage
 
 One line per feature id in kit/01-PRODUCT.md: `F01 · where it is tested or shown`.
+
+- F01 · gauntlet.spec.ts "F01: the intro plays and any input skips it"; C17 (reduced motion still); motion/intro-*, ui-desktop/01-intro
+- F02 · ui-desktop/01-start, ui-phone/start; F01 test clicks Start with this build
+- F03 · C7 build-flow.spec.ts "a reload restores the build"; hardening "a lost context keeps the build"
+- F04 · D3 (generators.test.ts thumbnails), ui-desktop/03-build, ui-phone/peek, half, full; C20
+- F05 · gauntlet.spec.ts "F05: the Inspector turns and zooms by hand, shows the specs and installs the part"; mode/inspector, ui-desktop/07-inspector, ui-phone/inspector
+- F06 · C2 hands-all.spec.ts (drag every category), C4 (five blocked codes), hands.spec.ts; drag/*
+- F07 · C3, C20 (build-flow.spec.ts taps), hands-all.spec.ts tap install per category
+- F08 · C1 keyboard only, G1, G2, G3; hands-all.spec.ts Enter install per category
+- F09 · C23 hands-all.spec.ts; motion/install-* (35 frames)
+- F10 · C6 (selection menu Remove), ui-desktop/05-select
+- F11 · C5, C15 (radiator notice), build-flow.spec.ts case swap notice; ui-desktop/06-cascade
+- F12 · C5 (Undo and Redo)
+- F13 · G6, build-flow.spec.ts spec numbers; ui-desktop/08-spec-sheet, ui-tablet/*-spec-sheet, ui-phone/spec-sheet, specs
+- F14 · messages.test.ts warnings, engine.fixtures.test.ts sheets; ui-desktop/08-spec-sheet (low headroom)
+- F15 · generators.test.ts every case finish; finish/*, part/case-*-alt
+- F16 · C15, C20; drag/fan-mounts
+- F17 · hands-all.spec.ts cooler on the top mount, C15 (radiator to the front mount); drag/radiator-mounts
+- F18 · C16; engine fixtures checks M2_SLOTS, BAYS_25, BAYS_35, SATA_PORTS
+- F19 · C1 (Orchid colorway in the share code); cable/* (six colorways)
+- F20 · C11 lighting.spec.ts every control; lighting.test.ts (A6); light/effect-*; ui-desktop/09-lighting
+- F21 · C11 override and Off via __pcb.zones(); light/override
+- F22 · light/preset-* (nine); lighting.spec.ts preset; saved profiles in LightingPanel (Save profile, delete)
+- F23 · C12; motion/power-on-*, ui-desktop/10-power
+- F24 · hardening.spec.ts "the Showcase tour moves the camera, and any input takes it"; C13; mode/showcase, ui-desktop/10-showcase
+- F25 · ui-desktop/10-power and 10-showcase (load readout), mode/showcase; lighting.spec.ts power; sheet temps unit tests
+- F26 · C13 (Airflow by chip and shortcut); mode/airflow-night-rig, mode/airflow-windbreak, ui-desktop/11-airflow
+- F27 · C13; mode/exploded-* (six), motion/explode-*, ui-desktop/12-exploded
+- F28 · C13 (Glass by chip and shortcut); hands tests (glass lifts); drag/* (glass lifted)
+- F29 · C21 (focus, Escape, reset, zoom caps); hardening tour test (orbit by drag)
+- F30 · C10 keeping.spec.ts; ui-desktop/13-saved
+- F31 · C8, C9 keeping.spec.ts and gauntlet.spec.ts; ui-desktop/14-shared, ui-desktop/13-share
+- F32 · C14 keeping.spec.ts; ui-desktop/13-poster
+- F33 · A9 tier.test.ts, C22 hardening.spec.ts; tier/*
+- F34 · ui-desktop/*, ui-tablet/landscape-* and portrait-*, ui-phone/* and landscape-*; build-flow phone taps
+- F35 · C17, C23 reduced motion half
+- F36 · ui-desktop/13-about; check:copy E7 (About is the only AI word)
+- F37 · ui-desktop/02-empty-bench, ui-phone/empty-bench
+- F38 · E4 gauntlet.spec.ts (every request stays on the app's origin)
 
 ## Session log
 
@@ -409,3 +449,17 @@ Newest first. One entry per working session or per compaction: what was done, wh
 ## Handoff
 
 Written in Phase 10: what was built, every weak shot by name and path, what else is weaker than the rest, the measured numbers, what to look at first in review.
+
+**What was built.** The whole product in the kit: six cases in twelve finishes and forty three parts, each generated in code with real geometry and materials; the rules engine reproducing every fixture; drag, tap and keyboard install with sockets and per category choreography; the spec sheet; per LED lighting with eight effects, gradient editor, color picker, per target overrides and off, nine presets and saved profiles; power sequences, load readout and simulated temperatures; airflow; Showcase with a camera tour; the exploded view with labels; the Inspector with a turntable; saved builds, share links and poster export; desktop, tablet and phone layouts; three quality tiers with an automatic choice; reduced motion, keyboard and screen reader paths; a WebGL 2 fallback and context loss handling. Every decision is under "Decisions made by the Builder".
+
+**Weak shots.** None. kit/WEAK-SHOTS.json is unused under addendum 01. Under addendum 01 most 3D shots had one critic round and then passed on my own verdict; every critic failure was fixed in the product (see the notes per gate).
+
+**What I know is weaker than the rest.**
+- Draw calls are over the budgets in kit/04-WORLD.md (High scene pass 733 against 400, Low 526 against 220) and the High median frame time is 22.4 ms against a 20 ms target on this machine; Medium and Low hold 60 Hz here. A real phone has not been measured. The way down is merging static parts at rest into shared batches and splitting them again when one moves; it was not done.
+- The Low tier at 390 × 844 frames the rig small, with the desk's front edge across the lower third (tier/low).
+- The intro, the tour and the exploded camera are tuned for the six presets at 16:10; very wide or very tall windows frame the exploded labels tighter.
+- Pushing to GitHub: Brandon authorized it during the build, so the repository has the remote origin and every commit is pushed. Gauntlet item E8 (no remote, nothing pushed) is therefore recorded as overridden by his instruction, not as passed.
+
+**Measured numbers.** See Gate 9 evidence: P1 22.4 / 25.3 ms, P2 16.6 ms, P3 16.6 ms (display capped), P4 0 frames idle, P5 733 calls and 2.16 M triangles High, 526 and 1.22 M Low, P6 575 kB gzipped JavaScript and 1.79 MB thumbnails, P7 1219 ms first frame. Tests: see QA results.
+
+**Look at first.** The six rig/<preset>-hero shots and the macro shots, the exploded views (mode/exploded-*), the posters (Export poster in the menu), and the phone layout (ui-phone/*). Then try a drag on a phone and the Showcase tour on a desktop.

@@ -15,6 +15,9 @@ type V = THREE.Vector3;
 const v = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
 
 /** A path through corners, each corner rounded to at least the given radius, so straight runs stay straight. */
+
+/** Geometry with no index, for merging; one that has none already is used as it is. */
+const flat = (g: THREE.BufferGeometry) => (g.index ? g.toNonIndexed() : g);
 export function filletPath(points: V[], radius: number, step = 2.5, straight = 12, straightEnd = straight): V[] {
   const out: V[] = [points[0]!.clone()];
   for (let i = 1; i < points.length - 1; i++) {
@@ -220,7 +223,7 @@ export function buildRun(run: Run, group: THREE.Group, detail = 1) {
     byColor.set(color, list);
   }
   for (const [color, geos] of byColor) {
-    const merged = mergeGeometries(geos.map((x) => x.toNonIndexed()), false);
+    const merged = mergeGeometries(geos.map(flat), false);
     for (const g of geos) g.dispose();
     if (!merged) continue;
     const mesh = new THREE.Mesh(merged, color.startsWith('#') ? wireSleeve(color) : mat('rubber'));
@@ -255,7 +258,7 @@ export function buildRun(run: Run, group: THREE.Group, detail = 1) {
     const g = comb.clone(); g.applyMatrix4(m); holes.push(g);
   }
   if (holes.length) {
-    const merged = mergeGeometries(holes.map((x) => x.toNonIndexed()), false);
+    const merged = mergeGeometries(holes.map(flat), false);
     if (merged) { const mesh = new THREE.Mesh(merged, combMat); mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.flexible = true; mesh.name = `comb:${run.name}`; mesh.userData.run = run.name; group.add(mesh); }
   }
   for (const g of holes) g.dispose();
@@ -270,7 +273,7 @@ function plugAt(run: Run, atEnd: boolean, T: V[], N: V[], ch: number, cw: number
     const out = atEnd ? T[i]!.clone().negate() : T[i]!.clone();
     const frame = new THREE.Matrix4().makeBasis(out, N[i]!, new THREE.Vector3().crossVectors(out, N[i]!)).setPosition(run.path[i]!);
     const parts = latchPlug(run, frame);
-    const merged = mergeGeometries(parts.map((x) => x.toNonIndexed()), false);
+    const merged = mergeGeometries(parts.map(flat), false);
     for (const g of parts) g.dispose();
     if (merged) { const mesh = new THREE.Mesh(merged, mat('plasticDark')); mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.flexible = true; mesh.name = `plug:${run.name}`; mesh.userData.run = run.name; group.add(mesh); }
   } else {
@@ -281,7 +284,7 @@ function plugAt(run: Run, atEnd: boolean, T: V[], N: V[], ch: number, cw: number
     housing.applyMatrix4(m);
     const clip = rbox(6, 2.4, 6, 0.6, 1);
     clip.applyMatrix4(new THREE.Matrix4().multiplyMatrices(m, new THREE.Matrix4().makeTranslation(0, ch / 2 + 0.8, 0)));
-    const merged = mergeGeometries([housing.toNonIndexed(), clip.toNonIndexed()], false);
+    const merged = mergeGeometries([flat(housing), flat(clip)], false);
     housing.dispose(); clip.dispose();
     if (merged) { const mesh = new THREE.Mesh(merged, mat('plasticDark')); mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.flexible = true; mesh.name = `plug:${run.name}`; mesh.userData.run = run.name; group.add(mesh); }
   }

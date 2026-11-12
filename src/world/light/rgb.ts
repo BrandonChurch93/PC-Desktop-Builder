@@ -231,6 +231,14 @@ export class RgbEngine {
       const gain = g.members.reduce((s, m) => s + m.weight, 0) / Math.max(1, g.members.length);
       this.lamps.push({ light, zones, gain });
     }
+    // Three.js keys every lit material's program on the number of area lights, so a build with fewer lamp groups would
+    // recompile every visible material. The tier's count is always present: the spare lamps sit dark at the parent.
+    while (this.lamps.length < limit) {
+      const light = new THREE.RectAreaLight(0xffffff, 0, 0.01, 0.01);
+      light.name = 'lamp:spare';
+      this.lampParent.add(light);
+      this.lamps.push({ light, zones: [], gain: 0 });
+    }
   }
 
   update(time: number) {
@@ -254,6 +262,7 @@ export class RgbEngine {
     }
     this.average.setRGB(an ? ar / an : 0, an ? ag / an : 0, an ? ab / an : 0);
     for (const l of this.lamps) {
+      if (!l.zones.length) continue;
       let r = 0; let g = 0; let b = 0;
       for (const z of l.zones) { r += z.avg.r; g += z.avg.g; b += z.avg.b; }
       const n = Math.max(1, l.zones.length);

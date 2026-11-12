@@ -25,6 +25,7 @@ import { Rig, type RigItem } from './rig';
 import { Choreo, type MotionMode } from './motion/choreo';
 import { PowerSequence } from './motion/power';
 import { Airflow } from './airflow';
+import { ProgramKeeper, warmUp, type WarmReport, type WarmTimings } from './warm';
 import { Tour } from './tour';
 import { Turntable } from './interact/turntable';
 import { EXPLODE_REACH, Exploder } from './motion/explode';
@@ -154,7 +155,11 @@ export class World {
     this.choreo = new Choreo(this.rig, () => { this.dirty = true; });
   }
 
-  async init(tier: Tier) {
+  /**
+   * The world up to the house build drawn: renderer, room, post chain, the build and its programs. The probe and the warm-up
+   * run after it, under the preloader.
+   */
+  async initCore(tier: Tier) {
     await loadFonts();
     setTextureScale(TIER_SETTINGS[tier].texScale);
     setPerfAspect();
@@ -169,9 +174,47 @@ export class World {
     this.loop(performance.now());
     await this.renderNow(2);
     this.firstFrameMs = performance.now();
-    // Auto measures after the first build is shown.
-    if (this.store.getState().quality === 'auto') this.applyQuality('auto');
     this.readyResolve();
+  }
+
+  /** Program keeper and timings from the last warm-up, and whether one is running. */
+  keeper: ProgramKeeper | null = null;
+  warming = false;
+  readonly warmTimings: WarmTimings = [];
+  /** Told when the automatic tier steps down while running, so the interface can warm the new tier. */
+  onRetier: ((tier: Tier) => void) | null = null;
+
+  /**
+   * The tier probe under the preloader: frames of the house hero, each timed with the GPU's work finished, pick the tier. A
+   * different tier rebuilds the world at it before anything is warmed. Returns the tier in use.
+   */
+  async measureTier(report?: (done: number, total: number) => void): Promise<Tier> {
+    const s = this.store.getState();
+    if (s.quality !== 'auto') { this.setTier(s.quality); return this.tier; }
+    if (!this.autoTier) return this.tier;
+    const gl = this.renderer.getContext();
+    const samples: number[] = [];
+    for (let i = 0; i < PROBE_FRAMES; i++) {
+      await new Promise<void>((r) => requestAnimationFrame(() => r()));
+      const t0 = performance.now();
+      this.controls.update(); this.step(1 / 60); this.draw(); gl.finish();
+      samples.push(performance.now() - t0);
+      report?.(i + 1, PROBE_FRAMES);
+    }
+    const coarse = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
+    const tier = probeTier(samples, { coarse, shortSide: Math.min(window.innerWidth, window.innerHeight) });
+    this.auto = startAuto(tier);
+    this.setTier(tier);
+    return tier;
+  }
+
+  /** Every program and part for the tier in use, prepared once. The tier's frame watch pauses while it runs. */
+  async warm(report: WarmReport, signal: AbortSignal): Promise<void> {
+    this.warming = true;
+    try {
+      this.keeper?.dispose();
+      this.keeper = await warmUp(this, this.tier, report, signal, new ProgramKeeper(), this.warmTimings);
+    } finally { this.warming = false; }
   }
 
   applyTier(tier: Tier) {
@@ -626,9 +669,9 @@ export class World {
       this.setTier(tier);
       return;
     }
-    if (!this.auto || this.store.getState().quality !== 'auto') return;
+    if (!this.auto || this.warming || this.store.getState().quality !== 'auto') return;
     this.auto = feedAuto(this.auto, ms, this.interacting || this.store.getState().held !== null);
-    if (this.auto.tier !== this.tier) this.setTier(this.auto.tier);
+    if (this.auto.tier !== this.tier) { this.setTier(this.auto.tier); this.onRetier?.(this.auto.tier); }
   }
 
   private step(dt: number) {

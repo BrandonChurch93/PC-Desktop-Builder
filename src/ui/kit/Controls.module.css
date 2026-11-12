@@ -46,6 +46,11 @@
   scrollbar-width: none;
 }
 
+.tabs[data-dragging],
+.tabs[data-dragging] * {
+  cursor: grabbing;
+}
+
 .tabs::-webkit-scrollbar {
   display: none;
 }

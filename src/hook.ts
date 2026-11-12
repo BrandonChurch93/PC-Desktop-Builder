@@ -223,6 +223,7 @@ export function installHook(world: World) {
     camera: () => world.cameraInfo(),
     /** The selected part, or null. */
     selected: () => store.getState().selected,
+    held: () => store.getState().held,
     tier: () => ({ setting: store.getState().quality, active: world.tier }),
     sheet: () => sheet(store.getState().build),
     zones: () => world.rgb.snapshot(),

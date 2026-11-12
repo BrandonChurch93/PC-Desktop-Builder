@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { CATEGORIES, getCable, getCase, getFan, LABELS, type StorageType } from '../data/catalog';
 import { check } from '../engine/rules';
 import { blockedMessage } from '../engine/messages';
@@ -6,6 +6,7 @@ import { fitOf } from '../engine/queries';
 import { clearCaseFans, fillFanMounts, setCaseFinish, stepStorage } from '../state/actions';
 import { store } from '../state/store';
 import { activateCard, startPlacing } from './activate';
+import { useDragScroll } from './dragScroll';
 import { useApp } from './hooks';
 import { Button } from './kit/Button';
 import { Segmented, Stepper, Tabs } from './kit/Controls';
@@ -39,6 +40,8 @@ export function CardRow({ idBase, wrap }: { idBase: string; wrap?: boolean }) {
   const parts = useMemo(() => trayParts(tab).map((p) => ({ ...p, fit: fitOf(build, tab, p.id) })), [tab, build]);
   const fanStyle = fillStyle ?? Object.values(build.fans)[0] ?? parts[0]?.id ?? 'gale';
   const caseSpec = build.case ? getCase(build.case.id) : undefined;
+  const row = useRef<HTMLDivElement>(null);
+  useDragScroll(row);
   // A tab just opened: its first cards are built ahead, as the most likely next pick.
   useEffect(() => { for (const p of parts.filter((x) => x.fit.status === 'fits').slice(0, INTENT_FIRST)) getWorld()?.prepare(tab, p.id); }, [tab]);
 
@@ -51,7 +54,7 @@ export function CardRow({ idBase, wrap }: { idBase: string; wrap?: boolean }) {
           <span className={s.fillNote}>Fill uses {brandOf(getFan(fanStyle)?.brand ?? '')} {getFan(fanStyle)?.name}</span>
         </div>
       )}
-      <div className={[s.row, wrap ? s.wrap : ''].join(' ')} role="list" aria-label={`${LABELS.category[tab]} parts`}>
+      <div ref={row} className={[s.row, wrap ? s.wrap : ''].join(' ')} role="list" aria-label={`${LABELS.category[tab]} parts`}>
         {parts.map((p) => {
           const count = tab === 'ram' ? build.ram.filter((r) => r === p.id).length : tab === 'storage' ? build.storage[p.id as StorageType] : tab === 'fan' ? Object.values(build.fans).filter((f) => f === p.id).length : undefined;
           const cable = tab === 'cables' ? getCable(p.id) : undefined;

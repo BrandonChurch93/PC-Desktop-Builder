@@ -1,5 +1,6 @@
 import gsap from 'gsap';
 import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from 'react';
+import { useDragScroll } from '../dragScroll';
 import { useReducedMotion } from '../hooks';
 import { Icon } from '../icons';
 import s from './Controls.module.css';
@@ -34,6 +35,8 @@ export type TabItem<T extends string> = { value: T; label: string; badge?: numbe
 /** Category tabs. The active tab carries an accent underline; a tab shows a count or dot when its category has parts. */
 export function Tabs<T extends string>({ value, items, onChange, label, idBase }: { value: T; items: TabItem<T>[]; onChange: (v: T) => void; label: string; idBase: string }) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
+  const list = useRef<HTMLDivElement>(null);
+  useDragScroll(list);
   // The active tab scrolls into view in a row that overflows, as on a phone.
   useEffect(() => {
     const el = refs.current[items.findIndex((t) => t.value === value)];
@@ -49,7 +52,7 @@ export function Tabs<T extends string>({ value, items, onChange, label, idBase }
     refs.current[n]?.focus();
   };
   return (
-    <div role="tablist" aria-label={label} className={s.tabs}>
+    <div ref={list} role="tablist" aria-label={label} className={s.tabs}>
       {items.map((t, i) => (
         <button key={t.value} ref={(el) => { refs.current[i] = el; }} type="button" role="tab" id={`${idBase}-tab-${t.value}`} aria-controls={`${idBase}-panel`} aria-selected={t.value === value} tabIndex={t.value === value ? 0 : -1}
           className={[s.tab, t.value === value ? s.tabOn : ''].join(' ')} onClick={() => onChange(t.value)} onKeyDown={(e) => onKey(e, i)}>

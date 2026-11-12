@@ -69,6 +69,16 @@
   scrollbar-color: var(--line-strong) transparent;
 }
 
+/* While a mouse drags the row: no snapping under the hand (the glide ends on a card's edge itself), a closed hand. */
+.row[data-dragging] {
+  scroll-snap-type: none;
+}
+
+.row[data-dragging],
+.row[data-dragging] * {
+  cursor: grabbing;
+}
+
 .wrap {
   flex-wrap: wrap;
   overflow: visible;

@@ -10,6 +10,7 @@ import { loadFonts } from './kit/type';
 import { Fader } from './motion/fade';
 import { revealMaterial } from './motion/reveal';
 import { inspectPart } from './parts';
+import { partCache } from './parts/cache';
 import type { GenOpts, PartObject } from './parts/types';
 import { TIER_SETTINGS } from './post';
 import { Rig } from './rig';
@@ -182,6 +183,8 @@ export async function warmUp(world: World, tier: Tier, report: WarmReport, signa
     if (i % 12 === 11) await step(12 * W.mat, 'Preparing materials');
   }
   for (const c of catalog.cables) for (const col of c.colors) sleeve(col);
+  // Shared textures belong to no one part: the part cache leaves them out of its byte count.
+  partCache.shared = new Set(all);
   await step((MAT_NAMES.length % 12) * W.mat, 'Preparing materials');
 
   // 3. Shared textures to the GPU, one per slice.
@@ -220,6 +223,7 @@ export async function warmUp(world: World, tier: Tier, report: WarmReport, signa
     if (!spec) continue;
     const rig = new Rig();
     rig.detail = detail;
+    rig.useCache = false;
     try { rig.sync(revalidate(buildFromPreset(spec)).build); } catch (e) { console.error(e); }
     lift.add(rig.group);
     await step(W.preset, `Preparing ${spec.name}`);

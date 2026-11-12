@@ -6,6 +6,7 @@ import { canvas, wrap } from './kit/textures';
 import { RgbEngine } from './light/rgb';
 import type { Zone } from './light/zones';
 import { inspectPart } from './parts';
+import { partCache, track } from './parts/cache';
 import type { GenOpts, PartObject } from './parts/types';
 
 const MM = 0.001;
@@ -185,7 +186,7 @@ export class Inspector {
     const key = `${category}|${id}|${JSON.stringify(opts)}|${flip}`;
     if (key !== this.key) {
       this.clear();
-      const part = inspectPart(category, id, opts);
+      const part = partCache.take(`inspect|${key}`) ?? track(inspectPart(category, id, opts));
       this.part = part;
       this.key = key;
       part.root.scale.setScalar(MM);
@@ -301,7 +302,7 @@ export class Inspector {
   clear() {
     if (this.part) {
       this.holder.clear();
-      this.part.dispose();
+      partCache.put(`inspect|${this.key}`, this.part);
       this.part = null;
       this.key = '';
     }

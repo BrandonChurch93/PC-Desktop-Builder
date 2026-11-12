@@ -7,6 +7,7 @@ import type { Store } from '../../state/store';
 import { CASE_LAYOUTS } from '../layout/cases';
 import type { Placed } from '../layout/place';
 import { generate } from '../parts';
+import { partCache, track } from '../parts/cache';
 import type { PartObject } from '../parts/types';
 import type { RigItem } from '../rig';
 import type { World } from '../World';
@@ -27,7 +28,7 @@ const HOLD_PLANE = 80;
 /** The preview pose stands short of home along the insertion axis, as the seat motion starts there. */
 const PREVIEW_SHORT = 35;
 
-type Ghost = { root: THREE.Group; parts: PartObject[]; anchor: THREE.Vector3; center: THREE.Vector3; insert: THREE.Vector3; lifted: { mesh: THREE.Mesh; original: THREE.Material | THREE.Material[] }[] };
+type Ghost = { root: THREE.Group; parts: PartObject[]; keys: (string | null)[]; anchor: THREE.Vector3; center: THREE.Vector3; insert: THREE.Vector3; lifted: { mesh: THREE.Mesh; original: THREE.Material | THREE.Material[] }[] };
 
 type Drag =
   | { kind: 'tray'; category: Category; id: string; sockets: Socket[]; near: number | null; x: number; y: number; ghost: Ghost | null; ghostSig: string }
@@ -335,11 +336,15 @@ export class Hands {
     if (g) return g;
     const root = new THREE.Group(); root.name = 'held';
     const parts: PartObject[] = [];
+    const keys: (string | null)[] = [];
     const anchor = placed[0] ? new THREE.Vector3(...placed[0].pose.pos) : new THREE.Vector3();
     const box = new THREE.Box3();
     if (placed.length) {
       for (const p of placed) {
-        const part = generate(p.kind, p.id, this.w.rig.optsFor(p));
+        // The rig's own key: on a drop this very part goes into the rig, with nothing generated again.
+        const key = `${p.kind}|${p.id}|${JSON.stringify(this.w.rig.optsFor(p))}`;
+        const part = partCache.take(key) ?? track(generate(p.kind, p.id, this.w.rig.optsFor(p)));
+        keys.push(key);
         const h = new THREE.Group();
         h.position.set(...p.pose.pos).sub(anchor); h.rotation.set(...p.pose.rot);
         h.add(part.root); root.add(h); parts.push(part);
@@ -347,13 +352,13 @@ export class Hands {
       }
     } else {
       const part = generate(category === 'cables' ? 'case' : category, id, {});
-      root.add(part.root); parts.push(part);
+      root.add(part.root); parts.push(part); keys.push(null);
       box.setFromObject(part.root);
     }
     const lifted = liftExposure(root);
     this.w.rig.group.add(root);
     const insert = placed[0] ? new THREE.Vector3(...placed[0].insert).normalize() : new THREE.Vector3(0, 0, -1);
-    g = { root, parts, anchor, center: box.isEmpty() ? new THREE.Vector3() : box.getCenter(new THREE.Vector3()), insert, lifted };
+    g = { root, parts, keys, anchor, center: box.isEmpty() ? new THREE.Vector3() : box.getCenter(new THREE.Vector3()), insert, lifted };
     this.ghosts.set(sig, g);
     return g;
   }
@@ -361,7 +366,7 @@ export class Hands {
   private disposeGhost(g: Ghost) {
     for (const l of g.lifted) { const m = l.mesh.material; l.mesh.material = l.original; (Array.isArray(m) ? m : [m]).forEach((x) => x.dispose()); }
     g.root.removeFromParent();
-    for (const p of g.parts) p.dispose();
+    g.parts.forEach((p, i) => { const k = g.keys[i]; if (k) partCache.put(k, p); else p.dispose(); });
   }
 
   // ---- lifting an installed part out --------------------------------------------------------

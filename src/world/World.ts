@@ -25,6 +25,7 @@ import { Rig, type RigItem } from './rig';
 import { Choreo, type MotionMode } from './motion/choreo';
 import { PowerSequence } from './motion/power';
 import { Airflow } from './airflow';
+import { partCache } from './parts/cache';
 import { ProgramKeeper, warmUp, type WarmReport, type WarmTimings } from './warm';
 import { Tour } from './tour';
 import { Turntable } from './interact/turntable';
@@ -248,6 +249,8 @@ export class World {
     this.choreo.finishAll();
     this.exploder.run(false, 'instant', CASE_LAYOUTS[this.rig.caseId ?? '']);
     setTextureScale(TIER_SETTINGS[tier].texScale);
+    // Kept parts were built at the old detail and textures: none of them can be used at the new tier.
+    partCache.clear();
     this.rig.clearAll();
     resetMaterials();
     this.applyTier(tier);

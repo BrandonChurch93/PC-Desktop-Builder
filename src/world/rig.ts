@@ -8,6 +8,7 @@ import { rotate, type V3 } from './layout/math';
 import { place, type Placed } from './layout/place';
 import type { Zone } from './light/zones';
 import { generate } from './parts';
+import { partCache, track } from './parts/cache';
 import { wellShades } from './well';
 import { interiorPatches, type Patch } from './light/patches';
 import type { GenOpts, PartObject, Rotor } from './parts/types';
@@ -26,6 +27,8 @@ export class Rig {
   readonly group = new THREE.Group();
   readonly items = new Map<string, RigItem>();
   detail = 1;
+  /** Parts come from and go back to the shared part cache. The warm-up's rigs build and dispose their own. */
+  useCache = true;
   onChange: () => void = () => {};
   /** Told what each sync changed. An item that left stays in the scene until release() is called for it, so it can move out. */
   onItems: (c: RigChange) => void = (c) => { for (const i of c.left) this.release(i); for (const r of c.rebuilt) this.release(r.old); };
@@ -84,7 +87,7 @@ export class Rig {
       let old: RigItem | null = null;
       if (item && item.sig !== sig) { old = item; this.items.delete(item.key); item = undefined; }
       if (!item) {
-        const part = generate(p.kind, p.id, opts);
+        const part = (this.useCache ? partCache.take(sig) : null) ?? track(generate(p.kind, p.id, opts));
         const holder = new THREE.Group();
         holder.name = p.key;
         holder.add(part.root);
@@ -146,7 +149,7 @@ export class Rig {
   release(item: RigItem) {
     if (!this.leaving.delete(item)) return;
     item.holder.removeFromParent();
-    item.part.dispose();
+    if (this.useCache) partCache.put(item.sig, item.part); else item.part.dispose();
   }
 
   get zones(): Zone[] { return [...this.items.values()].flatMap((i) => i.part.zones); }

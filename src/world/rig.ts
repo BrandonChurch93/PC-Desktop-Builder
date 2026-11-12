@@ -117,7 +117,8 @@ export class Rig {
     const used = g ? slotsOf(g.thickness) : 0;
     for (let k = 1; k <= 8; k++) { const c = kase?.part.movers[`slot-cover-${k}`]; if (c) c.visible = k > used; }
     const sig = `${cableSignature(build)}|${[...this.items.keys()].join(',')}`;
-    if (sig !== this.cableSig) {
+    const recabled = sig !== this.cableSig;
+    if (recabled) {
       const old = this.cables;
       this.cables = buildCables(build, this.items, this.detail);
       const layout = build.case ? CASE_LAYOUTS[build.case.id] : undefined;
@@ -132,7 +133,8 @@ export class Rig {
       this.onCables(old, this.cables);
     }
     this.onChange();
-    if (change.entered.length || change.left.length || change.rebuilt.length || change.moved.length) this.onItems(change);
+    // A new cable set alone is a change too: without it the old set stayed in the scene over a new colorway.
+    if (recabled || change.entered.length || change.left.length || change.rebuilt.length || change.moved.length) this.onItems(change);
   }
 
   /** Every part and the cables out of the scene and disposed, so the next sync builds them all again, as a tier change needs. */

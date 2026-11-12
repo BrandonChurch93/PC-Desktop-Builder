@@ -34,6 +34,9 @@ test.describe('addendum 02: preloader and warm-up', () => {
 
     // Every preset, every part in the Inspector at its finishes and fan sizes, a held part, a selection, the air streams.
     for (const p of catalog.presets) await hook(page, 'load', p.id);
+    // A fresh load is powered, so each preset lit as well.
+    for (const p of catalog.presets) { await hook(page, 'load', p.id); await hook(page, 'set', { power: true }); }
+    await hook(page, 'set', { power: false });
     await hook(page, 'load', 'night-rig');
     await hook(page, 'hold', 'gpu', 'apex2x', 0);
     await hook(page, 'open', 'none');

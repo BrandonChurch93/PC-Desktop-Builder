@@ -33,18 +33,9 @@ try {
       }
       known = now;
     };
-    await p.load('night-rig'); diff('night-rig');
-    await p.load('white-out'); diff('white-out');
-    await p.load('pocket'); diff('pocket');
-    await p.inspect('cooler', 'tarn240-frost', 30, {}); diff('inspect tarn240-frost');
-    await p.inspect('fan', 'petal', 30, { size: 120 }); diff('inspect petal');
-    { const real = []; w.inspector.scene.traverse((o) => { if (o.material && o.material.name === 'bladeFrost') real.push(w.renderer.properties.get(o.material).currentProgram?.cacheKey); });
-      const kept = []; w.keeper.scene.traverse((o) => { if (o.material && o.material.name === 'bladeFrost') kept.push(o.material.customProgramCacheKey() + ' || ' + (w.renderer.properties.get(o.material).currentProgram?.cacheKey ?? 'none').slice(-200)); });
-      const all = w.renderer.info.programs.map((x) => x.cacheKey);
-      const out = real.map((k) => { const tail = k.split(',').pop(); const sib = all.filter((x) => x !== k && x.endsWith(tail)); return sib.map((s) => { const a = k.split(','); const b = s.split(','); return a.map((v, i) => (b[i] !== v ? i + ':' + b[i] + '->' + v : null)).filter(Boolean).join(' '); }); });
-      res.push({ step: 'compare', out }); }
-    await p.inspect('fan', 'petal', 30, { size: 140 }); diff('inspect petal 140');
-    await p.open('none'); diff('close');
+    await p.load('night-rig'); await p.hold('gpu', 'apex2x', 0); diff('held'); await p.open('none'); await p.select('gpu'); diff('select'); await p.set({ airflow: true }); diff('airflow'); await p.set({ airflow: false }); diff('airflow off');
+    for (const id of ['night-rig', 'white-out', 'windbreak', 'flagship', 'pocket', 'open-frame']) { await p.load(id); diff(id); await p.set({ power: true }); diff('powered ' + id); }
+    await p.set({ power: false });
     return res;
   });
   console.log(JSON.stringify(out, null, 0).replace(/\},\{/g, '},\n{'));

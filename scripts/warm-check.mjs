@@ -30,6 +30,9 @@ try {
       const p = window.__pcb; const w = window.__world; const n = () => w.renderer.info.programs.length;
       const log = [];
       for (const id of ['night-rig', 'white-out', 'windbreak', 'flagship', 'pocket', 'open-frame']) { await p.load(id); log.push([`preset ${id}`, n()]); }
+      // A fresh load runs powered, so every preset is cycled lit as well.
+      for (const id of ['night-rig', 'white-out', 'windbreak', 'flagship', 'pocket', 'open-frame']) { await p.load(id); await p.set({ power: true }); log.push([`powered ${id}`, n()]); }
+      await p.set({ power: false });
       await p.load('night-rig');
       await p.hold('gpu', 'apex2x', 0); log.push(['held', n()]);
       await p.open('none');

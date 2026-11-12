@@ -10,6 +10,9 @@ import { DEFAULT_UI, store } from './store';
 
 const house = (): Build => revalidate(buildFromPreset(getPreset('night-rig')!)).build;
 
+/** A fresh load always shows the rig at its best: glass on, and powered whenever the build can run, so its lights are seen. */
+const fresh = (b: Build) => ({ build: { ...b, glass: true }, power: sheet(b).canPowerOn });
+
 /**
  * Arriving on a shared link: the build in Showcase with its banner, powered when it can be, and a notice when parts were left
  * out. A bad or newer link keeps the house build and offers the empty bench.
@@ -17,12 +20,12 @@ const house = (): Build => revalidate(buildFromPreset(getPreset('night-rig')!)).
 export function landOnLink(code: string) {
   const d = decode(code);
   if ('error' in d) {
-    store.setState({ build: house(), instant: true, mode: 'build', ui: DEFAULT_UI });
+    store.setState({ ...fresh(house()), instant: true, mode: 'build', ui: DEFAULT_UI });
     notify({ kind: 'link', title: linkMessage(d.error), lines: [], action: 'empty' });
     return;
   }
   const b = d.build;
-  store.setState({ build: b, instant: true, mode: 'showcase', power: sheet(b).canPowerOn, ui: { ...DEFAULT_UI, shared: b.name || 'Untitled build' } });
+  store.setState({ ...fresh(b), instant: true, mode: 'showcase', ui: { ...DEFAULT_UI, shared: b.name || 'Untitled build' } });
   if (d.removed.some((r) => r.code === 'UNKNOWN_PART')) notify({ kind: 'info', title: DROPPED_PARTS, lines: [], action: null });
 }
 
@@ -56,7 +59,8 @@ export function boot(hook: boolean) {
   const saved = read(KEYS.current);
   if (saved) {
     const d = decode(saved);
-    if (!('error' in d)) { store.setState({ build: d.build, instant: true }); return; }
+    if (!('error' in d)) { store.setState({ ...fresh(d.build), instant: true }); return; }
   }
-  store.setState({ build: house(), instant: true, ui: { ...DEFAULT_UI, overlay: settings.introSeen ? 'start' : 'intro' } });
+  // The intro powers the rig on itself, as its last beat; the start overlay sits over a rig already lit.
+  store.setState({ ...(settings.introSeen ? fresh(house()) : { build: house() }), instant: true, ui: { ...DEFAULT_UI, overlay: settings.introSeen ? 'start' : 'intro' } });
 }

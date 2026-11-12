@@ -22,6 +22,9 @@ try {
   const warmAt = Date.now() - t0;
   const st = await page.evaluate(() => window.__pcb.warmState());
   const out = { enterShownMs: enterAt, enterBeforeWarmDone: !midWarm, warmDoneMs: warmAt, programsAtWarm: st.programs, error: st.error, timing: await page.evaluate(() => window.__pcb.timing()), slowest: [...st.timings].sort((a, b) => b.ms - a.ms).slice(0, 12) };
+  const compiles = st.timings.filter((t) => t.label.startsWith('compile'));
+  out.compiles = { count: compiles.length, totalMs: compiles.reduce((s, t) => s + t.ms, 0), medianMs: [...compiles].sort((a, b) => a.ms - b.ms)[compiles.length >> 1]?.ms ?? 0 };
+  out.textures = st.timings.filter((t) => t.label.startsWith('initTexture'));
   if (cycle) {
     out.cycle = await page.evaluate(async () => {
       const p = window.__pcb; const w = window.__world; const n = () => w.renderer.info.programs.length;

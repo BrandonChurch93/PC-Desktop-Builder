@@ -174,6 +174,8 @@ SHOTS['ui-desktop/13-about'] = { steps: ui([['open', 'about']]) };
 // A shared link landing: Showcase, the banner and the power on, as a visitor arrives on the Flagship's link.
 const shared = [['link', fixtureCode('flagship')], ['set', { ui: true }], ['cam', 'hero'], FREEZE];
 SHOTS['ui-desktop/14-shared'] = { steps: shared };
+// The preloader at 30 percent of its work, over the house build (addendum 02).
+SHOTS['ui-desktop/15-preloader'] = { steps: [['load', 'night-rig'], ['set', { ui: true }], ['open', 'preloader-30'], FREEZE] };
 for (const [o, width, height] of [['landscape', 1180, 820], ['portrait', 820, 1180]]) {
   SHOTS[`ui-tablet/${o}-build`] = { width, height, touch: true, steps: ui(inProgress) };
   SHOTS[`ui-tablet/${o}-spec-sheet`] = { width, height, touch: true, steps: ui([...warned, ['open', 'sheet']]) };
@@ -194,6 +196,7 @@ SHOTS['ui-phone/showcase'] = { ...phone, steps: ui([['mode', 'showcase'], ['set'
 const phoneWide = { width: 844, height: 390, touch: true };
 SHOTS['ui-phone/landscape-build'] = { ...phoneWide, steps: ui(inProgress) };
 SHOTS['ui-phone/landscape-showcase'] = { ...phoneWide, steps: ui([['mode', 'showcase'], ['set', { power: true, load: 1 }]]) };
+SHOTS['ui-phone/preloader'] = { ...phone, steps: [['load', 'night-rig'], ['set', { ui: true }], ['open', 'preloader-30'], FREEZE] };
 SHOTS['ui-phone/lighting'] = { ...phone, steps: ui([['set', { power: true, load: 0 }], ['open', 'half'], ['open', 'lighting-tab']]) };
 SHOTS['ui-phone/drag'] = { ...phone, steps: held([['act', { type: 'remove', category: 'gpu' }], ['open', 'tab-gpu']], ['gpu', 'apex2x', 0]) };
 

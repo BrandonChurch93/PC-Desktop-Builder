@@ -1,0 +1,2 @@
+shots/ui-desktop/15-preloader.jpg | sha: c762a8f6ab0c | FAIL | X24 | Layout, type and contrast hold, but the progress bar at center (y about 511, x 440 to 577) uses the magenta to violet signature gradient, which the design rules keep for the active lighting effect only.
+shots/ui-phone/preloader.jpg | sha: df5bb72f139c | FAIL | X24 | The 44 px full width button and the wrapped copy fit cleanly, but the progress bar above "Preparing the Veltrin Apex 3X" (x 12 to 91) uses the magenta to violet signature gradient, which the design rules keep for the active lighting effect only.

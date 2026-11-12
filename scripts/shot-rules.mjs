@@ -10,7 +10,7 @@ const catalog = JSON.parse(fs.readFileSync('kit/data/catalog.json', 'utf8'));
 
 export const GROUP_COUNTS = {
   rig: 30, bench: 6, finish: 6, macro: 28, part: 153, cable: 6, light: 18, mode: 10, motion: 50, drag: 5, tier: 3,
-  'ui-desktop': 20, 'ui-tablet': 10, 'ui-phone': 13,
+  'ui-desktop': 21, 'ui-tablet': 10, 'ui-phone': 14,
 };
 
 const HERO = 'night-rig';
@@ -57,7 +57,7 @@ export const EXACT_GROUPS = ['rig', 'bench', 'finish', 'macro', 'part', 'cable',
 // Interface shots have a fixed start and a name you choose after it. Each start needs this many shots.
 export const PREFIX_COUNTS = {
   'ui-desktop/01-': 2, 'ui-desktop/02-': 1, 'ui-desktop/03-': 1, 'ui-desktop/04-': 1, 'ui-desktop/05-': 1, 'ui-desktop/06-': 1, 'ui-desktop/07-': 1,
-  'ui-desktop/08-': 1, 'ui-desktop/09-': 1, 'ui-desktop/10-': 2, 'ui-desktop/11-': 1, 'ui-desktop/12-': 1, 'ui-desktop/13-': 5, 'ui-desktop/14-': 1,
+  'ui-desktop/08-': 1, 'ui-desktop/09-': 1, 'ui-desktop/10-': 2, 'ui-desktop/11-': 1, 'ui-desktop/12-': 1, 'ui-desktop/13-': 5, 'ui-desktop/14-': 1, 'ui-desktop/15-': 1,
   'ui-tablet/landscape-': 5, 'ui-tablet/portrait-': 5,
   'ui-phone/landscape-': 2,
 };

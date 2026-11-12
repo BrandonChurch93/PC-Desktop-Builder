@@ -6,8 +6,29 @@
     <meta name="theme-color" content="#0d0b1a" />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d0b1a'/%3E%3Crect x='9' y='6' width='14' height='20' rx='2' fill='none' stroke='%2318e0ff' stroke-width='2'/%3E%3Ccircle cx='16' cy='13' r='3' fill='%23ff2bd1'/%3E%3C/svg%3E" />
     <title>Desktop PC Builder</title>
+    <link rel="stylesheet" href="/src/styles/preloader.css" />
   </head>
   <body>
+    <div id="preloader" class="pl" role="dialog" aria-modal="true" aria-labelledby="pl-title" aria-describedby="pl-status">
+      <div class="pl-glow" aria-hidden="true"></div>
+      <div class="pl-card">
+        <h1 class="pl-title" id="pl-title"></h1>
+        <p class="pl-line">Every part in this builder is modeled from real geometry, real materials and real light, down to the screws.</p>
+        <p class="pl-line">The first visit prepares all of it once, so nothing stalls while you build.</p>
+        <div class="pl-meter">
+          <div class="pl-track" role="progressbar" aria-label="Preparing" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="pl-bar"><div class="pl-fill" id="pl-fill"></div></div>
+          <span class="pl-pct" id="pl-pct">0 percent</span>
+        </div>
+        <div class="pl-foot">
+          <p class="pl-status" id="pl-status" aria-live="polite">Loading the app</p>
+          <button class="pl-enter" id="pl-enter" type="button" hidden>Enter the bench</button>
+        </div>
+      </div>
+    </div>
+    <script>
+      document.getElementById('pl-title').textContent = document.title;
+      requestAnimationFrame(function () { window.__preloaderPaint = performance.now(); });
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

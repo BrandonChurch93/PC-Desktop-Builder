@@ -1,0 +1,15 @@
+.tuning {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--inset) + 140px);
+  z-index: 60;
+  padding: 8px var(--space-4);
+  translate: -50% 0;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel-solid);
+  color: var(--ink-dim);
+  font-size: var(--text-control);
+  box-shadow: var(--shadow-panel);
+  pointer-events: none;
+}

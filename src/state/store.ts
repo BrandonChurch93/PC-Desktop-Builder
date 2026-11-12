@@ -15,7 +15,7 @@ export type Selected = { category: Category; key: string; opts: { index?: number
 export type DialogName = 'sheet' | 'share' | 'poster' | 'saved' | 'settings' | 'about';
 export type SheetStop = 'peek' | 'half' | 'full';
 export type SheetTab = 'parts' | 'specs' | 'lighting';
-export type Overlay = 'intro' | 'start' | null;
+export type Overlay = 'preload' | 'intro' | 'start' | null;
 
 export type Notice = {
   id: number;
@@ -73,6 +73,8 @@ export type State = {
   profiles: SavedProfile[];
   /** colors picked in this session, newest first, for the color picker */
   recentColors: string[];
+  /** the automatic tier stepped down and the new tier is warming */
+  tuning: boolean;
   /** a drag over a blocked place: the reason beside the pointer */
   reason: { text: string; x: number; y: number } | null;
   /** the part the camera is focused on, by its part key */
@@ -105,6 +107,7 @@ export const store = createStore<State>(() => ({
   saved: [],
   profiles: [],
   recentColors: [],
+  tuning: false,
   reason: null,
   focus: null,
 }));

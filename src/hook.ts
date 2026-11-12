@@ -1,6 +1,6 @@
 import gsap from 'gsap';
 import type { Category, LightTarget } from './data/catalog';
-import { getPreset } from './data/catalog';
+import { displayName, getPreset } from './data/catalog';
 import { decode, encode } from './engine/codec';
 import { buildFromPreset, emptyBuild, remove, revalidate, setFinish } from './engine/rules';
 import * as A from './state/actions';
@@ -8,6 +8,9 @@ import type { ActionOpts, Build, Lighting, Profile } from './engine/types';
 import { sheet } from './engine/sheet';
 import { store, type DialogName, type Mode, type Quality } from './state/store';
 import { landOnLink } from './state/boot';
+import { preload, showPreloaderAt } from './ui/Preloader';
+import { warmParts } from './world/warm';
+import type { GenOpts } from './world/parts/types';
 import { socketsFor } from './engine/queries';
 import { forcePlace } from './world/layout/force';
 import type { World } from './world/World';
@@ -104,6 +107,8 @@ export function installHook(world: World) {
       else if (name.startsWith('tab-')) store.setState({ ui: { ...ui, tab: name.slice(4) as Category } });
       else if (name.startsWith('target-')) store.setState({ ui: { ...ui, lightTarget: name.slice(7) as LightTarget, stop: null } });
       else if (name.startsWith('stop-')) store.setState({ ui: { ...ui, stop: Number(name.slice(5)) } });
+      // The preloader at a share of its work, preparing the house build's card, for the named shots.
+      else if (name.startsWith('preloader-')) showPreloaderAt(Number(name.slice(10)), `Preparing the ${displayName('gpu', 'apex3x')}`);
       else if (name === 'none') store.setState({ ui: { ...ui, dialog: null, menu: false, overlay: null, side: null }, inspect: null, held: null });
       else throw new Error(`no surface ${name}`);
       await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
@@ -208,7 +213,12 @@ export function installHook(world: World) {
     async settle() { await world.settle(); },
     renderer: () => world.rendererString(),
     stats: (seconds: number) => world.stats(seconds),
-    timing: () => ({ firstFrameMs: Math.round(world.firstFrame) }),
+    /** firstFrameMs: to the preloader's first paint. preloadMs: to the preloader leaving, or null while it shows or when it did not run. */
+    timing: () => ({ firstFrameMs: Math.round((window as unknown as { __preloaderPaint?: number }).__preloaderPaint ?? world.firstFrame), preloadMs: preload.leftAt === null ? null : Math.round(preload.leftAt) }),
+    /** Every part the warm-up prepares, as Inspector calls: category, id and options. */
+    warmParts: (): [string, string, GenOpts][] => warmParts().flatMap((p): [string, string, GenOpts][] => (p.category === 'fan' ? ([120, 140] as const).map((size): [string, string, GenOpts] => [p.category, p.id, { size }]) : [[p.category, p.id, p.opts]])),
+    /** The preloader and warm-up state, with the renderer's program count. */
+    warmState: () => ({ ...preload, programs: world.renderer.info.programs?.length ?? 0, timings: world.warmTimings }),
     build: () => ({ build: store.getState().build, code: encode(store.getState().build) }),
     camera: () => world.cameraInfo(),
     /** The selected part, or null. */

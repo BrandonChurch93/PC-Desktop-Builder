@@ -18,21 +18,12 @@ function spun(): THREE.Texture {
   return spunTex;
 }
 
-export type MatName =
-  | 'powderBlack' | 'powderBlackInner' | 'powderWhite' | 'powderPanelWhite' | 'powderWhiteInner' | 'powderGunmetal' | 'powderGunmetalInner' | 'powderPanel' | 'panelPowder' | 'panelPowderWhite' | 'finAnodized' | 'capTop' | 'capBody' | 'pcbCore' | 'stickerMatte' | 'chipTop' | 'plasticMolded' | 'finGraphite' | 'aluLidStamp' | 'aluLidBrushed' | 'aluLid' | 'aluStamp'
-  | 'steelBare' | 'steelZinc'
-  | 'aluBlack' | 'plateAnoWhite' | 'plateAnoBlack' | 'aluSilver' | 'aluPale' | 'aluPaleBead' | 'capSilver' | 'capDark' | 'aluWhite' | 'aluRaw' | 'aluBrushed' | 'aluBrushedDark' | 'aluBrushedPlate' | 'aluAnodized' | 'aluCast' | 'aluSatin' | 'aluSatinDark' | 'aluGunmetal' | 'aluFacet'
-  | 'nickel' | 'nickelLapped' | 'pipeNickel' | 'copper' | 'gold' | 'solder'
-  | 'plasticMatte' | 'plasticSatin' | 'plasticSoft' | 'plasticGloss' | 'plasticWhite' | 'plasticWhiteGloss' | 'plasticGrey' | 'plasticDark' | 'plasticNylon'
-  | 'rubber' | 'rubberWhite' | 'rubberPad' | 'aluSatinBlack' | 'aluWhiteSatin' | 'finCoated' | 'finCoatedWhite' | 'finPale' | 'aluWhiteBrushed' | 'aluBeadGunmetal' | 'paintWhiteCard' | 'paintBlackCard'
-  | 'pcbBlack' | 'pcbWhite' | 'pcbGreen' | 'pcbEdge' | 'chip' | 'chipWhite' | 'ceramic' | 'ferrite'
-  | 'glassTint' | 'glassSpec' | 'glassEdge' | 'frit'
-  | 'bladeSmoke' | 'bladeFrost' | 'bladeBlack' | 'bladeWhite'
-  | 'finDark' | 'finGrey' | 'finSilver' | 'finSilverPale' | 'finNickel' | 'radCore' | 'radCoreWhite'
-  | 'meshBlack' | 'meshWhite' | 'meshGunmetal' | 'meshRaw'
-  | 'labelPaper' | 'sticker'
-  | 'thermalPad' | 'diffuserOff' | 'darkVoid'
-  | 'desk' | 'wall';
+/** Every shared material, by name: the warm-up builds each one before the user needs it. */
+export const MAT_NAMES = [
+  'powderBlack', 'powderBlackInner', 'powderWhite', 'powderPanelWhite', 'powderWhiteInner', 'powderGunmetal', 'powderGunmetalInner', 'powderPanel', 'panelPowder', 'panelPowderWhite', 'finAnodized', 'capTop', 'capBody', 'pcbCore', 'stickerMatte', 'chipTop', 'plasticMolded', 'finGraphite', 'aluLidStamp', 'aluLidBrushed', 'aluLid', 'aluStamp', 'steelBare', 'steelZinc', 'aluBlack', 'plateAnoWhite', 'plateAnoBlack', 'aluSilver', 'aluPale', 'aluPaleBead', 'capSilver', 'capDark', 'aluWhite', 'aluRaw', 'aluBrushed', 'aluBrushedDark', 'aluBrushedPlate', 'aluAnodized', 'aluCast', 'aluSatin', 'aluSatinDark', 'aluGunmetal', 'aluFacet', 'nickel', 'nickelLapped', 'pipeNickel', 'copper', 'gold', 'solder', 'plasticMatte', 'plasticSatin', 'plasticSoft', 'plasticGloss', 'plasticWhite', 'plasticWhiteGloss', 'plasticGrey', 'plasticDark', 'plasticNylon', 'rubber', 'rubberWhite', 'rubberPad', 'aluSatinBlack', 'aluWhiteSatin', 'finCoated', 'finCoatedWhite', 'finPale', 'aluWhiteBrushed', 'aluBeadGunmetal', 'paintWhiteCard', 'paintBlackCard', 'pcbBlack', 'pcbWhite', 'pcbGreen', 'pcbEdge', 'chip', 'chipWhite', 'ceramic', 'ferrite', 'glassTint', 'glassSpec', 'glassEdge', 'frit', 'bladeSmoke', 'bladeFrost', 'bladeBlack', 'bladeWhite', 'finDark', 'finGrey', 'finSilver', 'finSilverPale', 'finNickel', 'radCore', 'radCoreWhite', 'meshBlack', 'meshWhite', 'meshGunmetal', 'meshRaw', 'labelPaper', 'sticker', 'thermalPad', 'diffuserOff', 'darkVoid', 'desk', 'wall',
+] as const;
+
+export type MatName = (typeof MAT_NAMES)[number];
 
 /**
  * three r187 normalizes the screen derivatives in its bump mapping, so a bump is measured per pixel: a fine texture flattens as

@@ -163,7 +163,7 @@ void main() {
 export class Airflow {
   readonly group = new THREE.Group();
   private mesh: THREE.Mesh | null = null;
-  private readonly material: THREE.ShaderMaterial;
+  readonly material: THREE.ShaderMaterial;
   private travel = 0;
   private fans = 0;
 

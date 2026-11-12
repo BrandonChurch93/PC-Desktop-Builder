@@ -422,7 +422,8 @@ export class Hands {
 }
 
 /** The held model reads a little brighter than the parts around it. */
-function liftExposure(root: THREE.Object3D) {
+/** Clones of a held part's materials with the exposure lifted, so it reads as picked up. The warm-up compiles them ahead. */
+export function liftExposure(root: THREE.Object3D) {
   const out: { mesh: THREE.Mesh; original: THREE.Material | THREE.Material[] }[] = [];
   root.traverse((o) => {
     if (!(o instanceof THREE.Mesh)) return;

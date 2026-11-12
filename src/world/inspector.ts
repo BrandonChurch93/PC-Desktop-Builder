@@ -177,6 +177,8 @@ export class Inspector {
     this.rgb.lampCount = 4;
     this.rgb.lampGain = 1.7;
     this.rgb.power = 1;
+    // The lamps exist before any part does, at the count every Inspector frame has, so no part recompiles for a new light count.
+    this.rgb.setZones([], new THREE.Box3());
   }
 
   show(category: Category, id: string, opts: GenOpts, flip: boolean) {
@@ -303,6 +305,13 @@ export class Inspector {
       this.part = null;
       this.key = '';
     }
+  }
+
+  /** For one warm frame: the turntable glow drawn even with no lit part, so its program exists. Returns the restore. */
+  showAllForWarm(): () => void {
+    const was = this.glow.visible;
+    this.glow.visible = true;
+    return () => { this.glow.visible = was; };
   }
 
   /** Places the camera from the turntable angle, zoom and focus. */

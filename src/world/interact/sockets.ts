@@ -43,13 +43,7 @@ export class Sockets {
       if (box.isEmpty()) continue;
       const color = displayColor(token(socket.ok ? 'accent' : 'danger'));
       const offset = { value: 0 };
-      const line = new THREE.LineDashedMaterial({ color, dashSize: 7, gapSize: 5, transparent: true, opacity: 0.75, depthTest: false, depthWrite: false });
-      line.onBeforeCompile = (sh) => {
-        sh.uniforms.dashOffset = offset;
-        sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nuniform float dashOffset;').replace('vLineDistance = scale * lineDistance;', 'vLineDistance = scale * lineDistance - dashOffset;');
-      };
-      line.customProgramCacheKey = () => 'socket-dash';
-      const fill = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.05, depthTest: false, depthWrite: false, side: THREE.DoubleSide });
+      const { line, fill } = socketMaterials(color, offset);
       const size = box.getSize(new THREE.Vector3()).max(new THREE.Vector3(2, 2, 2)); const center = box.getCenter(new THREE.Vector3());
       const g = new THREE.Group();
       const edges = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(size.x, size.y, size.z)), line);
@@ -89,4 +83,16 @@ export class Sockets {
   }
 
   get active() { return this.views.length > 0; }
+}
+
+/** A socket's dashed outline, its dashes moving with offset, and its faint fill. The warm-up compiles these same materials. */
+export function socketMaterials(color: THREE.ColorRepresentation, offset: { value: number }): { line: THREE.LineDashedMaterial; fill: THREE.MeshBasicMaterial } {
+  const line = new THREE.LineDashedMaterial({ color, dashSize: 7, gapSize: 5, transparent: true, opacity: 0.75, depthTest: false, depthWrite: false });
+  line.onBeforeCompile = (sh) => {
+    sh.uniforms.dashOffset = offset;
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nuniform float dashOffset;').replace('vLineDistance = scale * lineDistance;', 'vLineDistance = scale * lineDistance - dashOffset;');
+  };
+  line.customProgramCacheKey = () => 'socket-dash';
+  const fill = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.05, depthTest: false, depthWrite: false, side: THREE.DoubleSide });
+  return { line, fill };
 }

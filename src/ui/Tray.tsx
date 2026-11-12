@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { CATEGORIES, getCable, getCase, getFan, LABELS, type StorageType } from '../data/catalog';
 import { check } from '../engine/rules';
 import { blockedMessage } from '../engine/messages';
@@ -11,6 +11,7 @@ import { Button } from './kit/Button';
 import { Segmented, Stepper, Tabs } from './kit/Controls';
 import { PartCard } from './PartCard';
 import { brandOf, installedCount, keyNumbers, thumbOf, trayParts } from './parts';
+import { getWorld } from './worldRef';
 import s from './Tray.module.css';
 
 export const TRAY_HINT = 'Drag into the case, or tap a card and then the slot';
@@ -27,6 +28,9 @@ export function CategoryTabs({ idBase }: { idBase: string }) {
 }
 
 /** The card row of the active category. Horizontal on desktop, tablet and the phone's peek stop. */
+/** Cards of a newly opened tab built ahead. */
+const INTENT_FIRST = 3;
+
 export function CardRow({ idBase, wrap }: { idBase: string; wrap?: boolean }) {
   const tab = useApp((st) => st.ui.tab);
   const build = useApp((st) => st.build);
@@ -35,6 +39,8 @@ export function CardRow({ idBase, wrap }: { idBase: string; wrap?: boolean }) {
   const parts = useMemo(() => trayParts(tab).map((p) => ({ ...p, fit: fitOf(build, tab, p.id) })), [tab, build]);
   const fanStyle = fillStyle ?? Object.values(build.fans)[0] ?? parts[0]?.id ?? 'gale';
   const caseSpec = build.case ? getCase(build.case.id) : undefined;
+  // A tab just opened: its first cards are built ahead, as the most likely next pick.
+  useEffect(() => { for (const p of parts.filter((x) => x.fit.status === 'fits').slice(0, INTENT_FIRST)) getWorld()?.prepare(tab, p.id); }, [tab]);
 
   return (
     <div id={`${idBase}-panel`} role="tabpanel" aria-labelledby={`${idBase}-tab-${tab}`} className={s.panel}>
@@ -58,6 +64,7 @@ export function CardRow({ idBase, wrap }: { idBase: string; wrap?: boolean }) {
                 held={held?.category === tab && held.id === p.id}
                 onActivate={(how) => { if (tab === 'fan') setFillStyle(p.id); activateCard(tab, p.id, how); }}
                 onPlace={() => startPlacing(tab, p.id, 'keys')}
+                onIntent={() => getWorld()?.prepare(tab, p.id)}
                 onInspect={tab === 'cables' ? null : () => store.setState({ inspect: { category: tab, id: p.id, angle: 0, zoom: 0, ...(tab === 'case' && build.case?.id === p.id ? { finish: build.case.finish } : {}) } })}>
                 {tab === 'case' && build.case?.id === p.id && caseSpec && (
                   <Segmented label="Case finish" value={build.case.finish} options={caseSpec.finishes.map((f) => ({ value: f, label: LABELS.finish[f] }))} onChange={(f) => setCaseFinish(f)} />

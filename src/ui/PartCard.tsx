@@ -23,6 +23,8 @@ type Props = {
   onActivate: (how: 'tap' | 'enter') => void;
   onPlace: () => void;
   onInspect: (() => void) | null;
+  /** The user is about to want this part: build it ahead. */
+  onIntent?: () => void;
   children?: ReactNode;
 };
 
@@ -37,7 +39,7 @@ export function PartCard(p: Props) {
     if (e.shiftKey) p.onPlace(); else p.onActivate('enter');
   };
   return (
-    <article onPointerDown={drag.onPointerDown} onClickCapture={drag.onClickCapture} className={[s.card, p.fit.status === 'installed' || p.active ? s.cardOn : '', p.fit.status === 'blocked' ? s.cardBlocked : '', p.held ? s.cardHeld : ''].join(' ')} data-part={`${p.category}:${p.id}`}>
+    <article onPointerDown={(e) => { p.onIntent?.(); drag.onPointerDown(e); }} onPointerEnter={p.onIntent} onFocusCapture={p.onIntent} onClickCapture={drag.onClickCapture} className={[s.card, p.fit.status === 'installed' || p.active ? s.cardOn : '', p.fit.status === 'blocked' ? s.cardBlocked : '', p.held ? s.cardHeld : ''].join(' ')} data-part={`${p.category}:${p.id}`}>
       {p.swatch ? (
         <div className={s.swatch} aria-hidden="true">
           {p.swatch.map((c, i) => <span key={i} style={{ background: c }} />)}

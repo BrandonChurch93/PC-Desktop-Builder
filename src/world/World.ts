@@ -18,15 +18,18 @@ import { loadFonts } from './kit/type';
 import { CASE_LAYOUTS } from './layout/cases';
 import { INSPECT_ELEVATION, Inspector } from './inspector';
 import { RgbEngine } from './light/rgb';
-import { inspectPart } from './parts';
+import { generate, inspectPart } from './parts';
 import type { GenOpts } from './parts/types';
 import { Post, TIER_SETTINGS } from './post';
 import { Rig, type RigItem } from './rig';
 import { Choreo, type MotionMode } from './motion/choreo';
 import { PowerSequence } from './motion/power';
 import { Airflow } from './airflow';
-import { partCache } from './parts/cache';
-import { ProgramKeeper, warmUp, type WarmReport, type WarmTimings } from './warm';
+import { partCache, track } from './parts/cache';
+import { ProgramKeeper, warmUp, yieldToBrowser, type WarmReport, type WarmTimings } from './warm';
+import { firstPlace } from '../engine/queries';
+import { install } from '../engine/rules';
+import { place } from './layout/place';
 import { Tour } from './tour';
 import { Turntable } from './interact/turntable';
 import { EXPLODE_REACH, Exploder } from './motion/explode';
@@ -207,6 +210,49 @@ export class World {
     this.auto = startAuto(tier);
     this.setTier(tier);
     return tier;
+  }
+
+  /** Build ahead on intent. Off under the test hook without the warm-up, so the named shots keep their timing. */
+  prepareAhead = true;
+  private intents: { category: Category; id: string }[] = [];
+  private intentBusy = false;
+
+  /**
+   * Generate on intent: a card the user points at, focuses or presses, or one of the first cards of a tab just opened, has its
+   * part built ahead into the part cache with the options its first place will use, and its textures uploaded one per
+   * slice. The install then takes a ready part.
+   */
+  prepare(category: Category, id: string) {
+    if (!this.prepareAhead || category === 'cables' || this.intents.some((x) => x.category === category && x.id === id)) return;
+    this.intents.push({ category, id });
+    if (!this.intentBusy) void this.drainIntents();
+  }
+
+  private async drainIntents() {
+    this.intentBusy = true;
+    try {
+      while (this.intents.length) {
+        const { category, id } = this.intents.shift()!;
+        const b = this.store.getState().build;
+        const opts = firstPlace(b, category, id);
+        const r = opts ? install(b, category, id, opts) : null;
+        if (!r || !r.ok) continue;
+        for (const p of place(r.build)) {
+          // Only what this part adds: its own objects, not the rest of the build placed again.
+          if (p.category !== category || p.id !== id) continue;
+          const opts2 = this.rig.optsFor(p);
+          const key = `${p.kind}|${p.id}|${JSON.stringify(opts2)}`;
+          if (partCache.has(key) || [...this.rig.items.values()].some((i) => i.sig === key)) continue;
+          const part = track(generate(p.kind, p.id, opts2));
+          await yieldToBrowser();
+          const texs = new Set<THREE.Texture>();
+          part.root.traverse((o) => { const m = (o as THREE.Mesh).material; if (!m) return; for (const x of Array.isArray(m) ? m : [m]) for (const v of Object.values(x)) if (v && (v as THREE.Texture).isTexture) texs.add(v as THREE.Texture); });
+          for (const t of texs) { this.renderer.initTexture(t); await yieldToBrowser(); }
+          partCache.put(key, part);
+        }
+      }
+    } catch (e) { console.error(e); }
+    finally { this.intentBusy = false; }
   }
 
   /** Every program and part for the tier in use, prepared once. The tier's frame watch pauses while it runs. */

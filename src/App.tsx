@@ -69,6 +69,7 @@ export function App() {
     setWorld(world);
     const api = hook ? installHook(world) : null;
     world.autoTier = !hook;
+    world.prepareAhead = warm;
     const q = store.getState().quality;
     void world.initCore(q === 'auto' ? 'high' : q).then(() => { if (api) api.ready = true; });
     if (warm) {

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import catalog from '../../kit/data/catalog.json' with { type: 'json' };
+import { SHOWCASE } from '../../src/data/showcase';
 import { hook, noErrors, watchErrors } from './helpers';
 
 type WarmState = { enterShown: boolean; warmDone: boolean; left: boolean; error: string | null; programs: number };
@@ -36,6 +37,9 @@ test.describe('addendum 02: preloader and warm-up', () => {
     for (const p of catalog.presets) await hook(page, 'load', p.id);
     // A fresh load is powered, so each preset lit as well.
     for (const p of catalog.presets) { await hook(page, 'load', p.id); await hook(page, 'set', { power: true }); }
+    await hook(page, 'set', { power: false });
+    // The showcase builds, as the Builds tab puts them on the bench: lit, then picked from, then the next one.
+    for (const b of SHOWCASE) { await hook(page, 'load', b.id); await hook(page, 'set', { power: true }); await hook(page, 'select', 'gpu'); }
     await hook(page, 'set', { power: false });
     // A selection, then a new build: the shadow maps redraw, and the outline is the last pass to the screen.
     for (const p of catalog.presets) { await hook(page, 'load', p.id); await hook(page, 'select', 'gpu'); }

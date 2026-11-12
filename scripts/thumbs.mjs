@@ -5,12 +5,14 @@
 //   node scripts/thumbs.mjs --force      write files even when the picture did not change
 //
 // Writes public/thumbs/<category>-<id>.jpg, and public/thumbs/case-<id>-<finish>.jpg for each finish of a case.
+// The showcase builds (node scripts/thumbs.mjs build) are drawn lit from the hero view into public/thumbs/build-<id>.jpg.
 // The angle, zoom and fan size come from the part's front shot in scripts/shot-list.mjs, so a thumbnail always matches
 // the view a verdict was given on. Thumbnails are 240 px squares drawn at twice the pixel density.
 import fs from 'node:fs';
 import process from 'node:process';
 import { buildIfStale, capture, openBrowser, parseArgs, startPreview, watch } from './shots.mjs';
 import { SHOTS } from './shot-list.mjs';
+import { SHOWCASE } from '../src/data/showcase.ts';
 
 const SIZE = 240;
 const OUT = 'public/thumbs';
@@ -37,6 +39,9 @@ for (const [cat, key] of Object.entries(CATEGORIES)) {
     }
   }
 }
+
+const LIT = (id) => [['load', id], ['mode', 'build'], ['set', { ui: false, glass: true, power: true, load: 0 }], ['cam', 'hero'], ['freeze', 3.2]];
+if (!names.length || names.includes('build')) for (const b of SHOWCASE) jobs.push({ file: `${OUT}/build-${b.id}.jpg`, steps: LIT(b.id) });
 
 buildIfStale();
 const { browser } = await openBrowser(flags);

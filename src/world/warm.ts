@@ -1,6 +1,7 @@
 import * as THREE from 'three';
-import { catalog, getPreset, type Category } from '../data/catalog';
-import { buildFromPreset, revalidate } from '../engine/rules';
+import { catalog, type Category } from '../data/catalog';
+import { SHOWCASE } from '../data/showcase';
+import { buildFromPreset, buildFromShowcase, revalidate } from '../engine/rules';
 import type { Tier } from '../state/store';
 import { liftExposure } from './interact/hands';
 import { socketMaterials } from './interact/sockets';
@@ -136,7 +137,7 @@ const W = { font: 2, tex: 0.2, mat: 0.05, part: 3, preset: 4, compile: 3, varian
 
 /** The warm-up's whole cost in its units, known before it starts, so progress is counted from the first frame. */
 export function warmBudget(): number {
-  return W.font + MAT_NAMES.length * W.mat + warmParts().length * (W.part + W.compile) + catalog.presets.length * (W.preset + W.compile + W.variant) + 4 * W.variant + 40 * W.tex;
+  return W.font + MAT_NAMES.length * W.mat + warmParts().length * (W.part + W.compile) + (catalog.presets.length + SHOWCASE.length) * (W.preset + W.compile + W.variant) + 4 * W.variant + 40 * W.tex;
 }
 
 /**
@@ -146,7 +147,10 @@ export function warmBudget(): number {
 export async function warmUp(world: World, tier: Tier, report: WarmReport, signal: AbortSignal, keeper = new ProgramKeeper(), timings: WarmTimings = []): Promise<ProgramKeeper> {
   const detail = TIER_SETTINGS[tier].detail;
   const parts = warmParts();
-  const presets = catalog.presets.map((p) => p.id);
+  const presets = [
+    ...catalog.presets.map((p) => ({ id: p.id, name: p.name, build: () => buildFromPreset(p) })),
+    ...SHOWCASE.map((b) => ({ id: b.id, name: b.name, build: () => buildFromShowcase(b) })),
+  ];
   // Cost weights: a generator or a compile batch costs far more than a texture upload.
   const all = new Set<THREE.Texture>();
   let done = 0;
@@ -217,20 +221,20 @@ export async function warmUp(world: World, tier: Tier, report: WarmReport, signa
     await step(W.compile, `Compiling the ${p.name}`);
   }
 
-  // The presets as the room places them: placed variants, radiators and fans in their mounts, cables in every colorway.
-  for (const id of presets) {
-    const spec = getPreset(id);
-    if (!spec) continue;
+  // The presets and showcase builds as the room places them: placed variants, radiators and fans in their mounts, cables in every colorway.
+  for (const { id, name, build } of presets) {
+    const tp = performance.now();
     const rig = new Rig();
     rig.detail = detail;
     rig.useCache = false;
-    try { rig.sync(revalidate(buildFromPreset(spec)).build); } catch (e) { console.error(e); }
+    try { rig.sync(revalidate(build()).build); } catch (e) { console.error(e); }
+    timings.push({ label: `sync ${id}`, ms: Math.round(performance.now() - tp) });
     lift.add(rig.group);
-    await step(W.preset, `Preparing ${spec.name}`);
-    await upload(rig.group, spec.name);
+    await step(W.preset, `Preparing ${name}`);
+    await upload(rig.group, name);
     await timed(`compile preset ${id}`, () => compileFor(world, warmScene, world.camera, world.scene));
     keeper.keep(rig.group);
-    await step(W.compile, `Compiling ${spec.name}`);
+    await step(W.compile, `Compiling ${name}`);
     // The variants motion and hands make: a fading part, a held part, a growing cable.
     const faders = [...rig.items.values()].map((i) => { const f = new Fader(i.holder); f.set(0.5); return f; });
     await timed(`compile faded ${id}`, () => compileFor(world, warmScene, world.camera, world.scene));
@@ -254,7 +258,8 @@ export async function warmUp(world: World, tier: Tier, report: WarmReport, signa
     }
     rig.clearAll();
     rig.group.removeFromParent();
-    await step(W.variant, `Preparing ${spec.name}`);
+    await step(W.variant, `Preparing ${name}`);
+    timings.push({ label: `total ${id}`, ms: Math.round(performance.now() - tp) });
   }
 
   // The keeper's stand-ins compile to the same programs, so they hold them for the session.

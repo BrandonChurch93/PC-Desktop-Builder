@@ -1,11 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { CATEGORIES, getCable, getCase, getFan, LABELS, type StorageType } from '../data/catalog';
+import { CATEGORIES, getCable, getCase, getFan, LABELS, type Category, type StorageType } from '../data/catalog';
+import { SHOWCASE } from '../data/showcase';
+import { encode } from '../engine/codec';
+import { buildFromShowcase } from '../engine/rules';
 import { check } from '../engine/rules';
 import { blockedMessage } from '../engine/messages';
 import { fitOf } from '../engine/queries';
 import { clearCaseFans, fillFanMounts, setCaseFinish, stepStorage } from '../state/actions';
-import { store } from '../state/store';
+import { store, type TrayTab } from '../state/store';
 import { activateCard, startPlacing } from './activate';
+import { BuildCard } from './BuildCard';
 import { useDragScroll } from './dragScroll';
 import { useApp } from './hooks';
 import { Button } from './kit/Button';
@@ -16,15 +20,19 @@ import { getWorld } from './worldRef';
 import s from './Tray.module.css';
 
 export const TRAY_HINT = 'Drag into the case, or tap a card and then the slot';
+export const BUILDS_HINT = 'Tap a build to put it on the bench, lit';
+const BUILDS_LABEL = 'Builds';
+const SHOWCASE_CODES = new Map(SHOWCASE.map((b) => [b.id, encode(buildFromShowcase(b))]));
 
 export function CategoryTabs({ idBase }: { idBase: string }) {
   const tab = useApp((st) => st.ui.tab);
   const build = useApp((st) => st.build);
-  const items = CATEGORIES.map((c) => {
+  const parts = CATEGORIES.map((c) => {
     const n = installedCount(build, c);
     const badge = c === 'cables' ? null : n > 1 || c === 'ram' || c === 'storage' || c === 'fan' ? (n || null) : n ? 'dot' as const : null;
-    return { value: c, label: LABELS.category[c], badge };
+    return { value: c as TrayTab, label: LABELS.category[c], badge };
   });
+  const items = [{ value: 'builds' as TrayTab, label: BUILDS_LABEL, badge: null }, ...parts];
   return <Tabs label="Part categories" idBase={idBase} value={tab} items={items} onChange={(t) => store.setState({ ui: { ...store.getState().ui, tab: t } })} />;
 }
 
@@ -34,6 +42,27 @@ const INTENT_FIRST = 3;
 
 export function CardRow({ idBase, wrap }: { idBase: string; wrap?: boolean }) {
   const tab = useApp((st) => st.ui.tab);
+  return tab === 'builds' ? <BuildRow idBase={idBase} wrap={wrap} /> : <PartRow idBase={idBase} wrap={wrap} tab={tab} />;
+}
+
+function BuildRow({ idBase, wrap }: { idBase: string; wrap?: boolean }) {
+  const code = useApp((st) => encode(st.build));
+  const row = useRef<HTMLDivElement>(null);
+  useDragScroll(row);
+  return (
+    <div id={`${idBase}-panel`} role="tabpanel" aria-labelledby={`${idBase}-tab-builds`} className={s.panel}>
+      <div ref={row} className={[s.row, wrap ? s.wrap : ''].join(' ')} role="list" aria-label="Showcase builds">
+        {SHOWCASE.map((b) => (
+          <div role="listitem" key={b.id} className={s.item}>
+            <BuildCard spec={b} on={SHOWCASE_CODES.get(b.id) === code} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PartRow({ idBase, wrap, tab }: { idBase: string; wrap?: boolean; tab: Category }) {
   const build = useApp((st) => st.build);
   const held = useApp((st) => st.held);
   const [fillStyle, setFillStyle] = useState<string | null>(null);
@@ -91,13 +120,18 @@ function StorageStepper({ type }: { type: StorageType }) {
   );
 }
 
+function TrayHint() {
+  const builds = useApp((st) => st.ui.tab === 'builds');
+  return <p className={s.hint}>{builds ? BUILDS_HINT : TRAY_HINT}</p>;
+}
+
 /** Desktop and tablet: the tray as a dock along the bottom. */
 export function Dock() {
   return (
     <section className={s.dock} aria-label="Parts tray" data-bottom-ui>
       <div className={s.head}>
         <CategoryTabs idBase="dock" />
-        <p className={s.hint}>{TRAY_HINT}</p>
+        <TrayHint />
       </div>
       <CardRow idBase="dock" />
     </section>

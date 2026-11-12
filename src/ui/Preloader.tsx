@@ -1,5 +1,6 @@
 import { useApp } from './hooks';
 import { catalog } from '../data/catalog';
+import { SHOWCASE } from '../data/showcase';
 import { store, type Overlay } from '../state/store';
 import type { World } from '../world/World';
 import { warmBudget } from '../world/warm';
@@ -24,6 +25,7 @@ function thumbUrls(): string[] {
   for (const [cat, key] of [['board', 'boards'], ['cpu', 'cpus'], ['cooler', 'coolers'], ['ram', 'ram'], ['gpu', 'gpus'], ['storage', 'storage'], ['psu', 'psus'], ['fan', 'fans']] as const) {
     for (const p of catalog[key] as { id: string }[]) out.push(`${BASE}thumbs/${cat}-${p.id}.jpg`);
   }
+  for (const b of SHOWCASE) out.push(`${BASE}thumbs/build-${b.id}.jpg`);
   return out;
 }
 

@@ -3,6 +3,7 @@ import {
   K, STORAGE_TYPES,
   type CaseSpec, type Category, type CoolerSpec, type PresetSpec, type RadMountSpec, type StorageType,
 } from '../data/catalog';
+import type { ShowcaseSpec } from '../data/showcase';
 import { lightingFromPreset, sanitizeLighting } from './sanitize';
 import type { ActionOpts, Build, CheckData, CheckResult, InstallResult, Removed, RuleCode } from './types';
 
@@ -32,6 +33,10 @@ export function buildFromPreset(p: PresetSpec): Build {
   b.name = p.name;
   b.lighting = lightingFromPreset(src.lighting);
   return b;
+}
+
+export function buildFromShowcase(s: ShowcaseSpec): Build {
+  return { ...clone(s.build), v: K.shareVersion, name: s.name, lighting: sanitizeLighting(s.build.lighting) };
 }
 
 export function presetBuild(id: string): Build | null {

@@ -1,7 +1,8 @@
 import { K, displayName, getPreset, getStorage, brandName, LABELS, type Category, type LightTarget, type StorageType } from '../data/catalog';
+import { SHOWCASE } from '../data/showcase';
 import { encode } from '../engine/codec';
 import { cascadeNotice, joinAnd } from '../engine/messages';
-import { buildFromPreset, clearFans, emptyBuild, fillFans, install, remove, revalidate, setFinish } from '../engine/rules';
+import { buildFromPreset, buildFromShowcase, clearFans, emptyBuild, fillFans, install, remove, revalidate, setFinish } from '../engine/rules';
 import { lightingFromPreset, sanitizeLighting } from '../engine/sanitize';
 import { sheet } from '../engine/sheet';
 import type { ActionOpts, Build, Lighting, Profile, Removed } from '../engine/types';
@@ -290,6 +291,15 @@ export function loadBuild(next: Build, announce?: string) {
 export function loadPreset(id: string) {
   const p = getPreset(id);
   if (p) loadBuild(buildFromPreset(p), `${p.name} loaded.`);
+}
+
+/** A showcase build goes on the bench as it was set up: glass on and powered, so it is seen lit. */
+export function loadShowcase(id: string) {
+  const sc = SHOWCASE.find((x) => x.id === id);
+  if (!sc) return;
+  const next = buildFromShowcase(sc);
+  loadBuild(next, `${sc.name} loaded.`);
+  store.setState({ power: sheet(next).canPowerOn, selected: null });
 }
 
 export function emptyBench() {

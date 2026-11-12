@@ -4,6 +4,7 @@
 //   node scripts/warm-check.mjs [--cycle]
 import process from 'node:process';
 import { buildIfStale, openBrowser, startPreview, watch } from './shots.mjs';
+import { SHOWCASE } from '../src/data/showcase.ts';
 
 const cycle = process.argv.includes('--cycle');
 buildIfStale();
@@ -21,17 +22,19 @@ try {
   await page.waitForFunction('window.__pcb.warmState().warmDone || window.__pcb.warmState().error', null, { timeout: 600000, polling: 500 });
   const warmAt = Date.now() - t0;
   const st = await page.evaluate(() => window.__pcb.warmState());
-  const out = { enterShownMs: enterAt, enterBeforeWarmDone: !midWarm, warmDoneMs: warmAt, programsAtWarm: st.programs, error: st.error, timing: await page.evaluate(() => window.__pcb.timing()), slowest: [...st.timings].sort((a, b) => b.ms - a.ms).slice(0, 12) };
+  const out = { enterShownMs: enterAt, enterBeforeWarmDone: !midWarm, warmDoneMs: warmAt, programsAtWarm: st.programs, error: st.error, timing: await page.evaluate(() => window.__pcb.timing()), slowest: [...st.timings].sort((a, b) => b.ms - a.ms).slice(0, 12), timings: st.timings };
   const compiles = st.timings.filter((t) => t.label.startsWith('compile'));
   out.compiles = { count: compiles.length, totalMs: compiles.reduce((s, t) => s + t.ms, 0), medianMs: [...compiles].sort((a, b) => a.ms - b.ms)[compiles.length >> 1]?.ms ?? 0 };
   out.textures = st.timings.filter((t) => t.label.startsWith('initTexture'));
   if (cycle) {
-    out.cycle = await page.evaluate(async () => {
+    out.cycle = await page.evaluate(async (showcase) => {
       const p = window.__pcb; const w = window.__world; const n = () => w.renderer.info.programs.length;
       const log = [];
       for (const id of ['night-rig', 'white-out', 'windbreak', 'flagship', 'pocket', 'open-frame']) { await p.load(id); log.push([`preset ${id}`, n()]); }
       // A fresh load runs powered, so every preset is cycled lit as well.
       for (const id of ['night-rig', 'white-out', 'windbreak', 'flagship', 'pocket', 'open-frame']) { await p.load(id); await p.set({ power: true }); log.push([`powered ${id}`, n()]); }
+      await p.set({ power: false });
+      for (const id of showcase) { await p.load(id); await p.set({ power: true }); log.push([`showcase ${id}`, n()]); await p.select('gpu'); log.push([`select ${id}`, n()]); }
       await p.set({ power: false });
       await p.load('night-rig');
       await p.hold('gpu', 'apex2x', 0); log.push(['held', n()]);
@@ -40,7 +43,7 @@ try {
       await p.set({ airflow: true }); log.push(['airflow', n()]);
       await p.set({ airflow: false });
       return log;
-    });
+    }, SHOWCASE.map((b) => b.id));
     out.inspect = await page.evaluate(async (parts) => {
       const p = window.__pcb; const w = window.__world; const n = () => w.renderer.info.programs.length; const log = [];
       for (const [cat, id, o] of parts) { await p.inspect(cat, id, 30, o); log.push([`${cat} ${id}`, n()]); }

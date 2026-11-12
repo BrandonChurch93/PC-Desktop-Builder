@@ -1,12 +1,13 @@
 import gsap from 'gsap';
 import type { Category, LightTarget } from './data/catalog';
 import { displayName, getPreset } from './data/catalog';
+import { SHOWCASE } from './data/showcase';
 import { decode, encode } from './engine/codec';
-import { buildFromPreset, emptyBuild, remove, revalidate, setFinish } from './engine/rules';
+import { buildFromPreset, buildFromShowcase, emptyBuild, remove, revalidate, setFinish } from './engine/rules';
 import * as A from './state/actions';
 import type { ActionOpts, Build, Lighting, Profile } from './engine/types';
 import { sheet } from './engine/sheet';
-import { store, type DialogName, type Mode, type Quality } from './state/store';
+import { store, type DialogName, type Mode, type Quality, type TrayTab } from './state/store';
 import { landOnLink } from './state/boot';
 import { preload, showPreloaderAt } from './ui/Preloader';
 import { warmParts } from './world/warm';
@@ -37,8 +38,10 @@ export function installHook(world: World) {
     ready: false,
     async load(presetOrCode: string) {
       const p = getPreset(presetOrCode);
+      const sc = SHOWCASE.find((x) => x.id === presetOrCode);
       let build;
       if (p) build = revalidate(buildFromPreset(p)).build;
+      else if (sc) build = revalidate(buildFromShowcase(sc)).build;
       else {
         const d = decode(presetOrCode);
         if ('error' in d) throw new Error(d.error);
@@ -104,7 +107,7 @@ export function installHook(world: World) {
       else if (name === 'peek' || name === 'half' || name === 'full') store.setState({ ui: { ...ui, sheet: name } });
       else if (name === 'parts' || name === 'specs') store.setState({ ui: { ...ui, sheetTab: name } });
       else if (name === 'lighting-tab') store.setState({ ui: { ...ui, sheetTab: 'lighting' } });
-      else if (name.startsWith('tab-')) store.setState({ ui: { ...ui, tab: name.slice(4) as Category } });
+      else if (name.startsWith('tab-')) store.setState({ ui: { ...ui, tab: name.slice(4) as TrayTab } });
       else if (name.startsWith('target-')) store.setState({ ui: { ...ui, lightTarget: name.slice(7) as LightTarget, stop: null } });
       else if (name.startsWith('stop-')) store.setState({ ui: { ...ui, stop: Number(name.slice(5)) } });
       // The preloader at a share of its work, preparing the house build's card, for the named shots.

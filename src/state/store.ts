@@ -26,8 +26,11 @@ export type Notice = {
   action: 'undo' | 'empty' | null;
 } | null;
 
+export type TrayTab = 'builds' | Category;
+
 export type Ui = {
-  tab: Category;
+  /** the tray tab: the showcase builds, or a part category */
+  tab: TrayTab;
   /** tablet: the one side sheet that is open */
   side: 'lighting' | 'spec' | null;
   sheet: SheetStop;

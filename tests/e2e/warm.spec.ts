@@ -37,6 +37,11 @@ test.describe('addendum 02: preloader and warm-up', () => {
     // A fresh load is powered, so each preset lit as well.
     for (const p of catalog.presets) { await hook(page, 'load', p.id); await hook(page, 'set', { power: true }); }
     await hook(page, 'set', { power: false });
+    // A selection, then a new build: the shadow maps redraw, and the outline is the last pass to the screen.
+    for (const p of catalog.presets) { await hook(page, 'load', p.id); await hook(page, 'select', 'gpu'); }
+    await hook(page, 'load', 'night-rig');
+    await page.evaluate(() => (window as unknown as { __pcb: { act: (a: unknown, o: unknown) => Promise<void> } }).__pcb.act({ type: 'swap', category: 'gpu', id: 'mini' }, { instant: false }));
+    await page.waitForTimeout(3500);
     await hook(page, 'load', 'night-rig');
     await hook(page, 'hold', 'gpu', 'apex2x', 0);
     await hook(page, 'open', 'none');

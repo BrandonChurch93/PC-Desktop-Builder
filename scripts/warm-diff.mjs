@@ -18,6 +18,9 @@ try {
     const p = window.__pcb; const w = window.__world;
     const keys = () => new Map(w.renderer.info.programs.map((x) => [x.cacheKey, x]));
     let known = keys();
+    const born = [];
+    const rbd = w.renderer.renderBufferDirect.bind(w.renderer);
+    w.renderer.renderBufferDirect = (cam, scene, geo, mat, obj, grp) => { const n0 = w.renderer.info.programs.length; rbd(cam, scene, geo, mat, obj, grp); if (w.renderer.info.programs.length > n0) { const chain = []; for (let o = obj; o && chain.length < 6; o = o.parent) chain.push(o.name || o.type); born.push({ mat: mat.type + ':' + (mat.name || '') + ':side=' + mat.side + ':alphaTest=' + mat.alphaTest + ':map=' + !!mat.map + ':alphaMap=' + !!mat.alphaMap, obj: chain.join(' < '), shadow: !scene, objMat: obj.material && !Array.isArray(obj.material) ? obj.material.type + ':' + obj.material.name + ':side=' + obj.material.side + ':shadowSide=' + obj.material.shadowSide + ':t=' + obj.material.transparent : '' }); } };
     const res = [];
     const diff = (label) => {
       const now = keys();
@@ -33,10 +36,27 @@ try {
       }
       known = now;
     };
-    await p.load('night-rig'); await p.hold('gpu', 'apex2x', 0); diff('held'); await p.open('none'); await p.select('gpu'); diff('select'); await p.set({ airflow: true }); diff('airflow'); await p.set({ airflow: false }); diff('airflow off');
-    for (const id of ['night-rig', 'white-out', 'windbreak', 'flagship', 'pocket', 'open-frame']) { await p.load(id); diff(id); await p.set({ power: true }); diff('powered ' + id); }
-    await p.set({ power: false });
-    return res;
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const anim = async (action, label) => { await p.act(action, { instant: false }); await wait(3500); await p.settle(); diff(label); };
+    for (const id of ['night-rig', 'white-out', 'windbreak', 'flagship', 'pocket', 'open-frame']) { await p.load(id); diff(id); await p.select('gpu'); diff('select ' + id); await p.set({ power: true }); diff('powered ' + id); }
+    await p.load('night-rig'); await p.set({ power: true });
+    for (const m of ['showcase', 'exploded', 'build']) { await p.mode(m); await wait(1500); diff('mode ' + m); }
+    await p.hold('gpu', 'apex2x', 0); diff('held'); await p.open('none');
+    await p.set({ airflow: true }); await wait(1000); diff('airflow'); await p.set({ airflow: false });
+    await anim({ type: 'swap', category: 'gpu', id: 'mini' }, 'animated swap gpu');
+    await anim({ type: 'remove', category: 'gpu' }, 'animated remove gpu');
+    await anim({ type: 'swap', category: 'cooler', id: 'pillar' }, 'animated swap cooler');
+    await anim({ type: 'swap', category: 'case', id: 'atrium' }, 'animated swap case');
+    await anim({ type: 'finish', finish: 'frost' }, 'animated finish');
+    await anim({ type: 'install', category: 'cables', id: 'ember' }, 'cable sweep');
+    await anim({ type: 'clearFans' }, 'animated clear fans');
+    await anim({ type: 'fillFans', id: 'gale' }, 'animated fill fans');
+    for (const id of ['aurora', 'ember', 'ice', 'spectrum', 'vapor', 'reactor', 'starfield', 'thermal', 'blackout']) { await p.act({ type: 'lightingPreset', id }); await wait(400); diff('lighting ' + id); }
+    await anim({ type: 'undo' }, 'undo');
+    await p.set({ power: false }); await wait(1500); diff('power off');
+    await p.set({ power: true }); await wait(2500); diff('power on');
+    await p.empty(); diff('empty bench');
+    return { res, born };
   });
   console.log(JSON.stringify(out, null, 0).replace(/\},\{/g, '},\n{'));
 } finally {

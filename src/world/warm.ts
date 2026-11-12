@@ -290,11 +290,18 @@ export async function warmUp(world: World, tier: Tier, report: WarmReport, signa
     post.select.selectedObjects = [plain, inst];
     post.hover.enabled = true; post.select.enabled = true;
     post.setOverlay(true);
+    // The shadow maps redraw only on request, so the frame asks for one: each stand-in that casts a shadow compiles its
+    // shadow depth program (front, double sided, alpha tested) and the keeper holds it after the shared materials are reset.
+    world.room.updateShadow();
     for (const close of [true, false]) {
       post.setScene(world.scene, world.camera, close);
       post.composer.render();
       await yieldToBrowser();
     }
+    // A selection with no sockets shown: the outline is the last pass, drawn to the screen in its color space and tone map.
+    post.setOverlay(false);
+    post.composer.render();
+    await yieldToBrowser();
     post.hover.selectedObjects = []; post.select.selectedObjects = [];
     post.hover.enabled = false; post.select.enabled = false;
     post.setOverlay(false);

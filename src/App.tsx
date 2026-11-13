@@ -4,6 +4,7 @@ import { flushAutosave } from './state/actions';
 import { boot } from './state/boot';
 import { store } from './state/store';
 import { Dialogs } from './ui/Dialogs';
+import { DemoMenu } from './ui/DemoMenu';
 import { useApp } from './ui/hooks';
 import { Notice } from './ui/Notice';
 import { EmptyHint, InspectorBar, Intro, LiveRegion, SharedBanner, StartOverlay } from './ui/Overlays';
@@ -94,7 +95,7 @@ export function App() {
   return (
     <main className={styles.stage}>
       <canvas ref={stage} className={styles.canvas} aria-label="A 3D view of the PC build on a desk. The full spec sheet lists every part." />
-      {lost ? <NoWebGL lost /> : <UiLayer />}
+      {lost ? <NoWebGL lost /> : <><UiLayer /><DemoMenu /></>}
     </main>
   );
 }

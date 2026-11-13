@@ -33,7 +33,7 @@ export class Rig {
   /** Told what each sync changed. An item that left stays in the scene until release() is called for it, so it can move out. */
   onItems: (c: RigChange) => void = (c) => { for (const i of c.left) this.release(i); for (const r of c.rebuilt) this.release(r.old); };
   /** Told when the cables are rebuilt. The old set stays in the scene until it is disposed here, so runs can retract or a colorway can sweep. */
-  onCables: (old: THREE.Group | null, next: THREE.Group) => void = (old) => { if (old) Rig.disposeCables(old); };
+  onCables: (old: THREE.Group | null, next: THREE.Group) => void = (old) => { if (old) this.dropCables(old); };
   static disposeCables(g: THREE.Group) { g.removeFromParent(); disposeTree(g); }
   /** Items that have left the build and are still moving out. */
   readonly leaving = new Set<RigItem>();
@@ -120,13 +120,20 @@ export class Rig {
     const recabled = sig !== this.cableSig;
     if (recabled) {
       const old = this.cables;
-      this.cables = buildCables(build, this.items, this.detail);
       const layout = build.case ? CASE_LAYOUTS[build.case.id] : undefined;
-      const shades = layout ? wellShades(layout, this.items) : null;
-      if (shades) this.cables.add(shades);
+      const hit = this.kept?.get(sig);
+      if (hit) this.cables = hit;
+      else {
+        this.cables = buildCables(build, this.items, this.detail);
+        const shades = layout ? wellShades(layout, this.items) : null;
+        if (shades) this.cables.add(shades);
+        this.kept?.set(sig, this.cables);
+      }
+      // Patches are rebuilt even for a kept set: each one follows a zone of a part, and a part back from the cache is a new one.
+      for (const o of this.cables.children.filter((c) => c.userData.patches)) { o.removeFromParent(); disposeTree(o); }
       const tubes = this.cables.children.filter((o): o is THREE.Mesh => o instanceof THREE.Mesh && o.name === 'tube');
       const inner = layout ? interiorPatches(layout, this.items, tubes) : null;
-      if (inner) this.cables.add(inner.group);
+      if (inner) { inner.group.userData.patches = true; this.cables.add(inner.group); }
       this.patches = inner?.patches ?? [];
       this.group.add(this.cables);
       this.cableSig = sig;
@@ -142,9 +149,29 @@ export class Rig {
     for (const item of [...this.items.values(), ...this.leaving]) { item.holder.removeFromParent(); item.part.dispose(); }
     this.items.clear();
     this.leaving.clear();
+    if (this.kept) { for (const g of this.kept.values()) if (g !== this.cables) disposeTree(g); this.kept.clear(); }
     if (this.cables) Rig.disposeCables(this.cables);
     this.cables = null;
     this.cableSig = '';
+  }
+
+  /**
+   * Cable sets kept by signature while a demo cuts between builds, so a build seen before takes its set back at once instead
+   * of routing every run again. Only instant changes run while they are kept: the install motion edits a set in place.
+   */
+  private kept: Map<string, THREE.Group> | null = null;
+
+  keepCables(on: boolean) {
+    if (on) { this.kept ??= new Map(); return; }
+    const kept = this.kept;
+    this.kept = null;
+    if (kept) for (const g of kept.values()) if (g !== this.cables) disposeTree(g);
+  }
+
+  /** A cable set leaving the scene: disposed, unless it is kept for a later cut. */
+  dropCables(g: THREE.Group) {
+    if (this.kept && [...this.kept.values()].includes(g)) g.removeFromParent();
+    else Rig.disposeCables(g);
   }
 
   /** An item that has finished leaving: out of the scene and disposed. */

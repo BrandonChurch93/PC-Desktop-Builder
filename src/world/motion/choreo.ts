@@ -84,7 +84,7 @@ export class Choreo {
   }
 
   private onCables(old: THREE.Group | null, next: THREE.Group) {
-    if (this.mode === 'instant' || !old) { if (old) Rig.disposeCables(old); return; }
+    if (this.mode === 'instant' || !old) { if (old) this.rig.dropCables(old); return; }
     this.pendingCables = { old, next };
   }
 
@@ -95,7 +95,7 @@ export class Choreo {
     if (mode === 'instant') {
       for (const i of c.left) this.release(i);
       for (const r of c.rebuilt) this.release(r.old);
-      if (this.pendingCables?.old) Rig.disposeCables(this.pendingCables.old);
+      if (this.pendingCables?.old) this.rig.dropCables(this.pendingCables.old);
       this.pendingCables = null;
       return;
     }
@@ -110,7 +110,7 @@ export class Choreo {
       left.forEach((i) => { const f = this.fader(i); tl.to({ v: 1 }, { v: 0, duration: 0.15, ease: 'none', onUpdate: function () { f.set(this.targets()[0].v); } }, 0).add(() => this.release(i)); });
       for (const r of c.rebuilt) this.crossfade(tl, r.old, r.next, 0.15, 0);
       entered.forEach((i) => { const f = this.fader(i); f.set(0); tl.to({ v: 0 }, { v: 1, duration: 0.15, ease: 'none', onUpdate: function () { f.set(this.targets()[0].v); } }, 0).add(() => this.settleFader(i)); });
-      if (cables?.old) tl.add(() => Rig.disposeCables(cables.old!), 0);
+      if (cables?.old) tl.add(() => this.rig.dropCables(cables.old!), 0);
       return this.start(tl);
     }
 
@@ -485,7 +485,7 @@ export class Choreo {
         m.material = r.material; r.set(0); sweeps.push({ r, m, base });
       }
     }
-    if (!reveals.length && !fades.length) { if (old) tl.add(() => Rig.disposeCables(old), at); return; }
+    if (!reveals.length && !fades.length) { if (old) tl.add(() => this.rig.dropCables(old), at); return; }
     const o = { v: 0 };
     tl.to(o, { v: 1, duration: sweeps.length ? 0.9 : 0.7, ease: 'power1.inOut', onUpdate: () => {
       for (const x of reveals) x.r.set(o.v);
@@ -496,7 +496,7 @@ export class Choreo {
     tl.add(() => {
       for (const x of reveals) { x.r.material.dispose(); x.m.material = x.base; }
       for (const f of fades) { f.set(1); f.dispose(); }
-      if (old) Rig.disposeCables(old);
+      if (old) this.rig.dropCables(old);
     });
   }
 

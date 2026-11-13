@@ -83,6 +83,13 @@ export class PartCache {
     list.push({ part, bytes });
     this.order.push({ key, part, bytes });
     this.used += bytes;
+    this.trim();
+  }
+
+  /** A new budget; a smaller one lets the oldest parts go now. */
+  setBudget(bytes: number) { this.budget = bytes; this.trim(); }
+
+  private trim() {
     while (this.used > this.budget && this.order.length) {
       const old = this.order.shift()!;
       const l = this.map.get(old.key);
@@ -100,4 +107,5 @@ export class PartCache {
 
 const coarse = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
 /** About 256 MB on a desktop, about 96 MB on a touch device. */
-export const partCache = new PartCache((coarse ? 96 : 256) * 1024 * 1024);
+export const CACHE_BUDGET = (coarse ? 96 : 256) * 1024 * 1024;
+export const partCache = new PartCache(CACHE_BUDGET);

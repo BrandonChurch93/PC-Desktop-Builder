@@ -15,6 +15,7 @@ import type { GenOpts } from './world/parts/types';
 import { socketsFor } from './engine/queries';
 import { forcePlace } from './world/layout/force';
 import type { World } from './world/World';
+import { REELS, reelLength } from './world/reels';
 
 /** The install sequences: each runs on the Night Rig with that part taken out. */
 const INSTALLS: Record<string, { category: Category; id: string; opts: ActionOpts; without: (b: Build) => Build }> = {
@@ -214,6 +215,15 @@ export function installHook(world: World) {
       await world.settle();
     },
     async settle() { await world.settle(); },
+    /** A demo reel at a time in seconds, its bench and camera set at once, for stills. demoEnd gives the bench back. */
+    async demo(id: string, t: number) {
+      const r = REELS.find((x) => x.id === id);
+      if (!r) throw new Error(`no reel ${id}`);
+      world.director.still(r, t);
+      await world.settle();
+    },
+    async demoEnd() { world.director.end(); await world.settle(); },
+    demoLength: (id: string) => { const r = REELS.find((x) => x.id === id); return r ? reelLength(r) : 0; },
     renderer: () => world.rendererString(),
     stats: (seconds: number) => world.stats(seconds),
     /** firstFrameMs: to the preloader's first paint. preloadMs: to the preloader leaving, or null while it shows or when it did not run. */

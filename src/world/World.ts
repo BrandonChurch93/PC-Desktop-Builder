@@ -36,6 +36,7 @@ import { EXPLODE_REACH, Exploder } from './motion/explode';
 import { Hands } from './interact/hands';
 import { itemsOfPart } from './interact/pick';
 import { Room } from './room';
+import { Director } from './director';
 
 const FOV = 30;
 const EXPOSURE = 1.15;
@@ -56,6 +57,8 @@ const STUDIO_GLASS_CLAMP = 0.55;
 const MM = 0.001;
 /** How close the camera may come to its target, in meters: free, and focused on a part. Detail holds at these caps. */
 export const ZOOM_CAP = { free: 0.2, focused: 0.12 };
+/** How close a directed shot may bring the camera to its target, in meters. */
+const DIRECTED_MIN = 0.06;
 /** In the named views the rig spans about this many window heights across. */
 const FRAME_RIG_WIDTH = 1;
 const SPIN_IDLE = 9;
@@ -118,6 +121,7 @@ export class World {
   readonly airflow = new Airflow();
   readonly exploder: Exploder;
   readonly tour: Tour;
+  readonly director: Director;
   turntable!: Turntable;
   private airDirty = true;
   private glowAt = -Infinity;
@@ -157,6 +161,7 @@ export class World {
     this.airflow.group.userData.noAO = true;
     this.rig.group.add(this.airflow.group);
     this.choreo = new Choreo(this.rig, () => { this.dirty = true; });
+    this.director = new Director(this, store);
   }
 
   /**
@@ -338,13 +343,38 @@ export class World {
     if (!prev || s.load !== prev.load || s.build !== prev.build) this.rgb.temps = temps(s.build, s.load);
     if (!prev || s.inspect !== prev.inspect) this.setInspect(s);
     if (prev && s.quality !== prev.quality) this.applyQuality(s.quality);
-    this.tour.setEnabled(s.mode === 'showcase' && !s.reducedMotion && s.frozen === null && !s.inspect);
+    this.tour.setEnabled(this.tourWanted(s));
     if (prev && s.mode !== prev.mode && (s.mode === 'exploded' || prev.mode === 'exploded')) this.setExploded(s.mode === 'exploded', s.instant || s.frozen !== null ? 'instant' : s.reducedMotion ? 'fade' : 'motion');
     else if (!prev && s.mode === 'exploded') this.setExploded(true, 'instant');
     if (!prev || s.airflow !== prev.airflow || s.mode !== prev.mode) { this.airflow.group.visible = s.airflow && s.mode !== 'exploded'; this.airDirty = true; }
     if (!prev || s.frozen !== prev.frozen) { if (s.frozen !== null) this.time = s.frozen; }
     this.rgb.lighting = s.build.lighting;
     this.inspector.rgb.lighting = s.build.lighting;
+    this.dirty = true;
+  }
+
+  private tourWanted(s: State) { return s.mode === 'showcase' && !s.reducedMotion && s.frozen === null && !s.inspect && !this.directed; }
+
+  /**
+   * A demo reel holds the camera: the tour, the turntable's own turn and the camera glides of a mode change stand aside, the
+   * camera may come closer than a user's zoom, and fans spin in the Inspector as they do in the rig.
+   */
+  directed = false;
+  setDirected(on: boolean) {
+    this.directed = on;
+    this.controls.minDistance = on ? DIRECTED_MIN : ZOOM_CAP.free;
+    this.controls.enabled = !on && !this.store.getState().inspect;
+    this.tour.setEnabled(this.tourWanted(this.store.getState()));
+    if (on) this.inspector.spin = 0;
+    this.dirty = true;
+  }
+
+  /** The camera at a place, looking at a target, for a directed shot. */
+  place(pos: THREE.Vector3, target: THREE.Vector3) {
+    this.camera.position.copy(pos);
+    this.controls.target.copy(target);
+    this.controls.update();
+    this.viewName = null;
     this.dirty = true;
   }
 
@@ -429,7 +459,7 @@ export class World {
     this.controls.target.copy(saved.target);
     this.controls.update();
     this.viewName = saved.view;
-    this.tour.setEnabled(s.mode === 'showcase' && !s.reducedMotion && s.frozen === null && !s.inspect);
+    this.tour.setEnabled(this.tourWanted(s));
     await this.renderNow(1);
     return out;
   }
@@ -510,8 +540,9 @@ export class World {
   private setExploded(on: boolean, mode: 'instant' | 'motion' | 'fade') {
     const L = CASE_LAYOUTS[this.rig.caseId ?? ''];
     this.exploder.run(on, mode, L, false, () => this.afterExplode());
-    if (on && mode !== 'instant' && this.views.exploded) this.glide(this.views.exploded.pos, this.views.exploded.target, 1.6);
-    else if (!on && mode !== 'instant' && this.views.hero && this.viewName === null) this.glide(this.views.hero.pos, this.views.hero.target, 1.6);
+    const glides = mode !== 'instant' && !this.directed;
+    if (on && glides && this.views.exploded) this.glide(this.views.exploded.pos, this.views.exploded.target, 1.6);
+    else if (!on && glides && this.views.hero && this.viewName === null) this.glide(this.views.hero.pos, this.views.hero.target, 1.6);
     this.dirty = true;
   }
 
@@ -541,7 +572,7 @@ export class World {
   private setInspect(s: State) {
     const i = s.inspect;
     if (this.turntable) this.turntable.active = !!i;
-    this.controls.enabled = !i;
+    this.controls.enabled = !i && !this.directed;
     if (!i) { this.showingInspector = false; setGlassStage('room', this.roomGlassClamp(), GLASS_CARDS as GlassCard[]); this.post.setScene(this.scene, this.camera); this.dirty = true; return; }
     const opts: GenOpts = { detail: TIER_SETTINGS[this.tier].detail };
     if (i.finish) opts.finish = i.finish;
@@ -718,7 +749,8 @@ export class World {
       this.setTier(tier);
       return;
     }
-    if (!this.auto || this.warming || this.store.getState().quality !== 'auto') return;
+    // A reel holds the tier it started on: a step down mid reel rebuilds every part on camera.
+    if (!this.auto || this.warming || this.directed || this.store.getState().quality !== 'auto') return;
     this.auto = feedAuto(this.auto, ms, this.interacting || this.store.getState().held !== null);
     if (this.auto.tier !== this.tier) { this.setTier(this.auto.tier); this.onRetier?.(this.auto.tier); }
   }
@@ -736,7 +768,7 @@ export class World {
     const blur = THREE.MathUtils.smoothstep(omega, BLUR_FROM, BLUR_TO);
     const rotors = this.showingInspector ? this.inspector.part?.rotors ?? [] : this.rig.rotors;
     for (const r of rotors) {
-      const a = this.showingInspector ? 0 : this.spinAngle * r.speed;
+      const a = this.showingInspector && !this.directed ? 0 : this.spinAngle * r.speed;
       r.obj.rotation[r.axis] = a;
       if (r.disc && r.blades) {
         r.disc.visible = blur > 0.01;
@@ -754,7 +786,7 @@ export class World {
     }
     this.rgb.power = this.level.power;
     this.rgb.update(this.time);
-    if (this.showingInspector) { this.turntable.step(dt, frozen !== null); this.inspector.rgb.update(this.time); this.inspector.updateGlow(); }
+    if (this.showingInspector) { if (!this.directed) this.turntable.step(dt, frozen !== null); this.inspector.rgb.update(this.time); this.inspector.updateGlow(); }
     this.writeGlow(frozen !== null);
     this.showcaseRoom(dt, frozen !== null, s);
     const led = this.rig.items.get('psu')?.part.movers.led as THREE.Mesh | undefined;
